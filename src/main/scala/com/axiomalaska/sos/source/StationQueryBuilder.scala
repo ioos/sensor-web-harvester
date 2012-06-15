@@ -1,0 +1,203 @@
+package com.axiomalaska.sos.source
+
+import org.squeryl.PrimitiveTypeMode._
+import org.squeryl.SessionFactory
+import org.squeryl.Session
+import org.squeryl.adapters.PostgreSqlAdapter
+import com.axiomalaska.sos.source.data.DatabaseStation
+import com.axiomalaska.sos.source.data.DatabaseSensor
+import com.axiomalaska.sos.source.data.Source
+import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.data.StationDatabase
+
+class StationQueryBuilder {
+
+  def withStationQuery[A](op: StationQuery => A): A = {
+    val stationQuery = new StationQueryImp()
+    try {
+      op(stationQuery)
+    } finally {
+      stationQuery.close()
+    }
+  }
+}
+
+trait StationQuery{
+  def getStations(source: Source): List[DatabaseStation]
+  def getAllSource():List[Source]
+  def getSensors(station:DatabaseStation):List[DatabaseSensor]
+  def createSource(name: String): Source
+  def getSource(id:Long):Source
+  def getSource(station:DatabaseStation):Source
+  def createStation(station: DatabaseStation): DatabaseStation
+  def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon]
+  def getObservedProperties(station: DatabaseStation,
+    sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
+  def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation)
+  def associateSensorToStation(station: DatabaseStation, sensor: DatabaseSensor)
+  def getObservedProperty(foreignTag: String, source: Source): Option[ObservedProperty]
+  def updateObservedProperty(databaseObservedProperty: ObservedProperty,
+    newObservedProperty: ObservedProperty)
+  def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
+  def getPhenomenon(id:Long):DatabasePhenomenon 
+  def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon
+  def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
+  def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
+}
+
+private class StationQueryImp extends StationQuery {
+  Class.forName("org.postgresql.Driver")
+  
+  private val session = createSession()
+
+  SessionFactory.concreteFactory = Some(() => session)
+  
+  // ---------------------------------------------------------------------------
+  // StationQuery Members
+  // ---------------------------------------------------------------------------
+  def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon ={
+    using(session){
+      StationDatabase.phenomena.insert(phenomenon)
+    }
+  }
+  def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor ={
+    using(session){
+      val vaildSensor = new DatabaseSensor(sensor.tag, sensor.description, 
+          databaseStation.id, sensor.depth)
+      StationDatabase.sensors.insert(vaildSensor)
+    }
+  }
+  
+  def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon) {
+    using(session) {
+      sensor.phenomena.associate(phenonomen)
+    }
+  }
+  
+  def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty = {
+    using(session) {
+      StationDatabase.observedProperties.insert(observedProperty)
+    }
+  }
+  
+  def updateObservedProperty(databaseObservedProperty: ObservedProperty,
+    newObservedProperty: ObservedProperty) {
+    using(session) {
+      update(StationDatabase.observedProperties)(s =>
+        where(s.foreign_tag === databaseObservedProperty.foreign_tag and
+            s.source_id === databaseObservedProperty.source_id and 
+            s.depth === databaseObservedProperty.depth)
+          set (s.foreign_units := newObservedProperty.foreign_units,
+            s.phenomenon_id := newObservedProperty.phenomenon_id))
+    }
+  }
+  
+  def getObservedProperty(foreignTag: String, source: Source): Option[ObservedProperty] = {
+    using(session) {
+      val observedProperties = source.observedProperties.where(observedProperty =>
+        observedProperty.foreign_tag === foreignTag)
+
+      return observedProperties.headOption
+    }
+  }
+  
+  def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation) {
+    using(session) {
+      update(StationDatabase.stations)(s =>
+        where(s.id === originalStation.id)
+          set (s.foreign_tag := newStation.foreign_tag,
+            s.latitude := newStation.latitude, s.longitude := newStation.longitude))
+    }
+  }
+  
+  def getObservedProperties(station: DatabaseStation,
+    sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty] ={
+    using(session) {
+      val source = station.source.head
+      
+      source.observedProperties.where(op => 
+        op.phenomenon_id === phenomenon.id and op.depth === sensor.depth).toList
+    }
+  }
+  
+  def getSource(id:Long):Source ={
+    using(session) {
+      return StationDatabase.sources.lookup(id).get
+    }
+  }
+  
+  def getSource(station:DatabaseStation):Source ={
+    using(session) {
+      return station.source.head
+    }
+  }
+  
+  def getStations(source: Source): List[DatabaseStation] = {
+    using(session) {
+      return source.stations.toList
+    }
+  }
+  
+  def createStation(station: DatabaseStation): DatabaseStation = {
+    using(session) {
+      return StationDatabase.stations.insert(station)
+    }
+  }
+  
+  def getAllSource():List[Source] ={
+    using(session) {
+      return StationDatabase.sources.toList
+    }
+  }
+  
+  def createSource(name: String): Source = {
+    using(session) {
+    	return StationDatabase.sources.insert(new Source(name))
+    }
+  }
+  
+  def getSensors(station:DatabaseStation):List[DatabaseSensor] ={
+    using(session) {
+      station.sensors.toList
+    }
+  }
+  
+  def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon] ={
+    using(session) {
+      sensor.phenomena.toList
+    }
+  }
+  
+  def getPhenomenon(id:Long):DatabasePhenomenon ={
+    using(session) {
+      StationDatabase.phenomena.lookup(id).get
+    }
+  }
+  
+  def associateSensorToStation(station: DatabaseStation, sensor: DatabaseSensor) {
+    using(session) {
+      station.sensors.associate(sensor)
+    }
+  }
+  
+  // ---------------------------------------------------------------------------
+  // Public Members
+  // ---------------------------------------------------------------------------
+  
+  def close(){
+    session.close
+  }
+  
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+  
+  private def createSession(): org.squeryl.Session = {
+    Session.create(
+      java.sql.DriverManager.getConnection(
+        "jdbc:postgresql://localhost:5432/sensor",
+        "sensoruser", "sensor"),
+      new PostgreSqlAdapter)
+  }
+}
