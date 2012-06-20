@@ -4,6 +4,8 @@ import org.junit._
 import Assert._
 import com.axiomalaska.sos.source.stationupdater.RawsStationUpdater
 import com.axiomalaska.sos.source.stationupdater.NdbcStationUpdater
+import com.axiomalaska.sos.tools.HttpSender
+import org.jsoup.Jsoup
 
 @Test
 class AppTest {
@@ -28,16 +30,18 @@ class AppTest {
 //    })
 //  }
   
-  @Test
-  def updateSource(){
-    val queryBuilder = new StationQueryBuilder()
-
-    queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new NdbcStationUpdater(stationQuery, None)
-      
-      stationUpdater.update()
-    })
-  }
+//  @Test
+//  def updateSource(){
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor",
+//        "sensoruser", "sensor")
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new RawsStationUpdater(stationQuery, None)
+//      
+//      stationUpdater.update()
+//    })
+//  }
 }
 
 

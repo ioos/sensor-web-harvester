@@ -1,5 +1,8 @@
 package com.axiomalaska.sos.source
 
+/**
+ * The units for observation measurements 
+ */
 object Units {
   val NONE = ""
   val INCHES = "inches"

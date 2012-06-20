@@ -37,7 +37,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   private val log = Logger.getRootLogger()
   private val foreignIdParser = """/cgi-bin/rawMAIN\.pl\?(.*)""".r
   private val labelParser = """.*<strong>(.*)</strong>.*""".r
-  private val latLongParser = """(-?\d+). (\d+)' (\d+)\"""".r
+  private val latLongParser = """(-?\d+). (\d+)' (\d+).\"""".r
   private val yearFormatDate = new SimpleDateFormat("yy")
   private val monthFormatDate = new SimpleDateFormat("MM")
   private val dayFormatDate = new SimpleDateFormat("dd")
@@ -50,7 +50,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
 
   def update() {
-    val sourceStationSensors = getSourceStations(source)
+    val sourceStationSensors = getSourceStations()
 
     val databaseStations = stationQuery.getStations(source)
 
@@ -61,13 +61,14 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   // Private Members
   // ---------------------------------------------------------------------------
 
-  private def getSourceStations(source: Source): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  private def getSourceStations(): 
+	  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
     val stationForeignIds = getAllStationForeignIds
     val size = stationForeignIds.length - 1
     val stationSensorsCollection = for {
       (stationForeignId, index) <- stationForeignIds.zipWithIndex
-      val station = createStation(stationForeignId, source)
+      val station = createStation(stationForeignId)
       if (withInBoundingBox(station))
       val sourceObservedProperties = getSourceObservedProperties(station, source)
       val databaseObservedProperties = 
@@ -103,15 +104,16 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     source: Source): List[ObservedProperty] = {
     val sensorNames = getSensorNames(station.foreign_tag)
     val sourceObservedProperties = sensorNames.flatMap(sensorName =>
-      getObservedProperty(sensorName, source))
+      getObservedProperty(station, sensorName))
 
     return sourceObservedProperties
   }
   
   private def getRawsRegionUrls():List[String] =
-    List("http://www.raws.dri.edu/aklst.html", 
-        "http://www.raws.dri.edu/azlst.html", 
-        "http://www.raws.dri.edu/ncalst.html", 
+    List(
+        "http://www.raws.dri.edu/aklst.html", 
+        "http://www.raws.dri.edu/azlst.html",
+        "http://www.raws.dri.edu/ncalst.html",
         "http://www.raws.dri.edu/ccalst.html", 
         "http://www.raws.dri.edu/scalst.html", 
         "http://www.raws.dri.edu/colst.html", 
@@ -155,7 +157,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         "http://www.raws.dri.edu/nylst.html", 
         "http://www.raws.dri.edu/va_wvlst.html")
 
-  private def createStation(foreignId: String, source: Source): DatabaseStation = {
+  private def createStation(foreignId: String): DatabaseStation = {
     val siteDoc =
       Jsoup.parse(httpSender.sendGetMessage(
         "http://www.raws.dri.edu/cgi-bin/wea_info.pl?" + foreignId))
@@ -163,6 +165,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     val label = getStationName(siteDoc)
     val lat = getLatitude(siteDoc)
     val lon = getLongitude(siteDoc)
+    
+    println(label)
 
     return new DatabaseStation(label, foreignId, source.id, lat, lon)
   }
@@ -252,7 +256,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     return sensorNames.toList
   }
 
-  private def getObservedProperty(id: String, source: Source): Option[ObservedProperty] = {
+  private def getObservedProperty(station: DatabaseStation, id: String): Option[ObservedProperty] = {
     id match {
       case "Precipitation" => {
         return new Some[ObservedProperty](
@@ -263,7 +267,19 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.PERCENT,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY))
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_AVERAGE))
+      }
+      case "MaximumRelativeHumidity" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.PERCENT,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_MAXIMUM))
+      }
+      case "MinimumRelativeHumidity" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.PERCENT,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_MINIMUM))
       }
       case "BarometricPressure" => {
         return new Some[ObservedProperty](
@@ -306,6 +322,30 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
             SensorPhenomenonIds.AIR_TEMPERATURE))
+      }
+      case "AIRTEMP.1FOOT" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, 0.3048))
+      }
+      case "AIRTEMP.3FOOT" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, 0.9144))
+      }
+      case "AIRTEMP.8FOOT" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, 2.4384))
+      }
+      case "AIRTEMP.15FOOT" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, 4.572))
       }
       case "MaximumAirTemperature" => {
         return new Some[ObservedProperty](
@@ -364,10 +404,9 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       }
       case "SoilTemperauter2ndSensor" => {
         return None
-        //        return new Some[ObservedProperty](
-        //          stationUpdater.createObservedProperty(Sensors.GROUND_TEMPERATURE, id,
-        //            source, "Soil Temperature 2 sensor", Units.CELSIUS, 
-        //            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED))
+      }
+      case "SolarRadiation2NDS" => {
+        return None
       }
       case "SolarRadiation" => {
         return new Some[ObservedProperty](
@@ -387,6 +426,12 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
             source, Units.MILLIMETERS,
             SensorPhenomenonIds.SNOW_PILLOW))
       }
+      case "SOILMOISTURE%" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.PERCENT, 
+            SensorPhenomenonIds.SOIL_MOISTURE_PERCENT))
+      }
       case "TimeofDay" => {
         return None
       }
@@ -403,6 +448,48 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return None
       }
       case "RelativeHumidity24HrHigh" => {
+        return None
+      }
+      case "RelativeHumidity24HrLow" => {
+        return None
+      }
+      case "AirTemperture24HourLow" => {
+        return None
+      }
+      case "AirTemperture24HourHigh" => {
+        return None
+      }
+      case "RelativeHumidity12HrLow" => {
+        return None
+      }
+      case "RelativeHumidity12HrHigh" => {
+        return None
+      }
+      case "AirTemperture12HourHigh" => {
+        return None
+      }
+      case "AirTemperture12HourLow" => {
+        return None
+      }
+      case "Visibility" => {
+        return None
+      }
+      case "RaingaugeNumber2" => {
+        return None
+      }
+      case "AvePAR" => {
+        return None
+      }
+      case "MiscellaneousNumber1" => {
+        return None
+      }
+      case "MiscellaneousNumber3" => {
+        return None
+      }
+      case "MiscellaneousNumber4" => {
+        return None
+      }
+      case "SOILM.TENS.cBARS" => {
         return None
       }
       case "WindDirection2" => {

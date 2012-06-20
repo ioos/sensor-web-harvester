@@ -7,13 +7,12 @@ case class BoundingBox(southWestCorner: Location, northEastCorner: Location)
 
 class GeoTools {
 	/**
-	 * Test if the station is within the bounding box setup by the North West Corner
+	 * Test if a Location is within the bounding box setup by the North West Corner
 	 * and the South West corner. 
 	 * 
-	 * @param station - the station to test
-	 * @param southWestCorner - the South West location on the bounding box
-	 * @param northEastCorner - the North East location on the bounding box
-	 * @return
+	 * @param stationLocation - the station location to test with the bounding box
+	 * @param boundingBox - the bounding box to station location
+	 * @return true if within bounding box, false otherwise
 	 */
 	def isStationWithinRegion(stationLocation:Location, 
 			boundingBox:BoundingBox):Boolean = {
@@ -40,8 +39,7 @@ class GeoTools {
 	 * If the south west longitude is greater than the north east longitude, then
 	 * the bounding box crosses over 180 longitude. 
 	 * 
-	 * @param southWestCorner - the South West location on the bounding box
-	 * @param northEastCorner - the North East location on the bounding box
+	 * @param boundingBox - the bounding box to station location
 	 * @return
 	 */
 	private def doesBoundingBoxGoOver180Longitude(boundingBox:BoundingBox):Boolean ={

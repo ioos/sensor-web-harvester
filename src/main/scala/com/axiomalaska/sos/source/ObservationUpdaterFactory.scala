@@ -13,6 +13,9 @@ import com.axiomalaska.sos.source.data.SourceId
 
 class ObservationUpdaterFactory {
 
+  /**
+   * Build a RAWS ObservationUpdater
+   */
   def buildRawsObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -25,6 +28,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a NOAA NOS CO-OPS ObservationUpdater
+   */
   def buildNoaaNosCoOpsObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -37,6 +43,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a HADS ObservationUpdater
+   */
   def buildHadsObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -49,6 +58,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a NDBC ObservationUpdater
+   */
   def buildNdbcObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -61,6 +73,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a SnoTel ObservationUpdater
+   */
   def buildSnotelObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -73,6 +88,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a USGS Water ObservationUpdater
+   */
   def buildUsgsWaterObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 
@@ -85,6 +103,9 @@ class ObservationUpdaterFactory {
     return observationUpdater
   }
   
+  /**
+   * Build a NOAA Weather ObservationUpdater
+   */
   def buildNoaaWeatherObservationUpdater(sosUrl: String, 
       logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
 

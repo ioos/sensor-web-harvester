@@ -11,10 +11,23 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.StationDatabase
 
-class StationQueryBuilder {
+/**
+ * The StationQueryBuilder builds the StationQuery object that is used to 
+ * interact with the database. The StationQueryBuilder is the only way to build
+ * a StationQuery, because this prevents a user from not closing the database connection
+ * once they are done with it. The StationQueryBuilder should be used like below
+ * 
+    val queryBuilder = new StationQueryBuilder()
+
+    queryBuilder.withStationQuery(stationQuery => {
+      // perform code with the stationQuery object. 
+    })
+ */
+class StationQueryBuilder(url:String, 
+	user:String, password:String) {
 
   def withStationQuery[A](op: StationQuery => A): A = {
-    val stationQuery = new StationQueryImp()
+    val stationQuery = new StationQueryImp(url, user, password)
     try {
       op(stationQuery)
     } finally {
@@ -23,6 +36,9 @@ class StationQueryBuilder {
   }
 }
 
+/**
+ * The StationQuery is the object used to interact with the database
+ */
 trait StationQuery{
   def getStations(source: Source): List[DatabaseStation]
   def getAllSource():List[Source]
@@ -46,7 +62,8 @@ trait StationQuery{
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
 }
 
-private class StationQueryImp extends StationQuery {
+private class StationQueryImp(url:String, 
+	user:String, password:String) extends StationQuery {
   Class.forName("org.postgresql.Driver")
   
   private val session = createSession()
@@ -195,9 +212,7 @@ private class StationQueryImp extends StationQuery {
   
   private def createSession(): org.squeryl.Session = {
     Session.create(
-      java.sql.DriverManager.getConnection(
-        "jdbc:postgresql://localhost:5432/sensor",
-        "sensoruser", "sensor"),
+      java.sql.DriverManager.getConnection(url, user, password),
       new PostgreSqlAdapter)
   }
 }
