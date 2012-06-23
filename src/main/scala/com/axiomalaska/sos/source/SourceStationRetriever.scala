@@ -19,7 +19,7 @@ class SourceStationRetriever(
       for {
         station <- stationQuery.getStations(source)
       } yield {
-    	  new LocalStation(station, stationQuery)
+    	  new LocalStation(source, station, stationQuery)
       }
   }
 }

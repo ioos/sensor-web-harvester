@@ -307,7 +307,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     val lonParser(lon) = result
     val nameParser(name) = doc.getElementsByTag("h1")(0).text()
     
-    new DatabaseStation(name, foreignId, source.id, lat.toDouble, lon.toDouble)
+    new DatabaseStation(name, foreignId, foreignId, source.id, lat.toDouble, lon.toDouble)
   }
   
   private def getAllForeignIds():List[String] ={

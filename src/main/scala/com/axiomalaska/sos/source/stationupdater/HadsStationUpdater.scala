@@ -385,7 +385,7 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
     val foreignIdParser(foreignId) = element.attr("HREF")
 
     return getLatLon(foreignId) match {
-      case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, source.id, lat, lon))
+      case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon))
       case _ => None
     }
   }

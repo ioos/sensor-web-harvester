@@ -43,7 +43,7 @@ trait StationQuery{
   def getStations(source: Source): List[DatabaseStation]
   def getAllSource():List[Source]
   def getSensors(station:DatabaseStation):List[DatabaseSensor]
-  def createSource(name: String): Source
+  def createSource(name: String, tag:String): Source
   def getSource(id:Long):Source
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
@@ -168,9 +168,9 @@ private class StationQueryImp(url:String,
     }
   }
   
-  def createSource(name: String): Source = {
+  def createSource(name: String, tag:String): Source = {
     using(session) {
-    	return StationDatabase.sources.insert(new Source(name))
+    	return StationDatabase.sources.insert(new Source(name, tag))
     }
   }
   

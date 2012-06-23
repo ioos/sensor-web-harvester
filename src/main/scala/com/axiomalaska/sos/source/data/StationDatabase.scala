@@ -52,7 +52,7 @@ object StationDatabase extends Schema {
       (autoIncremented("sensor_id_seq"))))
 }
 
-class Source(val name: String) extends KeyedEntity[Long] {
+class Source(val name: String, val tag:String) extends KeyedEntity[Long] {
   val id: Long = -1
   
   lazy val stations: OneToMany[DatabaseStation] = 
@@ -62,7 +62,7 @@ class Source(val name: String) extends KeyedEntity[Long] {
     StationDatabase.sourceObservedPropertyAssociation.left(this)
 }
 
-class DatabaseStation(val name: String, val foreign_tag: String,
+class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
   val source_id: Long, val latitude: Double, val longitude: Double) 
   extends KeyedEntity[Long] {
   val id: Long = -1

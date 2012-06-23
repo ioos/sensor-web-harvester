@@ -291,7 +291,8 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
       case s: SiteInfoType => {
         s.getGeoLocation().getGeogLocation() match {
           case p: LatLonPointType => {
-            val station = new DatabaseStation(s.getSiteName, s.getSiteCodeArray(0).getStringValue, source.id,
+            val foreignId = s.getSiteCodeArray(0).getStringValue
+            val station = new DatabaseStation(s.getSiteName, foreignId, foreignId, source.id,
               p.getLatitude, p.getLongitude)
 
             return Some(station)

@@ -165,10 +165,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     val label = getStationName(siteDoc)
     val lat = getLatitude(siteDoc)
     val lon = getLongitude(siteDoc)
-    
-    println(label)
 
-    return new DatabaseStation(label, foreignId, source.id, lat, lon)
+    return new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon)
   }
   
   private def getStationName(siteDoc: Document): String = {

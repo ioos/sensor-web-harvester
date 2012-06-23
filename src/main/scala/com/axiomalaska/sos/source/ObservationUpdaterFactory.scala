@@ -17,7 +17,7 @@ class ObservationUpdaterFactory {
    * Build a RAWS ObservationUpdater
    */
   def buildRawsObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.RAWS)
     val observationRetriever = new RawsObservationRetriever(stationQuery)
@@ -32,7 +32,7 @@ class ObservationUpdaterFactory {
    * Build a NOAA NOS CO-OPS ObservationUpdater
    */
   def buildNoaaNosCoOpsObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_NOS_CO_OPS)
     val observationRetriever = new NoaaNosCoOpsObservationRetriever(stationQuery)
@@ -47,7 +47,7 @@ class ObservationUpdaterFactory {
    * Build a HADS ObservationUpdater
    */
   def buildHadsObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.HADS)
     val observationRetriever = new HadsObservationRetriever(stationQuery)
@@ -62,7 +62,7 @@ class ObservationUpdaterFactory {
    * Build a NDBC ObservationUpdater
    */
   def buildNdbcObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC)
     val observationRetriever = new NdbcObservationRetriever(stationQuery)
@@ -77,7 +77,7 @@ class ObservationUpdaterFactory {
    * Build a SnoTel ObservationUpdater
    */
   def buildSnotelObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.SNOTEL)
     val observationRetriever = new SnoTelObservationRetriever(stationQuery)
@@ -92,7 +92,7 @@ class ObservationUpdaterFactory {
    * Build a USGS Water ObservationUpdater
    */
   def buildUsgsWaterObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.USGSWATER)
     val observationRetriever = new UsgsWaterObservationRetriever(stationQuery)
@@ -107,7 +107,7 @@ class ObservationUpdaterFactory {
    * Build a NOAA Weather ObservationUpdater
    */
   def buildNoaaWeatherObservationUpdater(sosUrl: String, 
-      logger: Logger, stationQuery:StationQuery): ObservationUpdater = {
+      stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_WEATHER)
     val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery)

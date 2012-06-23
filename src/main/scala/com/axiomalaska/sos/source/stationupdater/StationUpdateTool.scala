@@ -68,7 +68,13 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
 
     val sensors = observedProperties.map(observedProperty => {
       val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
-      (new DatabaseSensor("", "", station.id, observedProperty.depth), List(phenomenon))
+      val description = if (observedProperty.depth != 0) {
+        phenomenon.name + " with depth " + observedProperty.depth + " m"
+      } else {
+    	phenomenon.name
+      }
+      (new DatabaseSensor(phenomenon.tag, description, station.id, observedProperty.depth),
+          List(phenomenon))
     })
 
     return sensors
