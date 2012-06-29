@@ -5,7 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.Date
-
 import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.data.ObservationCollection
 import com.axiomalaska.sos.data.SosSensor
@@ -19,14 +18,14 @@ import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
-
 import scala.collection.JavaConversions._
-
 import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
 import org.cuahsi.waterML.x11.TsValuesSingleVariableType
 import org.cuahsi.waterML.x11.ValueSingleVariable
+import org.apache.log4j.Logger
 
-class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
+class UsgsWaterObservationRetriever(private val stationQuery:StationQuery, 
+    private val logger: Logger = Logger.getRootLogger())
 	extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------

@@ -36,15 +36,15 @@ case class SnotelSensor(observedpropertylabel: String,
   ordinal: Int, sensorheight: Double)
 
 class SnoTelStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
 
   private val httpSender = new HttpSender()
-  private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val log = Logger.getRootLogger()
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val source = stationQuery.getSource(SourceId.SNOTEL)
   private val foreignIdParser = """.*<a href="http://www\.wcc\.nrcs\.usda\.gov/nwcc/site\?sitenum=(\d+)">Site Info</a>.*""".r
   private val labelParser = """.*<font size="\+2">.*: (.*)</font>.*""".r
@@ -62,6 +62,8 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
 
+  val name = "SnoTel"
+    
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -70,7 +72,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 
     val stations = createStations()
     val size = stations.length - 1
-    log.info("Total number of stations not filtered: " + size)
+    logger.info("Total number of stations not filtered: " + size)
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex
       if (withInBoundingBox(station))
@@ -81,10 +83,10 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] done processing station: " + station.name)
+      logger.info("[" + index + " of " + size + "] done processing station: " + station.name)
       (station, sensors)
     }
-    log.info("finished with stations")
+    logger.info("finished with stations")
 
     return stationSensorsCollection
   }
@@ -124,7 +126,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       
       return filteredSnotelSensors.toList
     } catch {
-      case e: Exception => log.error("getSnotelSensor: " + e.getMessage())
+      case e: Exception => logger.error("getSnotelSensor: " + e.getMessage())
     }
 
     return Nil
@@ -345,7 +347,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       case "DIAG" => None
       case "RHENC" => None // Relative Humidity Enclosure
       case _ => {
-        log.error("[" + source.name + "] observed propery: " + snotelSensor.observedpropertylabel +
+        logger.error("[" + source.name + "] observed propery: " + snotelSensor.observedpropertylabel +
           " == " + snotelSensor.observedpropertylongcode + " is not processed correctly.")
         return None
       }

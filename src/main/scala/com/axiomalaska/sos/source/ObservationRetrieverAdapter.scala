@@ -11,10 +11,11 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
-
 import scala.collection.JavaConversions._
+import org.apache.log4j.Logger
 
-class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever) 
+class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever, 
+    private val logger: Logger = Logger.getRootLogger()) 
 	extends ObservationRetriever{
 
   // ---------------------------------------------------------------------------
@@ -38,7 +39,7 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
     } else if (filteredObservationValuesCollection.size == 0) {
       return null
     } else {
-      println("Error more than one observationValues")
+      logger.error("Error more than one observationValues")
       return null
     }
   }

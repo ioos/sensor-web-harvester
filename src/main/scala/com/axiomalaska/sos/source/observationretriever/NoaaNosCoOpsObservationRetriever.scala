@@ -24,7 +24,10 @@ import com.axiomalaska.sos.source.data.ObservedProperty
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 
-class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery) 
+import org.apache.log4j.Logger
+
+class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery, 
+    private val logger: Logger = Logger.getRootLogger()) 
 	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------

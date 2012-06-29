@@ -21,16 +21,17 @@ import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
 
-class HadsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater  {
+class HadsStationUpdater(
+  private val stationQuery: StationQuery,
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater  {
 
-  private val stationUpdater = new StationUpdateTool(stationQuery)
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val source = stationQuery.getSource(SourceId.HADS)
   private val httpSender = new HttpSender()
   private val foreignIdParser = """.*nesdis_id=(.*)""".r
   private val parseDate = new SimpleDateFormat("yyyy")
   private val sensorParser = """\n\s([A-Z]{2}[A-Z0-9]{0,1})\(\w+\)""".r
-  private val log = Logger.getRootLogger()
   private val geoTools = new GeoTools()
   
   // ---------------------------------------------------------------------------
@@ -45,6 +46,8 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "HADS"
+  
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -54,7 +57,7 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
 
     val stations = createSourceStations()
     val size = stations.length - 1
-    log.info("Total number of unfiltered stations: " + stations.length)
+    logger.info("Total number of unfiltered stations: " + stations.length)
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex
       if (withInBoundingBox(station))
@@ -64,11 +67,11 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
     
-    log.info("finished with " + stationSensorsCollection.size + " stations")
+    logger.info("finished with " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
@@ -356,7 +359,7 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
             SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED))
       }
       case _ => {
-        log.error("[" + source.name + "] observed propery: " + id +
+        logger.error("[" + source.name + "] observed propery: " + id +
           " is not processed correctly.")
         return None
       }

@@ -33,10 +33,10 @@ class ObservationUpdaterFactory {
   def buildRawsObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.RAWS)
-    val observationRetriever = new RawsObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.RAWS, logger)
+    val observationRetriever = new RawsObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -49,10 +49,10 @@ class ObservationUpdaterFactory {
   def buildNoaaNosCoOpsObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_NOS_CO_OPS)
-    val observationRetriever = new NoaaNosCoOpsObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_NOS_CO_OPS, logger)
+    val observationRetriever = new NoaaNosCoOpsObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -65,10 +65,10 @@ class ObservationUpdaterFactory {
   def buildHadsObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger= Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.HADS)
-    val observationRetriever = new HadsObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.HADS, logger)
+    val observationRetriever = new HadsObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -81,10 +81,10 @@ class ObservationUpdaterFactory {
   def buildNdbcObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC)
-    val observationRetriever = new NdbcObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC, logger)
+    val observationRetriever = new NdbcObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -97,10 +97,10 @@ class ObservationUpdaterFactory {
   def buildSnotelObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.SNOTEL)
-    val observationRetriever = new SnoTelObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.SNOTEL, logger)
+    val observationRetriever = new SnoTelObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -113,10 +113,10 @@ class ObservationUpdaterFactory {
   def buildUsgsWaterObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.USGSWATER)
-    val observationRetriever = new UsgsWaterObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.USGSWATER, logger)
+    val observationRetriever = new UsgsWaterObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     
@@ -129,10 +129,10 @@ class ObservationUpdaterFactory {
   def buildNoaaWeatherObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_WEATHER)
-    val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_WEATHER, logger)
+    val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery, logger)
 
-    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, retrieverAdapter)
     

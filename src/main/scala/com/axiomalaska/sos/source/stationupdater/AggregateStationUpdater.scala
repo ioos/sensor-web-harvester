@@ -2,29 +2,36 @@ package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
+import org.apache.log4j.Logger
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
 
   def update(){
-    getStationUpdaters().par.foreach(_.update)
+    for(stationUpdater <- getStationUpdaters()){
+      logger.info("----- Starting updating source " + stationUpdater.name + " ------")
+      stationUpdater.update()
+    }
   }
+  
+  val name = "Aggregate"
   
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
 
   private def getStationUpdaters():List[StationUpdater] = {
-    List(new HadsStationUpdater(stationQuery, boundingBox), 
-        new NdbcStationUpdater(stationQuery, boundingBox),
-        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox),
-        new NoaaWeatherStationUpdater(stationQuery, boundingBox),
-        new RawsStationUpdater(stationQuery, boundingBox),
-        new SnoTelStationUpdater(stationQuery, boundingBox),
-        new UsgsWaterStationUpdater(stationQuery, boundingBox))
+    List(new HadsStationUpdater(stationQuery, boundingBox, logger), 
+        new NdbcStationUpdater(stationQuery, boundingBox, logger),
+        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
+        new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
+        new RawsStationUpdater(stationQuery, boundingBox, logger),
+        new SnoTelStationUpdater(stationQuery, boundingBox, logger),
+        new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
   }
 }

@@ -22,7 +22,10 @@ import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
 
-class HadsObservationRetriever(private val stationQuery:StationQuery) 
+import org.apache.log4j.Logger
+
+class HadsObservationRetriever(private val stationQuery:StationQuery, 
+    private val logger: Logger = Logger.getRootLogger()) 
 	extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------

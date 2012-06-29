@@ -11,8 +11,8 @@ import com.axiomalaska.sos.source.StationQuery
 
 import scala.collection.mutable
 
-class StationUpdateTool(private val stationQuery:StationQuery) {
-  private val log = Logger.getRootLogger()
+class StationUpdateTool(private val stationQuery:StationQuery, 
+  private val logger: Logger = Logger.getRootLogger()) {
   
   // ---------------------------------------------------------------------------
   // Public Members
@@ -35,7 +35,7 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
           if (!areDoublesEquals(databaseStation.latitude, sourceStation.latitude) || 
               !areDoublesEquals(databaseStation.longitude, sourceStation.longitude)) {
             stationQuery.updateStation(databaseStation, sourceStation)
-            log.info("Updating Station " + databaseStation.name)
+            logger.info("Updating Station " + databaseStation.name)
           }
 
           val databaseSenors = stationQuery.getSensors(databaseStation)
@@ -52,20 +52,20 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
           }
 
           if (createdSensors.nonEmpty) {
-            log.info("Association Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
+            logger.info("Association Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
               " to Station: " + sourceStation.name)
           }
         }
         case None => {
           val databaseStation = stationQuery.createStation(sourceStation)
-          log.info("Created new station: " + databaseStation.name)
+          logger.info("Created new station: " + databaseStation.name)
           
           for ((sourceSensor, phenomena) <- sourceSensors) {
             val createdSensor = stationQuery.createSensor(databaseStation, sourceSensor)
             phenomena.foreach(phenomenon =>
               stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
           }
-          log.info("Created new sensors: " + sourceSensors.map(s => s._1.tag + ":" + s._1.depth).mkString(", "))
+          logger.info("Created new sensors: " + sourceSensors.map(s => s._1.tag + ":" + s._1.depth).mkString(", "))
         }
       }
     }
@@ -102,7 +102,7 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)
-          log.info("creating new observedProperties " + observedProperty.foreign_tag)
+          logger.info("creating new observedProperties " + observedProperty.foreign_tag)
           
           newObservedProperties
         }

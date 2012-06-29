@@ -34,10 +34,15 @@ object Main {
   }
   
   private def updateSos(args:Array[String]){
-      val databaseUrl = args(0)
-      val databaseUsername = args(1)
-      val databasePassword = args(2)
-      val sosUrl = args(3)
+      val sosUrl = args(0)
+      val databaseUrl = args(1)
+      val databaseUsername = args(2)
+      val databasePassword = args(3)
+      
+      println("SOS URL: " + sosUrl)
+      println("Database URL: " + databaseUrl)
+      println("Database Username: " + databaseUsername)
+      println("Database Password: " + databasePassword)
       val sosManager = new SosSourcesManager(databaseUrl,
         databaseUsername, databasePassword, sosUrl);
 

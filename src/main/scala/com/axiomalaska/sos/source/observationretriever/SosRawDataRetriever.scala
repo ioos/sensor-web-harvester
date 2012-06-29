@@ -11,7 +11,9 @@ import net.opengis.sos.x10.GetObservationDocument
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.tools.HttpSender
 
-class SosRawDataRetriever {
+import org.apache.log4j.Logger
+
+class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
   private val httpSender = new HttpSender()
   

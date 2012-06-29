@@ -19,7 +19,10 @@ import java.util.TimeZone
 import com.axiomalaska.sos.source.data.ObservationValues
 import scala.collection.JavaConversions._
 
-class NdbcObservationRetriever(private val stationQuery:StationQuery)
+import org.apache.log4j.Logger
+
+class NdbcObservationRetriever(private val stationQuery:StationQuery, 
+    private val logger: Logger = Logger.getRootLogger())
 	extends ObservationValuesCollectionRetriever {
   
   private val valueParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\n""".r

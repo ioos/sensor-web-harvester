@@ -1,6 +1,7 @@
 package com.axiomalaska.sos.source
 
 import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
+import org.apache.log4j.Logger
 
 /**
  * This class manages updating the database with all the stations from all the 
@@ -10,16 +11,16 @@ class MetadataDatabaseManager(
     private val databaseUrl:String, 
 	private val databaseUser:String, 
 	private val databasePassword:String,
-	private val boundingBox:BoundingBox) {
+	private val boundingBox:BoundingBox, 
+	private val logger: Logger = Logger.getRootLogger()) {
 
-  def update(){
+  def update() {
     val factory = new ObservationUpdaterFactory()
     val queryBuilder = new StationQueryBuilder(
       databaseUrl, databaseUser, databasePassword)
 
-      
     queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new AggregateStationUpdater(stationQuery, boundingBox)
+      val stationUpdater = new AggregateStationUpdater(stationQuery, boundingBox, logger)
       stationUpdater.update()
     })
   }

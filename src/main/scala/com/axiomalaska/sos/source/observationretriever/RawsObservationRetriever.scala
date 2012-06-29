@@ -23,7 +23,10 @@ import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.StationQuery
 
-class RawsObservationRetriever(private val stationQuery:StationQuery)
+import org.apache.log4j.Logger
+
+class RawsObservationRetriever(private val stationQuery:StationQuery, 
+    private val logger: Logger = Logger.getRootLogger())
 	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------

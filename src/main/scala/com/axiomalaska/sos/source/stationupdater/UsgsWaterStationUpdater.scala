@@ -25,14 +25,14 @@ import org.cuahsi.waterML.x11.SiteInfoType
 import org.cuahsi.waterML.x11.LatLonPointType
 
 class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
 
-  private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val log = Logger.getRootLogger()
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.USGSWATER)
@@ -49,6 +49,8 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "USGS Water"
+  
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -58,7 +60,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
     val timeSerieses = getAllStatesTimeSeriesTypes
     val stations = createSourceStations(timeSerieses)
     val size = stations.length - 1
-    log.info("Number of unfiltered stations= " + size)
+    logger.info("Number of unfiltered stations= " + size)
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex;
       if (withInBoundingBox(station))
@@ -68,11 +70,11 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if(sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
     
-    log.info("Finished with processing " + stationSensorsCollection.size + " stations")
+    logger.info("Finished with processing " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
@@ -279,7 +281,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
             SensorPhenomenonIds.WIND_SPEED))
       }
       case _ => {
-        log.error("[" + source.name + "] observed propery: " + id +
+        logger.error("[" + source.name + "] observed propery: " + id +
           " is not processed correctly.")
         return None
       }

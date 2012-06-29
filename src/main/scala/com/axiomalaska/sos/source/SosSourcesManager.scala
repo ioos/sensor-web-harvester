@@ -1,6 +1,7 @@
 package com.axiomalaska.sos.source
 
 import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
+import org.apache.log4j.Logger
 
 /**
  * This class manages updating the SOS with all the stations from the metadata database
@@ -15,7 +16,8 @@ class SosSourcesManager(
     private val databaseUrl:String, 
 	private val databaseUser:String, 
 	private val databasePassword:String, 
-	private val sosUrl:String) {
+	private val sosUrl:String, 
+	private val logger: Logger = Logger.getRootLogger()) {
 
   def updateSos() {
     val factory = new ObservationUpdaterFactory()
@@ -24,10 +26,9 @@ class SosSourcesManager(
 
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery)
+        sosUrl, stationQuery, logger)
 
-      // update each source at the same time by using a separate thread for each
-      observationUpdaters.par.foreach(_.update())
+      observationUpdaters.foreach(_.update())
     })
   }
 }

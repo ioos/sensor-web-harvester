@@ -21,7 +21,10 @@ import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
 
-class SnoTelObservationRetriever(private val stationQuery: StationQuery)
+import org.apache.log4j.Logger
+
+class SnoTelObservationRetriever(private val stationQuery: StationQuery, 
+    private val logger: Logger = Logger.getRootLogger())
   extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------

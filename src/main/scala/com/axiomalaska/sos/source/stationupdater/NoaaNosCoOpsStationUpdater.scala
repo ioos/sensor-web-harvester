@@ -28,14 +28,14 @@ import gov.noaa.ioos.x061.CompositeValueType
 import gov.noaa.ioos.x061.ValueArrayType
 
 class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
-  private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val log = Logger.getRootLogger()
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val stationIdParser = """station-(\w+)""".r
@@ -58,6 +58,8 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "NOAA NOS CO-OPS"
+  
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -65,7 +67,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
   private def getSourceStations(source: Source): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     val observationOfferings = getObservationOfferingTypes()
     val size = observationOfferings.length - 1
-    log.info("Total number of stations not filtered: " + (size + 1))
+    logger.info("Total number of stations not filtered: " + (size + 1))
     
     val stationSensorsCollection = for {
       (observationOfferingType, index) <- observationOfferings.zipWithIndex
@@ -78,10 +80,10 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if(sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
-    log.info("finished with stations")
+    logger.info("finished with stations")
     
     return stationSensorsCollection
   }
@@ -254,7 +256,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       case "WaveDuration" => None
       case "MeanWaveDirectionPeakPeriod" => None
       case _ =>{
-        log.error(" observed propery: " + namedQuantity.getName +
+        logger.error(" observed propery: " + namedQuantity.getName +
           " is not processed correctly.")
         return None
       }
@@ -318,7 +320,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
             propertyNames.toList.distinct
           } catch {
             case e:Exception => {
-              log.error(" station ID: " + station.foreign_tag + " sensorForeignId: " + sensorForeignId + " error: parsing data ")
+              logger.error(" station ID: " + station.foreign_tag + " sensorForeignId: " + sensorForeignId + " error: parsing data ")
               Nil
             }
           }

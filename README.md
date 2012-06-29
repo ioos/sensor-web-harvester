@@ -21,14 +21,16 @@ This should be only about 3 times a week, because the stations do not change oft
 
 java -jar source-sos-injectors.jar -metadata [databaseUrl] [databaseUsername] [databasePassword] [North most latitude] [South most latitude] [West most longitude] [East most longitude]
 	
-Example
+Example:
+
 java -jar source-sos-injectors.jar -metadata "jdbc:postgresql://localhost:5432/sensor" sensoruser sensor 40.7641 32.6666 -124.1245 -114.0830
 	
 To update the SOS with all the station in the metadata database. Call this hourly or more
 
 java -jar source-sos-injectors.jar -updatesos [SOS URL] [databaseUrl] [databaseUsername] [databasePassword]
 
-Example
+Example:
+
 java -jar source-sos-injectors.jar -updatesos "http://localhost:8080/sos/sos" "jdbc:postgresql://localhost:5432/sensor" sensoruser sensor
 
 Code (Java)

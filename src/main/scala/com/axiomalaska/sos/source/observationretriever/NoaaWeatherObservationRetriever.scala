@@ -12,15 +12,15 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
-
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-
 import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
+import org.apache.log4j.Logger
 
-class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
+class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery, 
+    private val logger: Logger = Logger.getRootLogger())
   extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------

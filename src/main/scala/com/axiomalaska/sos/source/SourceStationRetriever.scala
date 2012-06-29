@@ -4,6 +4,7 @@ import com.axiomalaska.sos.StationRetriever
 import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalStation
 import scala.collection.JavaConversions._
+import org.apache.log4j.Logger
 
 /**
  * A StationRetriever for all of the sources in the package. All one needs to 
@@ -11,7 +12,8 @@ import scala.collection.JavaConversions._
  */
 class SourceStationRetriever(
     private val stationQuery:StationQuery, 
-    val sourceId: Int) extends StationRetriever {
+    val sourceId: Int, 
+    private val logger: Logger = Logger.getRootLogger()) extends StationRetriever {
 
   override def getStations(): java.util.List[SosStation] ={
       val source = stationQuery.getSource(sourceId)

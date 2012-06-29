@@ -27,14 +27,14 @@ import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
 
-  private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val log = Logger.getRootLogger()
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val foreignIdParser = """/cgi-bin/rawMAIN\.pl\?(.*)""".r
   private val labelParser = """.*<strong>(.*)</strong>.*""".r
   private val latLongParser = """(-?\d+). (\d+)' (\d+).\"""".r
@@ -56,6 +56,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
+  
+  val name = "RAWS"
 
   // ---------------------------------------------------------------------------
   // Private Members
@@ -66,7 +68,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
     val stations = createStations
     val size = stations.length - 1
-    log.info(stations.size + " stations unfiltered")
+    logger.info(stations.size + " stations unfiltered")
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex
       if (withInBoundingBox(station))
@@ -76,11 +78,11 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
 
-    log.info("Finished processing " + stationSensorsCollection.size + " stations")
+    logger.info("Finished processing " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
@@ -508,7 +510,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return None
       }
       case _ => {
-        log.error("[" + source.name + "] observed propery: " + id +
+        logger.error("[" + source.name + "] observed propery: " + id +
           " is not processed correctly.")
         return None
       }

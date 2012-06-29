@@ -20,14 +20,14 @@ import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 
 class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
 
-  private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val log = Logger.getRootLogger()
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
@@ -49,6 +49,8 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "NOAA Weather"
+  
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -61,7 +63,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
       (station, sensors)
     }
 
-    log.info("Finished with processing " + stationSensorsCollection.size + " stations")
+    logger.info("Finished with processing " + stationSensorsCollection.size + " stations")
 
     stationSensorsCollection
   }

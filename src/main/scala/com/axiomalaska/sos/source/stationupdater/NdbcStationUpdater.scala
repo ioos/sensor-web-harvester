@@ -24,17 +24,17 @@ import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
 
 class NdbcStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+  private val boundingBox: BoundingBox, 
+  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
-  private val stationUpdater = new StationUpdateTool(stationQuery)
+  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val source = stationQuery.getSource(SourceId.NDBC)
   private val httpSender = new HttpSender()
   private val locationParser = """.*<strong>Location:</strong> (\d*\.\d*)N (\d*\.\d*)W<br />.*""".r
-  private val log = Logger.getRootLogger()
   private val textParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+?)""".r
   private val specParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)""".r
   private val geoTools = new GeoTools()
@@ -53,6 +53,8 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "NDBC"
+    
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
@@ -62,7 +64,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     val foreignIds = getAllForeignIds()
 
     val size = foreignIds.length - 1
-    log.info("Total number of staitons: " + foreignIds.length)
+    logger.info("Total number of staitons: " + foreignIds.length)
     val stationSensorsCollection = for {(foreignId, index) <- foreignIds.zipWithIndex
       station <- createSourceStation(foreignId)
       if (withInBoundingBox(station))
@@ -72,10 +74,10 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if(sensors.nonEmpty)
     } yield{
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
-    log.info("finished with stations")
+    logger.info("finished with stations")
     
     return stationSensorsCollection
   }
@@ -229,7 +231,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
             SensorPhenomenonIds.WATER_LEVEL))
       }
       case _ => {
-        log.error("[" + source.name + "] observed propery: " + id +
+        logger.error("[" + source.name + "] observed propery: " + id +
           " is not processed correctly.")
         return None
       }
