@@ -18,11 +18,10 @@ This project can be used from the command line with the commands of
 
 To update the metadata database with all the stations from all the sources within the bounding box
 This should be only about 3 times a week, because the stations do not change often
-java -jar source-sos-injectors.jar -metadata <databaseUrl> <databaseUsername> <databasePassword> 
-	<North most latitude> <South most latitude> <West most longitude> <East most longitude>
+java -jar source-sos-injectors.jar -metadata [databaseUrl] [databaseUsername] [databasePassword] [North most latitude] [South most latitude] [West most longitude] [East most longitude]
 	
 To update the SOS with all the station in the metadata database. Call this hourly or more
-java -jar source-sos-injectors.jar -updatesos <SOS URL> <databaseUrl> <databaseUsername> <databasePassword>
+java -jar source-sos-injectors.jar -updatesos [SOS URL] [databaseUrl] [databaseUsername] [databasePassword]
 
 Code (Java)
 -----------
