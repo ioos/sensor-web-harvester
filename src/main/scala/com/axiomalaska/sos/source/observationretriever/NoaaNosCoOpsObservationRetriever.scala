@@ -25,7 +25,7 @@ import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 
 class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery) 
-	extends ObservationRetriever {
+	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------
   // Private Data
@@ -37,36 +37,32 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery)
   private val observedPropertyTag = "http://mmisw.org/ont/cf/parameter/"
   
   // ---------------------------------------------------------------------------
-  // ObservationRetriever Members
+  // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
+  
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
 
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
-    station match{
-      case databaseStation:LocalStation =>{
-        getObservationCollection(databaseStation, sensor, phenomenon, startDate)
-      }
+    val thirdyDaysOld = Calendar.getInstance
+    thirdyDaysOld.add(Calendar.DAY_OF_MONTH, -30)
+    
+    val adjustedStartDate = if(startDate.before(thirdyDaysOld)){
+      thirdyDaysOld
     }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-
-  private def getObservationCollection(databaseStation: LocalStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
+    else{
+      startDate
+    }
+    
     val sensorForeignId = getSensorForeignId(phenomenon)
     
     val rawData = sosRawDataRetriever.getRawData(serviceUrl, offeringTag,
-          observedPropertyTag, databaseStation.databaseStation.foreign_tag,
-          sensorForeignId, startDate, Calendar.getInstance)
+          observedPropertyTag, station.databaseStation.foreign_tag,
+          sensorForeignId, adjustedStartDate, Calendar.getInstance)
     
     createCompositeObservationDocument(rawData) match {
       case Some(compositeObservationDocument) => {
         return buildSensorObservationValues(compositeObservationDocument, 
-            databaseStation, sensor, phenomenon, startDate)
+            station, sensor, phenomenon, startDate)
       }
       case None => {
         val exceptionDocument =
@@ -75,14 +71,19 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery)
         val fullMessage = exceptionDocument.getExceptionReport().
           getExceptionArray()(0).getExceptionTextArray().mkString(", ");
 
-        println(fullMessage)
+        println("station: " + station.getId + " phenomenon: " + 
+            phenomenon.getId + " message: " + fullMessage)
         
-        return null
+        return Nil
       }
     }
     
-    return null
+    return Nil
   }
+  
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
   
   private def getSensorForeignId(phenomenon: SosPhenomenon):String = {
     val localPhenomenon = phenomenon.asInstanceOf[LocalPhenomenon]
@@ -156,10 +157,11 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery)
   
   private def buildSensorObservationValues(
     compositeObservationDocument: CompositeObservationDocument, 
-    databaseStation: LocalStation, sensor: SosSensor, phenomenon: SosPhenomenon, 
-    startDate: Calendar): ObservationCollection = {
+    station: LocalStation, sensor: LocalSensor, phenomenon: LocalPhenomenon, 
+    startDate: Calendar): List[ObservationValues] = {
       
-    val observationValuesCollection = createSensorObservationValuesCollection(databaseStation, sensor, phenomenon)
+    val observationValuesCollection = createSensorObservationValuesCollection(
+        station, sensor, phenomenon)
     
     for (xmlObject <- 
      getValueArrayType(compositeObservationDocument).getValueComponents().getAbstractValueArray();
@@ -189,43 +191,16 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery)
       }
     }
 
-    return createObservationCollection(databaseStation, observationValuesCollection)
+    observationValuesCollection
   }
   
-  private def createObservationCollection(databaseStation: LocalStation, 
-      observationValuesCollection:List[ObservationValues]):ObservationCollection ={
-      val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-      
-      if(filteredObservationValuesCollection.size == 1){
-        val observationValues = filteredObservationValuesCollection.head
-        val observationCollection = new ObservationCollection()
-        observationCollection.setObservationDates(observationValues.getDates)
-        observationCollection.setObservationValues(observationValues.getValues)
-        observationCollection.setPhenomenon(observationValues.phenomenon)
-        observationCollection.setSensor(observationValues.sensor)
-        observationCollection.setStation(databaseStation)
-        
-        observationCollection
-      }
-      else{
-        println("Error more than one observationValues")
-        return null
-      }
-  }
-  
-  private def createSensorObservationValuesCollection(station: SosStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon): List[ObservationValues] = {
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        val observedProperties = stationQuery.getObservedProperties(
-          localStation.databaseStation, localSensor.databaseSensor,
-          localPhenomenon.databasePhenomenon)
+  private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon): List[ObservationValues] = {
+    val observedProperties = stationQuery.getObservedProperties(
+      station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
-        for (observedProperty <- observedProperties) yield {
-          new ObservationValues(observedProperty, sensor, phenomenon)
-        }
-      }
-      case _ => Nil
+    for (observedProperty <- observedProperties) yield {
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
 
@@ -295,16 +270,17 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery)
 
     return calendar
   }
-  
-  private def createCompositeObservationDocument(data: String): 
-      Option[CompositeObservationDocument] = {
-    try {
-      val compositeObservationDocument =
-        CompositeObservationDocument.Factory.parse(data)
 
-      return Some[CompositeObservationDocument](compositeObservationDocument)
-    } catch {
-      case e: Exception => e.printStackTrace()
+  private def createCompositeObservationDocument(data: String): Option[CompositeObservationDocument] = {
+    if (!data.contains("ExceptionReport")) {
+      try {
+        val compositeObservationDocument =
+          CompositeObservationDocument.Factory.parse(data)
+
+        return Some[CompositeObservationDocument](compositeObservationDocument)
+      } catch {
+        case e: Exception => println("error parsing data")
+      }
     }
 
     return None;

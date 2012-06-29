@@ -23,33 +23,28 @@ import java.util.TimeZone
 import java.text.SimpleDateFormat
 
 class HadsObservationRetriever(private val stationQuery:StationQuery) 
-	extends ObservationRetriever {
+	extends ObservationValuesCollectionRetriever {
 
+  // ---------------------------------------------------------------------------
+  // Private Data
+  // ---------------------------------------------------------------------------
+  
   private val httpSender = new HttpSender()
   private val parseDate = new SimpleDateFormat("yyyy-MM-dd HH:mm")
+
+  // ---------------------------------------------------------------------------
+  // ObservationValuesCollectionRetriever Members
+  // ---------------------------------------------------------------------------
   
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
-    station match{
-      case databaseStation:LocalStation =>{
-        getObservationCollection(databaseStation, sensor, phenomenon, startDate)
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-
-  private def getObservationCollection(databaseStation: LocalStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon, startDate: Calendar): ObservationCollection = {
+  def getObservationValues(station: LocalStation,
+    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): 
+    List[ObservationValues] = {
 
     val parts = List[HttpPart](
       new HttpPart("state", "nil"),
       new HttpPart("hsa", "nil"),
       new HttpPart("of", "1"),
-      new HttpPart("nesdis_ids", databaseStation.databaseStation.foreign_tag),
+      new HttpPart("nesdis_ids", station.databaseStation.foreign_tag),
       new HttpPart("sinceday", calculatedSinceDay(startDate)))
 
     val result =
@@ -57,49 +52,26 @@ class HadsObservationRetriever(private val stationQuery:StationQuery)
         "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", parts);
 
     val observationValuesCollections =
-      createSensorObservationValuesCollection(databaseStation, sensor, phenomenon)
+      createSensorObservationValuesCollection(station, sensor, phenomenon)
 
     for { observationValues <- observationValuesCollections } {
       collectValues(result, observationValues, startDate, Calendar.getInstance)
     }
 
-    createObservationCollection(databaseStation, observationValuesCollections)
+    observationValuesCollections
   }
   
-  private def createObservationCollection(databaseStation: LocalStation, 
-      observationValuesCollection:List[ObservationValues]):ObservationCollection ={
-      val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-      
-      if(filteredObservationValuesCollection.size == 1){
-        val observationValues = filteredObservationValuesCollection.head
-        val observationCollection = new ObservationCollection()
-        observationCollection.setObservationDates(observationValues.getDates)
-        observationCollection.setObservationValues(observationValues.getValues)
-        observationCollection.setPhenomenon(observationValues.phenomenon)
-        observationCollection.setSensor(observationValues.sensor)
-        observationCollection.setStation(databaseStation)
-        
-        observationCollection
-      }
-      else{
-        println("Error more than one observationValues")
-        return null
-      }
-  }
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
   
-  private def createSensorObservationValuesCollection(station: SosStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon): List[ObservationValues] = {
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        val observedProperties = stationQuery.getObservedProperties(
-          localStation.databaseStation, localSensor.databaseSensor,
-          localPhenomenon.databasePhenomenon)
+  private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon): List[ObservationValues] = {
+    val observedProperties = stationQuery.getObservedProperties(
+      station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
-        for (observedProperty <- observedProperties) yield {
-          new ObservationValues(observedProperty, sensor, phenomenon)
-        }
-      }
-      case _ => Nil
+    for (observedProperty <- observedProperties) yield {
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
   

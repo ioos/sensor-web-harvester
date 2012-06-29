@@ -28,7 +28,7 @@ import gov.noaa.ioos.x061.CompositeValueType
 import gov.noaa.ioos.x061.ValueArrayType
 
 class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -65,6 +65,8 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
   private def getSourceStations(source: Source): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     val observationOfferings = getObservationOfferingTypes()
     val size = observationOfferings.length - 1
+    log.info("Total number of stations not filtered: " + (size + 1))
+    
     val stationSensorsCollection = for {
       (observationOfferingType, index) <- observationOfferings.zipWithIndex
       val station = createSouceStation(observationOfferingType, source)
@@ -74,23 +76,19 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       val databaseObservedProperties = stationUpdater.updateObservedProperties(
           source, sourceObservedProperties)
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
+      if(sensors.nonEmpty)
     } yield {
-      log.debug("[" + index + " of " + size + "] station: " + station.name)
+      log.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
-    log.debug("finished with stations")
+    log.info("finished with stations")
     
     return stationSensorsCollection
   }
-  
+
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    boundingBoxOption match {
-      case Some(boundingBox) => {
-        val stationLocation = new Location(station.latitude, station.longitude)
-        return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-      }
-      case None => true
-    }
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
   
   private def getObservationOfferingTypes():List[ObservationOfferingType]={
@@ -288,9 +286,9 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
 
   private def getNamedQuantityTypes(observationOfferingType: ObservationOfferingType, 
       station: DatabaseStation): List[NamedQuantityType] = {
-    val aggregatePropertyNames = getAggregatePropertyName(observationOfferingType)
+    val sensorForeignIds = getSensorForeignIds(observationOfferingType)
       
-    val namedQuantityTypes = for (sensorForeignId <- aggregatePropertyNames) yield {
+    val namedQuantityTypes = for (sensorForeignId <- sensorForeignIds) yield {
       val rawData = rawDataRetriever.getRawDataLatest(serviceUrl, offeringTag, observedPropertyTag,
         station.foreign_tag, sensorForeignId)
 
@@ -320,15 +318,12 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
             propertyNames.toList.distinct
           } catch {
             case e:Exception => {
-              log.error(" station: " + station.name +
-                " error: " + e.getMessage() + " -- raw " + 
-                rawData)
+              log.error(" station ID: " + station.foreign_tag + " sensorForeignId: " + sensorForeignId + " error: parsing data ")
               Nil
             }
           }
         }
         case None => {
-          println("Nil")
           Nil
         }
       }
@@ -339,13 +334,15 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
 
   private def createCompositeObservationDocument(data: String): 
       Option[CompositeObservationDocument] = {
-    try {
-      val compositeObservationDocument =
-        CompositeObservationDocument.Factory.parse(data)
+    if (!data.contains("ExceptionReport")) {
+      try {
+        val compositeObservationDocument =
+          CompositeObservationDocument.Factory.parse(data)
 
-      return Some[CompositeObservationDocument](compositeObservationDocument)
-    } catch {
-      case e: Exception => e.printStackTrace()
+        return Some[CompositeObservationDocument](compositeObservationDocument)
+      } catch {
+        case e: Exception => //println("--------------\n" + data) //do nothing
+      }
     }
 
     return None
@@ -363,12 +360,17 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       case _ => Nil
     }
   }
+  
+  private def sensorForeignNotUsed = List("harmonic_constituents", "datums")
 
-  private def getAggregatePropertyName(observationOfferingType: ObservationOfferingType): List[String] = {
-    val properties = observationOfferingType.getObservedPropertyArray().map(o => {
+  private def getSensorForeignIds(observationOfferingType: ObservationOfferingType): List[String] = {
+    val sensorForeignIds = observationOfferingType.getObservedPropertyArray().map(o => {
       val observedPropteryRefParser(property) = o.getHref
       property
     })
-    return properties.toList
+    
+    val filteredSensorForeignIds = sensorForeignIds.filter(sensorForeignId => !sensorForeignNotUsed.contains(sensorForeignId))
+
+    return filteredSensorForeignIds.toList
   }
 }

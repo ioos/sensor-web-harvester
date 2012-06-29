@@ -21,7 +21,7 @@ import java.util.TimeZone
 import java.text.SimpleDateFormat
 
 class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
-  extends ObservationRetriever {
+  extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -31,31 +31,25 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
   private val parser = """<tr[^>]*><td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td></tr>""".r
   private val lastModifiedParser = """.*<OPTION SELECTED>([^<]*)<OPTION>.*""".r
   private val dateParser = new SimpleDateFormat(" MMM dd, yyyy - hh:mm aa z ")
-
+  private val timezoneParser = """<th rowspan="3" width="32">Time<br>\((.*)\)</th>""".r
+  
   // ---------------------------------------------------------------------------
-  // ObservationRetriever Members
+  // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
-
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        buildObservationCollection(localStation, localSensor, localPhenomenon, startDate)
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-
-  private def buildObservationCollection(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): ObservationCollection = {
+  
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
     val rawData =
       httpSender.sendGetMessage("http://www.nws.noaa.gov/data/obhistory/" +
         station.databaseStation.foreign_tag + ".html")
 
+    val timezone = timezoneParser.findFirstMatchIn(rawData) match{
+      case Some(timezoneMatch) =>{
+    	  timezoneMatch.group(1).toUpperCase
+      }
+      case None => "UTC"
+    }
+    
     val observationValuesCollection =
       createSensorObservationValuesCollection(station, sensor, phenomenon)
 
@@ -63,14 +57,14 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
       val parser(day, time, wind, vis, weather, skyCond, air, dwpt, max, min,
         altimeter, seaLevel, prec1, prec3, prec6) = patternMatch
 
-      val calendar = createDate(day, time)
+      val calendar = createDate(day, time, timezone)
       if (calendar.after(startDate)) {
         for (observationValue <- observationValuesCollection) {
           observationValue.observedProperty.foreign_tag match {
             case "Wind Speed" => {
               getWindSpeedAndDirection(wind) match {
                 case Some((speed, direction)) => {
-                  observationValue.addValue(speed, startDate)
+                  observationValue.addValue(speed, calendar)
                 }
                 case None => //do nothing
               }
@@ -78,7 +72,7 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
             case "Wind Direction" => {
               getWindSpeedAndDirection(wind) match {
                 case Some((speed, direction)) => {
-                  observationValue.addValue(direction, startDate)
+                  observationValue.addValue(direction, calendar)
                 }
                 case None => //do nothing
               }
@@ -112,9 +106,24 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
       }
     }
 
-    createObservationCollection(station, observationValuesCollection)
+    return observationValuesCollection
   }
 
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+  
+  private def createSensorObservationValuesCollection(station: LocalStation,
+    sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
+    val observedProperties = stationQuery.getObservedProperties(
+      station.databaseStation, sensor.databaseSensor,
+      phenomenon.databasePhenomenon)
+
+    for (observedProperty <- observedProperties) yield {
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
+    }
+  }
+  
   private def pareseDouble(rawValue: String): Option[Double] = {
     rawValue match {
       case "NA" => None
@@ -170,28 +179,8 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
     }
   }
 
-  private def createObservationCollection(station: LocalStation,
-    observationValuesCollection: List[ObservationValues]): ObservationCollection = {
-    val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-
-    if (filteredObservationValuesCollection.size == 1) {
-      val observationValues = filteredObservationValuesCollection.head
-      val observationCollection = new ObservationCollection()
-      observationCollection.setObservationDates(observationValues.getDates)
-      observationCollection.setObservationValues(observationValues.getValues)
-      observationCollection.setPhenomenon(observationValues.phenomenon)
-      observationCollection.setSensor(observationValues.sensor)
-      observationCollection.setStation(station)
-
-      observationCollection
-    } else {
-      println("Error more than one observationValues")
-      return null
-    }
-  }
-
-  private def createDate(dayRaw: String, timeRaw: String): Calendar = {
-    val calendar = Calendar.getInstance(TimeZone.getTimeZone("US/Alaska"))
+  private def createDate(dayRaw: String, timeRaw: String, timezone:String): Calendar = {
+    val calendar = Calendar.getInstance(TimeZone.getTimeZone(timezone))
     val hour = timeRaw.split(":")(0).toInt
     val mins = timeRaw.split(":")(1).toInt
     val day = dayRaw.toInt
@@ -216,16 +205,5 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
     calendar.getTime()
 
     return calendar
-  }
-
-  private def createSensorObservationValuesCollection(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
-    val observedProperties = stationQuery.getObservedProperties(
-      station.databaseStation, sensor.databaseSensor,
-      phenomenon.databasePhenomenon)
-
-    for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenon)
-    }
   }
 }

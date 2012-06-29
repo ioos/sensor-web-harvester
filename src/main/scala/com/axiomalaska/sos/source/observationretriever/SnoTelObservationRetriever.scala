@@ -12,16 +12,17 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
-
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-
 import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
+import javax.measure.Measure
+import javax.measure.unit.NonSI
+import javax.measure.unit.SI
 
 class SnoTelObservationRetriever(private val stationQuery: StationQuery)
-  extends ObservationRetriever {
+  extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -31,38 +32,11 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery)
   private val httpSender = new HttpSender()
   
   // ---------------------------------------------------------------------------
-  // ObservationRetriever Members
+  // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
-
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        buildObservationCollection(localStation, localSensor, localPhenomenon, startDate)
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-
-  private def getRawData(station: LocalStation): String = {
-    val parts = List[HttpPart](
-      new HttpPart("time_zone", "PST"),
-      new HttpPart("sitenum", station.databaseStation.foreign_tag),
-      new HttpPart("timeseries", "Hourly"),
-      new HttpPart("interval", "WEEK"),
-      new HttpPart("format", "copy"),
-      new HttpPart("report", "ALL"))
-
-    return httpSender.sendPostMessage(
-      "http://www.wcc.nrcs.usda.gov/nwcc/view", parts)
-  }
-
-  private def buildObservationCollection(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): ObservationCollection = {
+  
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
     val observationValuesCollection =
       createSensorObservationValuesCollection(station, sensor, phenomenon)
 
@@ -82,11 +56,14 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery)
 
           parseDouble(values(columnIndex), header) match {
             case Some(value) => {
-              observationValuesCollection.find(_.observedProperty.foreign_tag.equalsIgnoreCase(header)) match {
-                case Some(observationValues) => {
+              observationValuesCollection.find(observationValues => 
+                observationValues.observedProperty.foreign_tag.equalsIgnoreCase(header._1) && 
+                observationValues.observedProperty.depth == header._2) match {
+                case Some(observationValues) 
+                	if(!observationValues.containsDate(calendar)) => {
                   observationValues.addValue(value, calendar)
                 }
-                case None => //do nothing
+                case _ => //do nothing
               }
             }
             case None => //do nothing
@@ -95,28 +72,12 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery)
       }
     }
 
-    return createObservationCollection(station, observationValuesCollection)
+    return observationValuesCollection
   }
-
-  private def createObservationCollection(station: LocalStation,
-    observationValuesCollection: List[ObservationValues]): ObservationCollection = {
-    val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-
-    if (filteredObservationValuesCollection.size == 1) {
-      val observationValues = filteredObservationValuesCollection.head
-      val observationCollection = new ObservationCollection()
-      observationCollection.setObservationDates(observationValues.getDates)
-      observationCollection.setObservationValues(observationValues.getValues)
-      observationCollection.setPhenomenon(observationValues.phenomenon)
-      observationCollection.setSensor(observationValues.sensor)
-      observationCollection.setStation(station)
-
-      observationCollection
-    } else {
-      println("Error more than one observationValues")
-      return null
-    }
-  }
+  
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
 
   private def createSensorObservationValuesCollection(station: LocalStation,
     sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -125,16 +86,29 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery)
       phenomenon.databasePhenomenon)
 
     for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenon)
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
+  
+  private def getRawData(station: LocalStation): String = {
+    val parts = List[HttpPart](
+      new HttpPart("time_zone", "PST"),
+      new HttpPart("sitenum", station.databaseStation.foreign_tag),
+      new HttpPart("timeseries", "Hourly"),
+      new HttpPart("interval", "WEEK"),
+      new HttpPart("format", "copy"),
+      new HttpPart("report", "ALL"))
 
-  private def parseDouble(text: String, headerName: String): Option[java.lang.Double] = {
+    return httpSender.sendPostMessage(
+      "http://www.wcc.nrcs.usda.gov/nwcc/view", parts)
+  }
+
+  private def parseDouble(text: String, headerName: (String, Double)): Option[java.lang.Double] = {
     if (!text.equalsIgnoreCase("miss'g")) {
       val value = text.toDouble
       if (value == -99.9) {
         return None
-      } else if (headerName == "SNWDI1" && value < 0) {
+      } else if (headerName._1 == "SNWD" && value < 0) {
         return None
       } else {
         return Some(text.toDouble)
@@ -162,14 +136,34 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery)
     return calendar
   }
 
-  private def createHeaders(headers: Array[String]): List[String] = {
+  private def createHeaders(headers: Array[String]): List[(String, Double)] = {
     val formatedHeaders = for (originalHeader <- headers) yield {
-      var header = originalHeader.replace(".", "")
-      header = header.replace("-", "")
-      header = header.replace(":", "")
-      var split = header.split(" ")
+      val index = originalHeader.indexOf(".")
 
-      split(0)
+      val (base, depth) = if (index != -1) {
+        val base = originalHeader.substring(0, index)
+
+        val depthIndex = originalHeader.indexOf(":")
+        val depth = if (depthIndex > 0) {
+          val valueRaw = originalHeader.substring(depthIndex + 1, originalHeader.size).replaceFirst("\\(.*\\)", "")
+          val valueInches = valueRaw.toDouble
+          val valueMeters = Measure.valueOf(valueInches,
+            NonSI.INCH).doubleValue(SI.METER).abs
+          valueMeters
+        } else {
+          0.0
+        }
+        
+        (base, depth)
+      } else {
+        var header = originalHeader.replace(".", "")
+        header = header.replace("-", "")
+        header = header.replace(":", "")
+        var split = header.split(" ")
+
+        (split(0), 0.0)
+      }
+      (base, depth)
     }
 
     return formatedHeaders.toList

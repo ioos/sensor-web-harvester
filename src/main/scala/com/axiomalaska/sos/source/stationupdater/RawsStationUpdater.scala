@@ -27,7 +27,7 @@ import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -64,11 +64,11 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   private def getSourceStations(): 
 	  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
-    val stationForeignIds = getAllStationForeignIds
-    val size = stationForeignIds.length - 1
+    val stations = createStations
+    val size = stations.length - 1
+    log.info(stations.size + " stations unfiltered")
     val stationSensorsCollection = for {
-      (stationForeignId, index) <- stationForeignIds.zipWithIndex
-      val station = createStation(stationForeignId)
+      (station, index) <- stations.zipWithIndex
       if (withInBoundingBox(station))
       val sourceObservedProperties = getSourceObservedProperties(station, source)
       val databaseObservedProperties = 
@@ -80,7 +80,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       (station, sensors)
     }
 
-    log.info("finished with stations")
+    log.info("Finished processing " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
@@ -95,6 +95,10 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       foreignId
     })
     foreignIds.toList
+  }
+  
+  private def createStations():List[DatabaseStation] ={
+    getAllStationForeignIds.flatMap(createStation)
   }
   
   private def getAllStationForeignIds(): List[String] = 
@@ -157,16 +161,22 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         "http://www.raws.dri.edu/nylst.html", 
         "http://www.raws.dri.edu/va_wvlst.html")
 
-  private def createStation(foreignId: String): DatabaseStation = {
-    val siteDoc =
-      Jsoup.parse(httpSender.sendGetMessage(
-        "http://www.raws.dri.edu/cgi-bin/wea_info.pl?" + foreignId))
-        
-    val label = getStationName(siteDoc)
-    val lat = getLatitude(siteDoc)
-    val lon = getLongitude(siteDoc)
+  private def createStation(foreignId: String): Option[DatabaseStation] = {
+    val response = httpSender.sendGetMessage(
+      "http://www.raws.dri.edu/cgi-bin/wea_info.pl?" + foreignId)
 
-    return new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon)
+    if (response != null) {
+      val siteDoc = Jsoup.parse(response)
+
+      val label = getStationName(siteDoc)
+      val lat = getLatitude(siteDoc)
+      val lon = getLongitude(siteDoc)
+
+      return Some(new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon))
+    } else {
+      println("response not found ------------------------")
+      None
+    }
   }
   
   private def getStationName(siteDoc: Document): String = {
@@ -198,13 +208,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    boundingBoxOption match {
-      case Some(boundingBox) => {
-        val stationLocation = new Location(station.latitude, station.longitude)
-        return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-      }
-      case None => true
-    }
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
 
   private def getSensorNames(foreignId: String): List[String] = {

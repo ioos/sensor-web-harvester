@@ -1,12 +1,15 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import org.apache.log4j.Logger
+
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
+
+import scala.collection.mutable
 
 class StationUpdateTool(private val stationQuery:StationQuery) {
   private val log = Logger.getRootLogger()
@@ -21,7 +24,7 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
 
     for (sourceStationSensor <- sourceStationSensors) {
       val sourceStation = sourceStationSensor._1
-      val sourceSensors = sourceStationSensor._2.distinct
+      val sourceSensors = sourceStationSensor._2
 
       databaseStations.filter(databaseStation => 
         databaseStation.name == sourceStation.name && 
@@ -36,28 +39,33 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
           }
 
           val databaseSenors = stationQuery.getSensors(databaseStation)
-          for((sourceSensor, phenomena) <- sourceSensors){
-            if (!isThereAnEqualSensor(databaseSenors, sourceSensor, phenomena)) {
+          
+          val createdSensors = for {
+            (sourceSensor, phenomena) <- sourceSensors
+            if (!isThereAnEqualSensor(databaseSenors, sourceSensor, phenomena))
+          } yield {
+            val createdSensor = stationQuery.createSensor(databaseStation, sourceSensor)
+            phenomena.foreach(phenomenon =>
+              stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
+              
+            createdSensor
+          }
 
-              val createdSensor = stationQuery.createSensor(databaseStation, sourceSensor)
-              phenomena.foreach(phenomenon => 
-                stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
-                
-              stationQuery.associateSensorToStation(databaseStation, createdSensor)
-              log.info("Association Sensor " + sourceSensor.description +
-                " to Station " + sourceStation.name)
-            }
+          if (createdSensors.nonEmpty) {
+            log.info("Association Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
+              " to Station: " + sourceStation.name)
           }
         }
         case None => {
           val databaseStation = stationQuery.createStation(sourceStation)
-
+          log.info("Created new station: " + databaseStation.name)
+          
           for ((sourceSensor, phenomena) <- sourceSensors) {
             val createdSensor = stationQuery.createSensor(databaseStation, sourceSensor)
             phenomena.foreach(phenomenon =>
               stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
-            stationQuery.associateSensorToStation(databaseStation, createdSensor)
           }
+          log.info("Created new sensors: " + sourceSensors.map(s => s._1.tag + ":" + s._1.depth).mkString(", "))
         }
       }
     }
@@ -65,8 +73,11 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
   
   def getSourceSensors(station:DatabaseStation, observedProperties: List[ObservedProperty]): 
   List[(DatabaseSensor, List[DatabasePhenomenon])] = {
-
-    val sensors = observedProperties.map(observedProperty => {
+    val set = new mutable.HashSet[(Long, Double)]
+    val sensors = for{observedProperty <- observedProperties
+      val id = (observedProperty.phenomenon_id, observedProperty.depth)
+      if(!set.contains(id))} yield{
+      set += id
       val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
       val description = if (observedProperty.depth != 0) {
         phenomenon.name + " with depth " + observedProperty.depth + " m"
@@ -75,7 +86,7 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
       }
       (new DatabaseSensor(phenomenon.tag, description, station.id, observedProperty.depth),
           List(phenomenon))
-    })
+    }
 
     return sensors
   }
@@ -84,10 +95,10 @@ class StationUpdateTool(private val stationQuery:StationQuery) {
     sourceObservedProperies: List[ObservedProperty]): List[ObservedProperty] = {
 
     val observedProperties = for(observedProperty <- sourceObservedProperies) yield {
-      stationQuery.getObservedProperty(observedProperty.foreign_tag, source) match {
+      stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source) match {
         case Some(databaseObservedProperty) => {
           stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
-          stationQuery.getObservedProperty(observedProperty.foreign_tag, source).get
+          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source).get
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)

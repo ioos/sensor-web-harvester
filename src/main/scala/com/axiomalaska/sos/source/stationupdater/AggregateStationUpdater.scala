@@ -4,7 +4,7 @@ import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Public Members
@@ -19,12 +19,12 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
 
   private def getStationUpdaters():List[StationUpdater] = {
-    List(new HadsStationUpdater(stationQuery, boundingBoxOption), 
-        new NdbcStationUpdater(stationQuery, boundingBoxOption),
-        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBoxOption),
-        new NoaaWeatherStationUpdater(stationQuery, boundingBoxOption),
-        new RawsStationUpdater(stationQuery, boundingBoxOption),
-        new SnoTelStationUpdater(stationQuery, boundingBoxOption),
-        new UsgsWaterStationUpdater(stationQuery, boundingBoxOption))
+    List(new HadsStationUpdater(stationQuery, boundingBox), 
+        new NdbcStationUpdater(stationQuery, boundingBox),
+        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox),
+        new NoaaWeatherStationUpdater(stationQuery, boundingBox),
+        new RawsStationUpdater(stationQuery, boundingBox),
+        new SnoTelStationUpdater(stationQuery, boundingBox),
+        new UsgsWaterStationUpdater(stationQuery, boundingBox))
   }
 }

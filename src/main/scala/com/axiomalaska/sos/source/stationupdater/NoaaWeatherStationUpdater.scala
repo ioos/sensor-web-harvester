@@ -20,7 +20,7 @@ import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 
 class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -61,7 +61,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
       (station, sensors)
     }
 
-    log.info("finished with stations")
+    log.info("Finished with processing " + stationSensorsCollection.size + " stations")
 
     stationSensorsCollection
   }
@@ -86,15 +86,10 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     
     return stations.toList
   }
-  
+
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    boundingBoxOption match {
-      case Some(boundingBox) => {
-        val stationLocation = new Location(station.latitude, station.longitude)
-        return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-      }
-      case None => true
-    }
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
   
   private def parseLatitude(rawLatitude:String):Double = {

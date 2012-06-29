@@ -18,9 +18,11 @@ import com.axiomalaska.sos.tools.HttpPart
 import java.util.Date
 import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
+import com.axiomalaska.sos.data.Location
+import com.axiomalaska.sos.source.GeoTools
 
 class HadsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater  {
+  private val boundingBox: BoundingBox) extends StationUpdater  {
 
   private val stationUpdater = new StationUpdateTool(stationQuery)
   private val source = stationQuery.getSource(SourceId.HADS)
@@ -29,6 +31,7 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
   private val parseDate = new SimpleDateFormat("yyyy")
   private val sensorParser = """\n\s([A-Z]{2}[A-Z0-9]{0,1})\(\w+\)""".r
   private val log = Logger.getRootLogger()
+  private val geoTools = new GeoTools()
   
   // ---------------------------------------------------------------------------
   // Public Members
@@ -51,8 +54,10 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
 
     val stations = createSourceStations()
     val size = stations.length - 1
+    log.info("Total number of unfiltered stations: " + stations.length)
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex
+      if (withInBoundingBox(station))
       val sourceObservedProperties = getSourceObservedProperties(station)
       val databaseObservedProperties = 
         stationUpdater.updateObservedProperties(source, sourceObservedProperties)
@@ -62,8 +67,15 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
       log.info("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
+    
+    log.info("finished with " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
+  }
+
+  private def withInBoundingBox(station: DatabaseStation): Boolean = {
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
   
   private def getSourceObservedProperties(station: DatabaseStation): List[ObservedProperty] =
@@ -375,9 +387,11 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def createSourceStations():List[DatabaseStation] = {
-    val elements = getStationElements()
-    
-    return elements.flatMap(element => createStation(element))
+    for {
+      stateUrl <- getAllStateUrls()
+      element <- getStationElements(stateUrl)
+      station <- createStation(element)
+    } yield { station }
   }
 
   private def createStation(element: Element): Option[DatabaseStation] = {
@@ -447,9 +461,23 @@ class HadsStationUpdater(private val stationQuery: StationQuery,
     }
   }
   
-  private def getStationElements():List[Element]={
+  private def getAllStateUrls():List[String] ={
     val results = httpSender.sendGetMessage(
-        "http://amazon.nws.noaa.gov/hads/charts/AK.html")
+        "http://amazon.nws.noaa.gov/hads/goog_earth/")
+
+    if (results != null) {
+      val doc = Jsoup.parse(results)
+
+      val areas = doc.getElementsByTag("area")
+
+      areas.map(_.attr("href")).toList
+    } else {
+      Nil
+    }
+  }
+  
+  private def getStationElements(stateUrl:String):List[Element]={
+    val results = httpSender.sendGetMessage(stateUrl)
 
     return Jsoup.parse(results).getElementsByTag("A").filter(
         element => element.text().length > 0).toList

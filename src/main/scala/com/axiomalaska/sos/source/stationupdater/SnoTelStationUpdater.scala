@@ -8,9 +8,6 @@ import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.Units
-
-import java.util.zip.ZipFile
-
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.data.Location
@@ -19,20 +16,27 @@ import com.axiomalaska.sos.source.data.ObservedProperty
 
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
-
 import org.apache.log4j.Logger
+
+import java.util.zip.ZipFile
 
 import scala.collection.JavaConversions._
 import scala.xml.Node
 import scala.xml.Elem
+import scala.collection.mutable
+import scala.xml.XML
+
+import javax.measure.Measure
+import javax.measure.unit.NonSI
+import javax.measure.unit.SI
 
 case class SnotelSensor(observedpropertylabel: String,
   observedpropertylongcode: String, observedpropertyshortcode: String,
   unit: String, instrument: String, interval: String,
-  ordinal: Int, sensorheight: String)
+  ordinal: Int, sensorheight: Double)
 
 class SnoTelStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -64,18 +68,20 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 
   private def getSourceStations(): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
-    val placemarks = (snotelKmlRootElem \\ "Placemark").toList
-    val size = placemarks.length - 1
+    val stations = createStations()
+    val size = stations.length - 1
+    log.info("Total number of stations not filtered: " + size)
     val stationSensorsCollection = for {
-      (placemark, index) <- placemarks.zipWithIndex
-      val station = createStation(placemark)
+      (station, index) <- stations.zipWithIndex
       if (withInBoundingBox(station))
       val sourceObservedProperties = getSourceObservedProperties(station)
-      val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
-      val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
+      val databaseObservedProperties = 
+        stationUpdater.updateObservedProperties(source, sourceObservedProperties)
+      val sensors = 
+        stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      log.info("[" + index + " of " + size + "] station: " + station.name)
+      log.info("[" + index + " of " + size + "] done processing station: " + station.name)
       (station, sensors)
     }
     log.info("finished with stations")
@@ -86,8 +92,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
   private def getSourceObservedProperties(station: DatabaseStation): List[ObservedProperty] = {
     val snotelSensors = createSnotelSensors(station)
 
-    return snotelSensors.flatMap(
-      snotelSensor => getObservedProperty(snotelSensor))
+    return snotelSensors.flatMap(snotelSensor => getObservedProperty(snotelSensor))
   }
 
   private def createSnotelSensors(station: DatabaseStation): List[SnotelSensor] = {
@@ -106,214 +111,25 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         if tdElements.size > 0
       } yield { createSnotelSensor(tdElements) }
 
-      return databaseSnotelSensors.toList
+      val map = new mutable.HashSet[String]
+
+      val filteredSnotelSensors = for {
+        snotelSensor <- databaseSnotelSensors
+        val tag = snotelSensor.observedpropertyshortcode + snotelSensor.sensorheight
+        if (!map.contains(tag))
+      } yield {
+        map += tag
+        snotelSensor
+      }
+      
+      return filteredSnotelSensors.toList
     } catch {
       case e: Exception => log.error("getSnotelSensor: " + e.getMessage())
     }
 
     return Nil
   }
-
-  private def getObservedProperty(snotelSensor: SnotelSensor): Option[ObservedProperty] = {
-    snotelSensor.observedpropertylabel match {
-      case "Diagnostics" => None
-      case "Stream Stage (gauge Height) Observed" => None
-      case "Snow Water Equivalent" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.SNOW_WATER_EQUIVALENT))
-      }
-      case "Precipitation Accumulation" => {
-        snotelSensor.observedpropertylongcode match {
-          case "PRECI1" => {
-            return new Some[ObservedProperty](
-              stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-                source, snotelSensor.unit,
-                SensorPhenomenonIds.PRECIPITATION_ACCUMULATION))
-          }
-          case "PRECI2" => return None // Tipping Bucket Usvi
-        }
-      }
-      case "Precipitation Increment" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.PRECIPITATION_INCREMENT))
-      }
-      case "Air Temperature Observed" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.AIR_TEMPERATURE))
-      }
-      case "Air Temperature Maximum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.AIR_TEMPERATURE_MAXIMUM))
-      }
-      case "Air Temperature Minimum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.AIR_TEMPERATURE_MINIMUM))
-      }
-      case "Air Temperature Average" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.AIR_TEMPERATURE_AVERAGE))
-      }
-      case "Snow Depth" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.SNOW_DEPTH))
-      }
-      case "Soil Moisture Percent" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.PERCENT, SensorPhenomenonIds.SOIL_MOISTURE_PERCENT))
-      }
-      case "Soil Temperature Observed" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED))
-      }
-      case "Battery" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.VOLTAGE, SensorPhenomenonIds.BATTERY))
-      }
-      case "Battery Maximum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.VOLTAGE, SensorPhenomenonIds.BATTERY_MAXIMUM))
-      }
-      case "Battery Minimum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.VOLTAGE,
-            SensorPhenomenonIds.BATTERY_MINIMUM))
-      }
-      case "Solar Radiation/langley Total" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.WATT_PER_METER_SQUARED,
-            SensorPhenomenonIds.SOLAR_RADIATION))
-      }
-      case "Solar Radiation" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.WATT_PER_METER_SQUARED,
-            SensorPhenomenonIds.SOLAR_RADIATION))
-      }
-      case "Solar Radiation Average" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.WATT_PER_METER_SQUARED,
-            SensorPhenomenonIds.SOLAR_RADIATION_AVERAGE))
-      }
-      case "Solar Radiation Maximum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.WATT_PER_METER_SQUARED,
-            SensorPhenomenonIds.SOLAR_RADIATION_MAXIMUM))
-      }
-      case "Solar Radiation Minimum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.WATT_PER_METER_SQUARED,
-            SensorPhenomenonIds.SOLAR_RADIATION_MINIMUM))
-      }
-      case "Relative Humidity Enclosure" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY))
-      }
-      case "Relative Humidity" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.PERCENT,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY))
-      }
-      case "Relative Humidity Minimum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.PERCENT,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY_MINIMUM))
-      }
-      case "Relative Humidity Average" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY_AVERAGE))
-      }
-      case "Relative Humidity Maximum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.PERCENT,
-            SensorPhenomenonIds.RELATIVE_HUMIDITY_MAXIMUM))
-      }
-      case "Wind Direction Average" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.WIND_DIRECTION))
-      }
-      case "Wind Speed Maximum" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.WIND_GUST))
-      }
-      case "Wind Speed Average" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.WIND_SPEED))
-      }
-      case "Barometric Pressure" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.BAROMETRIC_PRESSURE))
-      }
-      case "Water Temperature" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.SEA_WATER_TEMPERATURE))
-      }
-      case "Conductivity" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, Units.MICRO_MHOS_PER_CENTIMETERS,
-            SensorPhenomenonIds.CONDUCTIVITY))
-      }
-      case "Salinity" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.SALINITY))
-      }
-      case "Real Dielectric Constant" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(snotelSensor.observedpropertylongcode,
-            source, snotelSensor.unit,
-            SensorPhenomenonIds.REAL_DIELECTRIC_CONSTANT))
-      }
-      case _ => {
-        log.error("[" + source.name + "] observed propery: " + snotelSensor.observedpropertylabel +
-          " is not processed correctly.")
-        return None
-      }
-    }
-  }
-
+  
   private def createSnotelSensor(elements: Elements): SnotelSensor = {
     val rawLongCode = elements.get(0).text
     val label = elements.get(1).text
@@ -326,27 +142,219 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
     val interval = elements.get(5).text
     val ordinal = elements.get(6).text().toInt
     val sensorHeight = elements.get(7).text
+    
+    val valueInches = sensorHeight match{
+      case "unknown" => {
+        0.0
+      }
+      case s:String =>{
+        s.replace("\"", "").toDouble
+      }
+    }
 
-    val longCode = rawLongCode.map(c => c match {
-      case '.' => ""
-      case '-' => ""
-      case ':' => ""
-      case ' ' => ""
-      case c: Char => c
-    }).mkString
+    val valueMeters = Measure.valueOf(valueInches, 
+        NonSI.INCH).doubleValue(SI.METER).abs
+        
+    return SnotelSensor(label, rawLongCode, shortCode, unit,
+      instrument, interval, ordinal, valueMeters)
+  }
 
-    return new SnotelSensor(label, longCode, shortCode, unit,
-      instrument, interval, ordinal, sensorHeight)
+  private def getObservedProperty(snotelSensor: SnotelSensor): Option[ObservedProperty] ={
+    snotelSensor.observedpropertyshortcode match {
+      case "WTEQ" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SNOW_WATER_EQUIVALENT, snotelSensor.sensorheight))
+      }
+      case "SAL" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SALINITY, snotelSensor.sensorheight))
+      }
+      case "TMAX" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.AIR_TEMPERATURE_MAXIMUM, snotelSensor.sensorheight))
+      }
+      case "TOBS" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.AIR_TEMPERATURE, snotelSensor.sensorheight))
+      }
+      case "PRCP" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.PRECIPITATION_INCREMENT, snotelSensor.sensorheight))
+      }
+      case "SMS" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SOIL_MOISTURE_PERCENT, snotelSensor.sensorheight))
+      }
+      case "RHUM" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY, snotelSensor.sensorheight))
+      }
+      case "RHUMN" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_MINIMUM, snotelSensor.sensorheight))
+      }
+      case "RHUMV" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_AVERAGE, snotelSensor.sensorheight))
+      }
+      case "RHUMX" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.RELATIVE_HUMIDITY_MAXIMUM, snotelSensor.sensorheight))
+      }
+      case "RDC" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.REAL_DIELECTRIC_CONSTANT, snotelSensor.sensorheight))
+      }
+      case "PREC" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.PRECIPITATION_ACCUMULATION, snotelSensor.sensorheight))
+      }
+      case "STO" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, snotelSensor.sensorheight))
+      }
+      case "TAVG" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.AIR_TEMPERATURE_AVERAGE, snotelSensor.sensorheight))
+      }
+      case "BATT" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.BATTERY, snotelSensor.sensorheight))
+      }
+      case "BATX" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, "V", SensorPhenomenonIds.BATTERY_MAXIMUM, snotelSensor.sensorheight))
+      }
+      case "BATN" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.BATTERY_MINIMUM, snotelSensor.sensorheight))
+      }
+      case "WSPDX" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.WIND_GUST, snotelSensor.sensorheight))
+      }
+      case "WSPDV" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.WIND_SPEED, snotelSensor.sensorheight))
+      }
+      case "SNWD" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SNOW_DEPTH, snotelSensor.sensorheight))
+      }
+      case "TMIN" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.AIR_TEMPERATURE_MINIMUM, snotelSensor.sensorheight))
+      }
+      case "PRES" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.BAROMETRIC_PRESSURE, snotelSensor.sensorheight))
+      }
+      case "WDIRV" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.WIND_DIRECTION, snotelSensor.sensorheight))
+      }
+      case "SRADV" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SOLAR_RADIATION_AVERAGE, snotelSensor.sensorheight))
+      }
+      case "SRADN" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SOLAR_RADIATION_MINIMUM, snotelSensor.sensorheight))
+      }
+      case "SRADX" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SOLAR_RADIATION_MAXIMUM, snotelSensor.sensorheight))
+      }
+      case "SRAD" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit,
+            SensorPhenomenonIds.SOLAR_RADIATION, snotelSensor.sensorheight))
+      }
+      case "COND" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, Units.MICRO_MHOS_PER_CENTIMETERS, 
+            SensorPhenomenonIds.CONDUCTIVITY, snotelSensor.sensorheight))
+      }
+      case "WTEMP" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit, 
+            SensorPhenomenonIds.SEA_WATER_TEMPERATURE, snotelSensor.sensorheight))
+      }
+      case "SRMO" => {
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(snotelSensor.observedpropertyshortcode,
+            source, snotelSensor.unit, 
+            SensorPhenomenonIds.STREAM_GAGE_HEIGHT, snotelSensor.sensorheight))
+      }
+      case "SNOW" => None  // Snow Fall
+      case "LRADT" => None // Solar Radiation/langley Total
+      case "DIAG" => None
+      case "RHENC" => None // Relative Humidity Enclosure
+      case _ => {
+        log.error("[" + source.name + "] observed propery: " + snotelSensor.observedpropertylabel +
+          " == " + snotelSensor.observedpropertylongcode + " is not processed correctly.")
+        return None
+      }
+    }
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    boundingBoxOption match {
-      case Some(boundingBox) => {
-        val stationLocation = new Location(station.latitude, station.longitude)
-        return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-      }
-      case None => true
-    }
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
 
   private def createStation(placemark: Node): DatabaseStation = {
@@ -358,20 +366,21 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 
     return new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon)
   }
-
-  private def snotelKmlRootElem(): Elem = {
+  
+  private def createStations(): List[DatabaseStation] = {
     val filename =
       httpSender.downloadFile(
         "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz")
 
     val rootzip = new ZipFile(filename);
 
-    val zipEntryOption = rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
+    val zipEntryOption = 
+      rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
 
     zipEntryOption match {
       case Some(zipEntry) => {
-        val x = scala.xml.XML.load(rootzip.getInputStream(zipEntry))
-        return x
+        val snotelKmlRootElem = XML.load(rootzip.getInputStream(zipEntry))
+        (snotelKmlRootElem \\ "Placemark").map(createStation).toList
       }
       case None => throw new Exception("snotelwithoutlabels.kml file not found")
     }

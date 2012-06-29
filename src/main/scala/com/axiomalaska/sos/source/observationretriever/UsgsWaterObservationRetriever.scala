@@ -27,7 +27,7 @@ import org.cuahsi.waterML.x11.TsValuesSingleVariableType
 import org.cuahsi.waterML.x11.ValueSingleVariable
 
 class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
-	extends ObservationRetriever {
+	extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -35,18 +35,34 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
   
   private val httpSender = new HttpSender()
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  
-  // ---------------------------------------------------------------------------
-  // ObservationRetriever Members
-  // ---------------------------------------------------------------------------
-  
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
 
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        buildObservationCollection(localStation, localSensor, localPhenomenon, startDate)
-      }
+  // ---------------------------------------------------------------------------
+  // ObservationValuesCollectionRetriever Members
+  // ---------------------------------------------------------------------------
+
+  def getObservationValues(station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon, startDate: Calendar): List[ObservationValues] = {
+    val observedProperties = stationQuery.getObservedProperties(
+      station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
+
+    val rawData = getRawData(station, sensor, phenomenon, startDate)
+    if (rawData != null) {
+      val document = TimeSeriesResponseDocument.Factory.parse(rawData)
+
+      val observationValuesCollection =
+        for {
+          timeSeriesTypes <- document.getTimeSeriesResponse().getTimeSeriesArray()
+          val variableCode = timeSeriesTypes.getVariable().getVariableCodeArray(0).getStringValue()
+          val noDataValue = timeSeriesTypes.getVariable().getNoDataValue()
+          if (timeSeriesTypes.getValuesArray().nonEmpty)
+          observationValues <- createSensorObservationValuesCollection(
+            timeSeriesTypes.getValuesArray().head, observedProperties,
+            variableCode, noDataValue, sensor, phenomenon, startDate)
+        } yield { observationValues }
+
+      return observationValuesCollection.toList
+    } else {
+      Nil
     }
   }
   
@@ -55,19 +71,21 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
   // ---------------------------------------------------------------------------
   
   def getRawData(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar, endDate: Calendar): String = {
+    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): String = {
 
     val observedProperties = stationQuery.getObservedProperties(
         station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
     
     val parameterCd = observedProperties.map(_.foreign_tag).mkString(",")
         
-    val thrityDayBeforeEndDate = endDate.clone().asInstanceOf[Calendar]
-    thrityDayBeforeEndDate.add(Calendar.DAY_OF_MONTH, -30)
+    val endDate = Calendar.getInstance
+    
+    val thrityDayBefore = endDate.clone().asInstanceOf[Calendar]
+    thrityDayBefore.add(Calendar.DAY_OF_MONTH, -30)
     
     val (formatedStartDate, formatedEndDate) = 
-      if(startDate.before(thrityDayBeforeEndDate)){
-    	(formatDate.format(getDateObjectInGMT(thrityDayBeforeEndDate)), 
+      if(startDate.before(thrityDayBefore)){
+    	(formatDate.format(getDateObjectInGMT(thrityDayBefore)), 
     	    formatDate.format(getDateObjectInGMT(endDate)))
     }
     else{
@@ -87,49 +105,6 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
     return result
   }
   
-  private def buildObservationCollection(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): ObservationCollection = {
-    val observedProperties = stationQuery.getObservedProperties(
-        station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
-      
-    val rawData = getRawData(station, sensor, phenomenon, startDate, Calendar.getInstance)
-    val document = TimeSeriesResponseDocument.Factory.parse(rawData)
-
-    val observationValuesCollection =
-      for {
-        timeSeriesTypes <- document.getTimeSeriesResponse().getTimeSeriesArray()
-        val variableCode = timeSeriesTypes.getVariable().getVariableCodeArray(0).getStringValue()
-        val noDataValue = timeSeriesTypes.getVariable().getNoDataValue()
-        if (timeSeriesTypes.getValuesArray().nonEmpty)
-        observationValues <- createSensorObservationValuesCollection(timeSeriesTypes.getValuesArray().head,
-          observedProperties, variableCode, noDataValue, sensor, phenomenon, startDate)
-      } yield {
-        observationValues
-      }
-      
-    return createObservationCollection(station, observationValuesCollection.toList)
-  }
-  
-  private def createObservationCollection(station: LocalStation,
-    observationValuesCollection: List[ObservationValues]): ObservationCollection = {
-    val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-
-    if (filteredObservationValuesCollection.size == 1) {
-      val observationValues = filteredObservationValuesCollection.head
-      val observationCollection = new ObservationCollection()
-      observationCollection.setObservationDates(observationValues.getDates)
-      observationCollection.setObservationValues(observationValues.getValues)
-      observationCollection.setPhenomenon(observationValues.phenomenon)
-      observationCollection.setSensor(observationValues.sensor)
-      observationCollection.setStation(station)
-
-      observationCollection
-    } else {
-      println("Error more than one observationValues")
-      return null
-    }
-  }
-  
   private def createSensorObservationValuesCollection(tsValuesSingleVariableType:TsValuesSingleVariableType, 
       observedProperties:List[ObservedProperty], variableCode:String, noDataValue:Double, 
       sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar):Option[ObservationValues] = {
@@ -140,7 +115,8 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery)
         case None => return None //throw new SensorObservationException("Data Not found: " + variableCode)
       }
 
-    val observationValues = new ObservationValues(observedProperty, sensor, phenomenon)
+    val observationValues = new ObservationValues(observedProperty, sensor, 
+        phenomenon, observedProperty.foreign_units)
 
     for {
       valueSingleVariable <- tsValuesSingleVariableType.getValueArray()

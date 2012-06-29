@@ -20,7 +20,7 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import scala.collection.JavaConversions._
 
 class NdbcObservationRetriever(private val stationQuery:StationQuery)
-	extends ObservationRetriever {
+	extends ObservationValuesCollectionRetriever {
   
   private val valueParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\n""".r
   private val specParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\n""".r
@@ -33,23 +33,9 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery)
   // ---------------------------------------------------------------------------
   // ObservationRetriever Members
   // ---------------------------------------------------------------------------
-  
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
 
-    (station, sensor, phenomenon) match{
-      case (localStation:LocalStation, localSensor:LocalSensor, localPhenomenon:LocalPhenomenon) =>{
-        buildObservationCollection(localStation, localSensor, localPhenomenon, startDate)
-      }
-    }
-  }
-
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-  
-  private def buildObservationCollection(station: LocalStation,
-    sensor: LocalSensor, phenomenon:LocalPhenomenon, startDate: Calendar): ObservationCollection = {
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
     
     val data = httpSender.downloadReadFile("http://www.ndbc.noaa.gov/data/5day2/" + 
         station.databaseStation.foreign_tag + "_5day.txt")
@@ -147,30 +133,12 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery)
       }
     }
     
-    return createObservationCollection(station, observationValuesCollection)
+    observationValuesCollection
   }
   
-  
-  private def createObservationCollection(station: LocalStation, 
-      observationValuesCollection:List[ObservationValues]):ObservationCollection ={
-      val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-      
-      if(filteredObservationValuesCollection.size == 1){
-        val observationValues = filteredObservationValuesCollection.head
-        val observationCollection = new ObservationCollection()
-        observationCollection.setObservationDates(observationValues.getDates)
-        observationCollection.setObservationValues(observationValues.getValues)
-        observationCollection.setPhenomenon(observationValues.phenomenon)
-        observationCollection.setSensor(observationValues.sensor)
-        observationCollection.setStation(station)
-        
-        observationCollection
-      }
-      else{
-        println("Error more than one observationValues")
-        return null
-      }
-  }
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
 
   private def createSensorObservationValuesCollection(station: LocalStation,
     sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -179,7 +147,7 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery)
       phenomenon.databasePhenomenon)
 
     for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenon)
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
   

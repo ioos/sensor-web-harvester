@@ -24,7 +24,7 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.StationQuery
 
 class RawsObservationRetriever(private val stationQuery:StationQuery)
-	extends ObservationRetriever {
+	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------
   // Private Data
@@ -37,29 +37,15 @@ class RawsObservationRetriever(private val stationQuery:StationQuery)
   private val httpSender = new HttpSender()
   
   // ---------------------------------------------------------------------------
-  // ObservationRetriever Members
+  // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
   
-  override def getObservationCollection(station: SosStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
 
-    station match{
-      case databaseStation:LocalStation =>{
-        getObservationCollection(databaseStation, sensor, phenomenon, startDate)
-      }
-    }
-  }
-  
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-  
-  private def getObservationCollection(databaseStation: LocalStation,
-    sensor: SosSensor, phenomenon:SosPhenomenon, startDate: Calendar): ObservationCollection = {
-
-    val data = getRawData(databaseStation, startDate)
+    val data = getRawData(station, startDate)
     val observationValuesCollection = 
-      createSensorObservationValuesCollection(databaseStation, sensor, phenomenon)
+      createSensorObservationValuesCollection(station, sensor, phenomenon)
 
     val doc = Jsoup.parse(data)
 
@@ -111,23 +97,21 @@ class RawsObservationRetriever(private val stationQuery:StationQuery)
         }
       }
 
-      val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-      
-      if(filteredObservationValuesCollection.size == 1){
-        val observationValues = filteredObservationValuesCollection.head
-        val observationCollection = new ObservationCollection()
-        observationCollection.setObservationDates(observationValues.getDates)
-        observationCollection.setObservationValues(observationValues.getValues)
-        observationCollection.setPhenomenon(observationValues.phenomenon)
-        observationCollection.setSensor(observationValues.sensor)
-        observationCollection.setStation(databaseStation)
-        
-        observationCollection
-      }
-      else{
-        println("Error more than one observationValues")
-        return null
-      }
+      observationValuesCollection
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+
+  private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon): List[ObservationValues] = {
+    val observedProperties = stationQuery.getObservedProperties(
+      station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
+
+    for (observedProperty <- observedProperties) yield {
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
   
@@ -181,22 +165,6 @@ class RawsObservationRetriever(private val stationQuery:StationQuery)
       "http://www.raws.dri.edu/cgi-bin/wea_list2.pl", parts)
 
     return results;
-  }
-
-  private def createSensorObservationValuesCollection(station: SosStation,
-    sensor: SosSensor, phenomenon: SosPhenomenon): List[ObservationValues] = {
-    (station, sensor, phenomenon) match {
-      case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
-        val observedProperties = stationQuery.getObservedProperties(
-          localStation.databaseStation, localSensor.databaseSensor,
-          localPhenomenon.databasePhenomenon)
-
-        for (observedProperty <- observedProperties) yield {
-          new ObservationValues(observedProperty, sensor, phenomenon)
-        }
-      }
-      case _ => Nil
-    }
   }
   
   private def createDate(rawText: String): Calendar = {

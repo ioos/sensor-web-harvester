@@ -25,7 +25,7 @@ import org.cuahsi.waterML.x11.SiteInfoType
 import org.cuahsi.waterML.x11.LatLonPointType
 
 class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBoxOption: Option[BoundingBox]) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
@@ -58,7 +58,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
     val timeSerieses = getAllStatesTimeSeriesTypes
     val stations = createSourceStations(timeSerieses)
     val size = stations.length - 1
-    log.info("number of stations= " + size)
+    log.info("Number of unfiltered stations= " + size)
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex;
       if (withInBoundingBox(station))
@@ -72,19 +72,14 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
       (station, sensors)
     }
     
-    log.info("finished with stations")
+    log.info("Finished with processing " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
-  
+
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    boundingBoxOption match {
-      case Some(boundingBox) => {
-        val stationLocation = new Location(station.latitude, station.longitude)
-        return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-      }
-      case None => true
-    }
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
   
   private def getAllStatesTimeSeriesTypes():List[TimeSeriesType] = 
@@ -98,15 +93,20 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
       "wy")
   
   private def getTimeSeriesTypes(stateTag:String):List[TimeSeriesType] ={
-    val rawServerData = httpSender.sendGetMessage("http://waterservices.usgs.gov/nwis/iv?stateCd=ak&period=PT4H")
-    
-    val document =
-      TimeSeriesResponseDocument.Factory.parse(rawServerData)
-      
-    return document.getTimeSeriesResponse().getTimeSeriesArray().filter(timeSeriesType => 
-      timeSeriesType.getValuesArray().length > 0 && 
-      timeSeriesType.getValuesArray(0).getValueArray().length > 0 &&
-      !timeSeriesType.getValuesArray(0).getValueArray(0).getStringValue.equals("-999999")).toList
+    val rawServerData = httpSender.sendGetMessage(
+        "http://waterservices.usgs.gov/nwis/iv?stateCd=" + stateTag + "&period=PT4H")
+
+    if (rawServerData != null) {
+      val document =
+        TimeSeriesResponseDocument.Factory.parse(rawServerData)
+
+      document.getTimeSeriesResponse().getTimeSeriesArray().filter(timeSeriesType =>
+        timeSeriesType.getValuesArray().length > 0 &&
+          timeSeriesType.getValuesArray(0).getValueArray().length > 0 &&
+          !timeSeriesType.getValuesArray(0).getValueArray(0).getStringValue.equals("-999999")).toList
+    } else {
+      Nil
+    }
   }
   
   private def createSourceStations(
