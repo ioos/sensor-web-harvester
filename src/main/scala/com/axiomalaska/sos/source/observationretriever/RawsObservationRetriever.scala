@@ -47,6 +47,11 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
 
     val data = getRawData(station, startDate)
+    
+    if(data == null){
+      return Nil
+    }
+    
     val observationValuesCollection = 
       createSensorObservationValuesCollection(station, sensor, phenomenon)
 

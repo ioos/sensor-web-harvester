@@ -92,15 +92,21 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
     val stationLocation = new Location(station.latitude, station.longitude)
     return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
-  
-  private def getObservationOfferingTypes():List[ObservationOfferingType]={
-    return getCapabilitiesDocument.getCapabilities().getContents().
-        getObservationOfferingList().getObservationOfferingArray().
-        filter(observationOffering => 
-          stationIdParser.findFirstIn(observationOffering.getId) != None).toList
+
+  private def getObservationOfferingTypes(): List[ObservationOfferingType] = {
+    getCapabilitiesDocument() match {
+      case Some(capabilitiesDocument) => {
+        capabilitiesDocument.getCapabilities().getContents().getObservationOfferingList().getObservationOfferingArray().
+          filter(observationOffering =>
+            stationIdParser.findFirstIn(observationOffering.getId) != None).toList
+      }
+      case None => {
+        Nil
+      }
+    }
   }
   
-  private def getCapabilitiesDocument(): CapabilitiesDocument = {
+  private def getCapabilitiesDocument(): Option[CapabilitiesDocument] = {
     val getCapabilitiesDocument = GetCapabilitiesDocument.Factory.newInstance
 
     val getCapabilities = getCapabilitiesDocument.addNewGetCapabilities
@@ -110,7 +116,12 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
     val results = httpSender.sendPostMessage(
         serviceUrl, getCapabilitiesDocument.xmlText());
 
-    return CapabilitiesDocument.Factory.parse(results)
+    if(results != null){
+    	Some(CapabilitiesDocument.Factory.parse(results))
+    }
+    else{
+      None
+    }
   }
 
   private def getSourceObservedProperties(observationOfferingType: ObservationOfferingType, 
@@ -294,6 +305,9 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       val rawData = rawDataRetriever.getRawDataLatest(serviceUrl, offeringTag, observedPropertyTag,
         station.foreign_tag, sensorForeignId)
 
+        if(rawData == null){
+          return Nil
+        }
       createCompositeObservationDocument(rawData) match {
         case Some(document) => {
           try {

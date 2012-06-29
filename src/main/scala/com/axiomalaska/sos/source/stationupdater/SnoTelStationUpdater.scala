@@ -103,6 +103,9 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         "http://www.wcc.nrcs.usda.gov/nwcc/sensors",
         List[HttpPart](new HttpPart("sitenum", station.foreign_tag)))
 
+      if (results == null) {
+        return Nil
+      }
       val doc = Jsoup.parse(results)
 
       val databaseSnotelSensors = for {
@@ -123,7 +126,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         map += tag
         snotelSensor
       }
-      
+
       return filteredSnotelSensors.toList
     } catch {
       case e: Exception => logger.error("getSnotelSensor: " + e.getMessage())

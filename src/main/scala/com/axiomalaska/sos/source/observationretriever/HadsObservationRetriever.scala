@@ -54,14 +54,18 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
       httpSender.sendPostMessage(
         "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", parts);
 
-    val observationValuesCollections =
-      createSensorObservationValuesCollection(station, sensor, phenomenon)
+    if (result != null) {
+      val observationValuesCollections =
+        createSensorObservationValuesCollection(station, sensor, phenomenon)
 
-    for { observationValues <- observationValuesCollections } {
-      collectValues(result, observationValues, startDate, Calendar.getInstance)
+      for { observationValues <- observationValuesCollections } {
+        collectValues(result, observationValues, startDate, Calendar.getInstance)
+      }
+
+      observationValuesCollections
+    } else {
+      Nil
     }
-
-    observationValuesCollections
   }
   
   // ---------------------------------------------------------------------------

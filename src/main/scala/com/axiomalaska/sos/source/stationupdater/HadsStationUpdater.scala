@@ -377,7 +377,7 @@ class HadsStationUpdater(
     val results = httpSender.sendPostMessage(
       "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", httpParts)
 
-    if (results.contains(parseDate.format(new Date()))) {
+    if (results != null && results.contains(parseDate.format(new Date()))) {
       val sensorNames = for (sensorMatch <- sensorParser.findAllIn(results)) yield{
         val sensorParser(sensor) = sensorMatch
         sensor
@@ -411,14 +411,18 @@ class HadsStationUpdater(
     val latLonResults = httpSender.sendGetMessage(
       "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id=" + foreignId)
 
-    val doc = Jsoup.parse(latLonResults)
+    if (latLonResults != null) {
+      val doc = Jsoup.parse(latLonResults)
 
-    val latOption = getLatitude(doc)
-    val lonOption = getLongitude(doc)
-    
-    (latOption, lonOption)match{
-      case (Some(lat), Some(lon)) => Some((lat, lon))
-      case _ => None
+      val latOption = getLatitude(doc)
+      val lonOption = getLongitude(doc)
+
+      (latOption, lonOption) match {
+        case (Some(lat), Some(lon)) => Some((lat, lon))
+        case _ => None
+      }
+    } else {
+      None
     }
   }
   
@@ -482,7 +486,11 @@ class HadsStationUpdater(
   private def getStationElements(stateUrl:String):List[Element]={
     val results = httpSender.sendGetMessage(stateUrl)
 
-    return Jsoup.parse(results).getElementsByTag("A").filter(
+    if (results != null) {
+      Jsoup.parse(results).getElementsByTag("A").filter(
         element => element.text().length > 0).toList
+    } else {
+      Nil
+    }
   }
 }

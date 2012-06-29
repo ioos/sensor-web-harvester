@@ -44,6 +44,10 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
       createSensorObservationValuesCollection(station, sensor, phenomenon)
 
     val data = getRawData(station)
+    
+    if(data == null){
+      return Nil
+    }
 
     val lines = data.split("\n");
 

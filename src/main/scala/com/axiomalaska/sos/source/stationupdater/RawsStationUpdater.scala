@@ -88,15 +88,20 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def getStateStationElements(stateUrl:String): List[String] = {
-    val mainDoc = Jsoup.parse(httpSender.sendGetMessage(stateUrl));
+    val rawData = httpSender.sendGetMessage(stateUrl)
+    if (rawData != null) {
+      val mainDoc = Jsoup.parse(rawData);
 
-    val stationElements = mainDoc.getElementsByTag("A").filter(_.hasAttr("onmouseover"))
-    
-    val foreignIds = stationElements.map(element => {
-      val foreignIdParser(foreignId) = element.attr("href")
-      foreignId
-    })
-    foreignIds.toList
+      val stationElements = mainDoc.getElementsByTag("A").filter(_.hasAttr("onmouseover"))
+
+      val foreignIds = stationElements.map(element => {
+        val foreignIdParser(foreignId) = element.attr("href")
+        foreignId
+      })
+      foreignIds.toList
+    } else {
+      Nil
+    }
   }
   
   private def createStations():List[DatabaseStation] ={
@@ -246,19 +251,23 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     val results = httpSender.sendPostMessage(
       "http://www.raws.dri.edu/cgi-bin/wea_list2.pl", parts);
 
-    val doc = Jsoup.parse(results);
+    if (results != null) {
+      val doc = Jsoup.parse(results);
 
-    val body = doc.getElementsByTag("PRE").text();
+      val body = doc.getElementsByTag("PRE").text();
 
-    val sensorParser = """:(.*)\(""".r
+      val sensorParser = """:(.*)\(""".r
 
-    val sensorNames = for (parsedData <- sensorParser.findAllIn(body)) yield {
-      val sensorParser(rawSensor) = parsedData
-      val sensor: String = rawSensor.replaceAll("\\(.*\\)", "").replaceAll(" ", "").replaceAll(":", "").replaceAll("-", "").replaceAll("#", "").trim
-      sensor
+      val sensorNames = for (parsedData <- sensorParser.findAllIn(body)) yield {
+        val sensorParser(rawSensor) = parsedData
+        val sensor: String = rawSensor.replaceAll("\\(.*\\)", "").replaceAll(" ", "").replaceAll(":", "").replaceAll("-", "").replaceAll("#", "").trim
+        sensor
+      }
+
+      sensorNames.toList
+    } else {
+      Nil
     }
-
-    return sensorNames.toList
   }
 
   private def getObservedProperty(station: DatabaseStation, id: String): Option[ObservedProperty] = {

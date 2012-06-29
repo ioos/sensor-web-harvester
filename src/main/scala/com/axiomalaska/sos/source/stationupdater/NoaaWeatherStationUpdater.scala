@@ -71,22 +71,27 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   private def getStations():List[DatabaseStation] ={
     val data = httpSender.sendGetMessage(
       "http://weather.noaa.gov/data/nsd_cccc.txt")
-      
-    val stations = for{line <- data.split("\n")
-      val rows = line.split(";")
-      if(rows.size > 8)
-      val foreignId = rows(0)
-      val label = rows(3)
-      val latitudeRaw = rows(7)
-      val longitudeRaw = rows(8)
-      val latitude = parseLatitude(latitudeRaw)
-      val longitude = parseLongitude(longitudeRaw)
-      val station = new DatabaseStation(label, foreignId, foreignId, source.id, latitude, longitude)
-      if (withInBoundingBox(station))
-      if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + foreignId + ".html"))
-    } yield { station }
-    
-    return stations.toList
+
+    if (data != null) {
+      val stations = for {
+        line <- data.split("\n")
+        val rows = line.split(";")
+        if (rows.size > 8)
+        val foreignId = rows(0)
+        val label = rows(3)
+        val latitudeRaw = rows(7)
+        val longitudeRaw = rows(8)
+        val latitude = parseLatitude(latitudeRaw)
+        val longitude = parseLongitude(longitudeRaw)
+        val station = new DatabaseStation(label, foreignId, foreignId, source.id, latitude, longitude)
+        if (withInBoundingBox(station))
+        if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + foreignId + ".html"))
+      } yield { station }
+
+      stations.toList
+    } else {
+      Nil
+    }
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
