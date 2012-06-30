@@ -3,17 +3,22 @@ package com.axiomalaska.sos.source.stationupdater
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
 import org.apache.log4j.Logger
+import scala.util.Random
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
   private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
+  private val random = new Random()
+  
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
 
   def update(){
-    for(stationUpdater <- getStationUpdaters()){
+    val stationUpdaters = getStationUpdaters()
+  
+    for(stationUpdater <- random.shuffle(stationUpdaters)){
       logger.info("----- Starting updating source " + stationUpdater.name + " ------")
       stationUpdater.update()
     }

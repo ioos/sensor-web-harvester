@@ -2,6 +2,7 @@ package com.axiomalaska.sos.source
 
 import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
 import org.apache.log4j.Logger
+import scala.util.Random
 
 /**
  * This class manages updating the SOS with all the stations from the metadata database
@@ -19,6 +20,8 @@ class SosSourcesManager(
 	private val sosUrl:String, 
 	private val logger: Logger = Logger.getRootLogger()) {
 
+  private val random = new Random()
+
   def updateSos() {
     val factory = new ObservationUpdaterFactory()
     val queryBuilder = new StationQueryBuilder(
@@ -28,7 +31,9 @@ class SosSourcesManager(
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, logger)
 
-      observationUpdaters.foreach(_.update())
+      for (observationUpdater <- random.shuffle(observationUpdaters)) {
+        observationUpdater.update()
+      }
     })
   }
 }
