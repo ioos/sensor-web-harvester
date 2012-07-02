@@ -85,6 +85,134 @@ class HadsStationUpdater(
     getSensorNames(station).flatMap(
       sensorName => getObservedProperty(sensorName))
   
+  private def getSensorNames(station: DatabaseStation): List[String] = {
+    val httpParts = List(
+      new HttpPart("state", "nil"),
+      new HttpPart("hsa", "nil"),
+      new HttpPart("of", "3"),
+      new HttpPart("nesdis_ids", station.foreign_tag),
+      new HttpPart("sinceday", "-1"))
+
+    val results = httpSender.sendPostMessage(
+      "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", httpParts)
+
+    if (results != null && results.contains(parseDate.format(new Date()))) {
+      val sensorNames = for (sensorMatch <- sensorParser.findAllIn(results)) yield{
+        val sensorParser(sensor) = sensorMatch
+        sensor
+      }
+      return sensorNames.toList
+    }
+    else{
+      return Nil
+    }
+  }
+  
+  private def createSourceStations():List[DatabaseStation] = {
+    for {
+      stateUrl <- getAllStateUrls()
+      element <- getStationElements(stateUrl)
+      station <- createStation(element)
+    } yield { station }
+  }
+
+  private def createStation(element: Element): Option[DatabaseStation] = {
+    val label = element.parent().parent().nextElementSibling().child(0).text
+    val foreignIdParser(foreignId) = element.attr("HREF")
+
+    return getLatLon(foreignId) match {
+      case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon))
+      case _ => None
+    }
+  }
+  
+  private def getLatLon(foreignId:String): Option[(Double, Double)] = {
+    val latLonResults = httpSender.sendGetMessage(
+      "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id=" + foreignId)
+
+    if (latLonResults != null) {
+      val doc = Jsoup.parse(latLonResults)
+
+      val latOption = getLatitude(doc)
+      val lonOption = getLongitude(doc)
+
+      (latOption, lonOption) match {
+        case (Some(lat), Some(lon)) => Some((lat, lon))
+        case _ => None
+      }
+    } else {
+      None
+    }
+  }
+  
+  private def getLongitude(doc: Document): Option[Double] = {
+    return doc.getElementsMatchingOwnText("Longitude").headOption match {
+      case Some(element) => {
+        val rawLong = element.nextElementSibling().text
+
+        val longParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
+
+        val longParser(direction, degree, minute, second) = rawLong
+
+        val long: Double = degree.toDouble + minute.toDouble / 60 + second.toDouble / 60 / 60
+
+        if (direction.equalsIgnoreCase("W")) {
+          Some(((-1) * long))
+        } else {
+          Some(long)
+        }
+      }
+      case None => None
+    }
+  }
+
+  private def getLatitude(doc: Document): Option[Double] = {
+    return doc.getElementsMatchingOwnText("Latitude").headOption match {
+      case Some(element) => {
+        val rawLat = element.nextElementSibling().text
+
+        val latParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
+
+        val latParser(direction, degree, minute, second) = rawLat
+
+        val lat: Double = degree.toDouble + minute.toDouble / 60 + second.toDouble / 60 / 60
+
+        if (direction.equalsIgnoreCase("S")) {
+          Some(((-1) * lat))
+        } else {
+          Some(lat)
+        }
+      }
+      case None => None
+    }
+  }
+  
+  private def getAllStateUrls():List[String] ={
+    val results = httpSender.sendGetMessage(
+        "http://amazon.nws.noaa.gov/hads/goog_earth/")
+
+    if (results != null) {
+      val doc = Jsoup.parse(results)
+
+      val areas = doc.getElementsByTag("area")
+
+      areas.map(_.attr("href")).toList
+    } else {
+      Nil
+    }
+  }
+  
+  private def getStationElements(stateUrl:String):List[Element]={
+    val results = httpSender.sendGetMessage(stateUrl)
+
+    if (results != null) {
+      Jsoup.parse(results).getElementsByTag("A").filter(
+        element => element.text().length > 0).toList
+    } else {
+      Nil
+    }
+  }
+  
   private def getObservedProperty(id: String): 
       Option[ObservedProperty] = {
     id match {
@@ -359,138 +487,10 @@ class HadsStationUpdater(
             SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED))
       }
       case _ => {
-        logger.error("[" + source.name + "] observed propery: " + id +
+        logger.debug("[" + source.name + "] observed property: " + id +
           " is not processed correctly.")
         return None
       }
-    }
-  }
-  
-  private def getSensorNames(station: DatabaseStation): List[String] = {
-    val httpParts = List(
-      new HttpPart("state", "nil"),
-      new HttpPart("hsa", "nil"),
-      new HttpPart("of", "3"),
-      new HttpPart("nesdis_ids", station.foreign_tag),
-      new HttpPart("sinceday", "-1"))
-
-    val results = httpSender.sendPostMessage(
-      "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", httpParts)
-
-    if (results != null && results.contains(parseDate.format(new Date()))) {
-      val sensorNames = for (sensorMatch <- sensorParser.findAllIn(results)) yield{
-        val sensorParser(sensor) = sensorMatch
-        sensor
-      }
-      return sensorNames.toList
-    }
-    else{
-      return Nil
-    }
-  }
-  
-  private def createSourceStations():List[DatabaseStation] = {
-    for {
-      stateUrl <- getAllStateUrls()
-      element <- getStationElements(stateUrl)
-      station <- createStation(element)
-    } yield { station }
-  }
-
-  private def createStation(element: Element): Option[DatabaseStation] = {
-    val label = element.parent().parent().nextElementSibling().child(0).text
-    val foreignIdParser(foreignId) = element.attr("HREF")
-
-    return getLatLon(foreignId) match {
-      case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon))
-      case _ => None
-    }
-  }
-  
-  private def getLatLon(foreignId:String): Option[(Double, Double)] = {
-    val latLonResults = httpSender.sendGetMessage(
-      "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id=" + foreignId)
-
-    if (latLonResults != null) {
-      val doc = Jsoup.parse(latLonResults)
-
-      val latOption = getLatitude(doc)
-      val lonOption = getLongitude(doc)
-
-      (latOption, lonOption) match {
-        case (Some(lat), Some(lon)) => Some((lat, lon))
-        case _ => None
-      }
-    } else {
-      None
-    }
-  }
-  
-  private def getLongitude(doc: Document): Option[Double] = {
-    return doc.getElementsMatchingOwnText("Longitude").headOption match {
-      case Some(element) => {
-        val rawLong = element.nextElementSibling().text
-
-        val longParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
-
-        val longParser(direction, degree, minute, second) = rawLong
-
-        val long: Double = degree.toDouble + minute.toDouble / 60 + second.toDouble / 60 / 60
-
-        if (direction.equalsIgnoreCase("W")) {
-          Some(((-1) * long))
-        } else {
-          Some(long)
-        }
-      }
-      case None => None
-    }
-  }
-
-  private def getLatitude(doc: Document): Option[Double] = {
-    return doc.getElementsMatchingOwnText("Latitude").headOption match {
-      case Some(element) => {
-        val rawLat = element.nextElementSibling().text
-
-        val latParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
-
-        val latParser(direction, degree, minute, second) = rawLat
-
-        val lat: Double = degree.toDouble + minute.toDouble / 60 + second.toDouble / 60 / 60
-
-        if (direction.equalsIgnoreCase("S")) {
-          Some(((-1) * lat))
-        } else {
-          Some(lat)
-        }
-      }
-      case None => None
-    }
-  }
-  
-  private def getAllStateUrls():List[String] ={
-    val results = httpSender.sendGetMessage(
-        "http://amazon.nws.noaa.gov/hads/goog_earth/")
-
-    if (results != null) {
-      val doc = Jsoup.parse(results)
-
-      val areas = doc.getElementsByTag("area")
-
-      areas.map(_.attr("href")).toList
-    } else {
-      Nil
-    }
-  }
-  
-  private def getStationElements(stateUrl:String):List[Element]={
-    val results = httpSender.sendGetMessage(stateUrl)
-
-    if (results != null) {
-      Jsoup.parse(results).getElementsByTag("A").filter(
-        element => element.text().length > 0).toList
-    } else {
-      Nil
     }
   }
 }

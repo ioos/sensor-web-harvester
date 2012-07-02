@@ -281,7 +281,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
             SensorPhenomenonIds.WIND_SPEED))
       }
       case _ => {
-        logger.error("[" + source.name + "] observed propery: " + id +
+        logger.debug("[" + source.name + "] observed property: " + id +
           " is not processed correctly.")
         return None
       }

@@ -4,12 +4,13 @@ import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
 import org.apache.log4j.Logger
 import scala.util.Random
+import java.util.Calendar
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
   private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
-  private val random = new Random()
+  private val random = new Random(Calendar.getInstance.getTime.getTime)
   
   // ---------------------------------------------------------------------------
   // Public Members

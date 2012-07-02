@@ -73,9 +73,6 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
 
         val fullMessage = exceptionDocument.getExceptionReport().
           getExceptionArray()(0).getExceptionTextArray().mkString(", ");
-
-        println("station: " + station.getId + " phenomenon: " + 
-            phenomenon.getId + " message: " + fullMessage)
         
         return Nil
       }
@@ -275,7 +272,7 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
   }
 
   private def createCompositeObservationDocument(data: String): Option[CompositeObservationDocument] = {
-    if (!data.contains("ExceptionReport")) {
+    if (data != null && !data.contains("ExceptionReport")) {
       try {
         val compositeObservationDocument =
           CompositeObservationDocument.Factory.parse(data)

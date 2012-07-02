@@ -350,7 +350,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       case "DIAG" => None
       case "RHENC" => None // Relative Humidity Enclosure
       case _ => {
-        logger.error("[" + source.name + "] observed propery: " + snotelSensor.observedpropertylabel +
+        logger.debug("[" + source.name + "] observed property: " + snotelSensor.observedpropertylabel +
           " == " + snotelSensor.observedpropertylongcode + " is not processed correctly.")
         return None
       }
@@ -377,17 +377,25 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       httpSender.downloadFile(
         "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz")
 
-    val rootzip = new ZipFile(filename);
+    if (filename != null) {
+      val rootzip = new ZipFile(filename);
 
-    val zipEntryOption = 
-      rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
+      val zipEntryOption =
+        rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
 
-    zipEntryOption match {
-      case Some(zipEntry) => {
-        val snotelKmlRootElem = XML.load(rootzip.getInputStream(zipEntry))
-        (snotelKmlRootElem \\ "Placemark").map(createStation).toList
+      zipEntryOption match {
+        case Some(zipEntry) => {
+          val snotelKmlRootElem = XML.load(rootzip.getInputStream(zipEntry))
+          (snotelKmlRootElem \\ "Placemark").map(createStation).toList
+        }
+        case None => {
+          logger.error("snotelwithoutlabels.kml file not found")
+          Nil
+        }
       }
-      case None => throw new Exception("snotelwithoutlabels.kml file not found")
+    } else {
+      logger.error("snotelwithoutlabels.kml could not be downloaded")
+      Nil
     }
   }
 }

@@ -267,7 +267,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       case "WaveDuration" => None
       case "MeanWaveDirectionPeakPeriod" => None
       case _ =>{
-        logger.error(" observed propery: " + namedQuantity.getName +
+        logger.debug(" observed property: " + namedQuantity.getName +
           " is not processed correctly.")
         return None
       }

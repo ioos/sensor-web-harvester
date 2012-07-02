@@ -14,10 +14,17 @@ The current sources that are implemented are:
 * [SnoTel](http://www.wcc.nrcs.usda.gov/)
 * [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
 
-This project can be used from the command line with the commands of 
+Setup 
+-----
+A sensor database must be created with the sensor_database_0.0.1.tar. This tar file
+contains a backup of the postgresql metadata database used to update the SOS. Using
+pgAdmin, create a database right-click on it and select restore. Select the 
+sensor_database_0.0.1.tar file for the Filename and for "Format" select "Custom or tar". 
+Select "Restore" and the metadata database will be created. This database starts with
+all the Phenomena and Sources preloaded. 
 
 To update the metadata database with all the stations from all the sources within the bounding box
-This should be only about 3 times a week, because the stations do not change often
+This should be done only about 3 times a week, because the stations from the sources do not change often.
 
 java -jar source-sos-injectors.jar -metadata [databaseUrl] [databaseUsername] [databasePassword] [North most latitude] [South most latitude] [West most longitude] [East most longitude]
 	
@@ -25,7 +32,7 @@ Example:
 
 java -jar source-sos-injectors.jar -metadata "jdbc:postgresql://localhost:5432/sensor" sensoruser sensor 40.7641 32.6666 -124.1245 -114.0830
 	
-To update the SOS with all the station in the metadata database. Call this hourly or more
+To update the SOS with all the station in the metadata database. Call this hourly or less
 
 java -jar source-sos-injectors.jar -updatesos [SOS URL] [databaseUrl] [databaseUsername] [databasePassword]
 
@@ -35,6 +42,8 @@ java -jar source-sos-injectors.jar -updatesos "http://localhost:8080/sos/sos" "j
 
 Code (Java)
 -----------
+This is example code demonstrating how to update the metadata database and update
+the SOS. 
 
     // Southern California Bounding Box
     Location southWestCorner = new Location(32.0, -123.0);
