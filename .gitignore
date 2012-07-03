@@ -5,6 +5,7 @@
 *.ear
 *.jar
 *.tar
+*.log
 .cache
 .classpath
 .project
