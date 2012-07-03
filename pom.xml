@@ -13,6 +13,14 @@
     <scala.version>2.9.1</scala.version>
   </properties>
   
+  <repositories>
+    <repository>
+      <id>axiom_public_releases</id>
+      <name>Axiom Releases</name>
+      <url>http://nexus.axiomalaska.com/nexus/content/repositories/public-releases</url>
+    </repository>
+  </repositories>
+  
   <dependencies>
 		<dependency>
 			<groupId>org.scala-lang</groupId>
@@ -37,11 +45,6 @@
 			<version>1.2.16</version>
 		</dependency>
 		<dependency>
-			<groupId>com.axiomalaska</groupId>
-			<artifactId>SosInjector</artifactId>
-			<version>0.2.7</version>
-		</dependency>
-		<dependency>
 			<groupId>org.jsoup</groupId>
 			<artifactId>jsoup</artifactId>
 			<version>1.5.2</version>
@@ -60,6 +63,16 @@
 			<groupId>javax.measure</groupId>
 			<artifactId>jsr-275</artifactId>
 			<version>0.9.1</version>
+		</dependency>
+		<dependency>
+			<groupId>com.axiomalaska</groupId>
+			<artifactId>ioos.xml.schema</artifactId>
+			<version>1.2.5</version>
+		</dependency>
+		<dependency>
+			<groupId>com.axiomalaska</groupId>
+			<artifactId>SosInjector</artifactId>
+			<version>0.2.7</version>
 		</dependency>
   </dependencies>
 

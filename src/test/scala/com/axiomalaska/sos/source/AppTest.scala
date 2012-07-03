@@ -35,6 +35,11 @@ class AppTest {
     BoundingBox(new Location(32.6666, -124.1245), 
         new Location(40.7641, -114.0830))
   }
+  
+  def randomBoundingBox():BoundingBox ={
+    BoundingBox(new Location(44.0, -72.0), 
+        new Location(45.0, -71.0))
+  }
 
   /**
    * All
@@ -158,14 +163,14 @@ class AppTest {
 //      observationUpdater.update()
 //    })
 //  }
-//  
+  
 //  @Test
 //  def updateStationsInDatabase(){
 //    val queryBuilder = new StationQueryBuilder(
 //        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
 //
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new RawsStationUpdater(stationQuery, califorinaBoundingBox)
+//      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }

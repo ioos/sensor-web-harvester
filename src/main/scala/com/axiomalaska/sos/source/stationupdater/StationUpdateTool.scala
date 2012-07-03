@@ -27,10 +27,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
       val sourceSensors = sourceStationSensor._2
 
       databaseStations.filter(databaseStation => 
-        databaseStation.name == sourceStation.name && 
-          databaseStation.foreign_tag == sourceStation.foreign_tag && 
-          areClose(databaseStation.latitude, sourceStation.latitude) && 
-          areClose(databaseStation.longitude, sourceStation.longitude)).headOption match {
+        databaseStation.foreign_tag == sourceStation.foreign_tag).headOption match {
         case Some(databaseStation: DatabaseStation) => {
           if (!areDoublesEquals(databaseStation.latitude, sourceStation.latitude) || 
               !areDoublesEquals(databaseStation.longitude, sourceStation.longitude)) {

@@ -131,9 +131,11 @@ private class StationQueryImp(url:String,
   def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation) {
     using(session) {
       update(StationDatabase.stations)(s =>
-        where(s.id === originalStation.id)
-          set (s.foreign_tag := newStation.foreign_tag,
-            s.latitude := newStation.latitude, s.longitude := newStation.longitude))
+        where(s.foreign_tag === originalStation.foreign_tag)
+          set (s.name := newStation.name,
+              s.tag := newStation.tag,
+            s.latitude := newStation.latitude, 
+            s.longitude := newStation.longitude))
     }
   }
   
