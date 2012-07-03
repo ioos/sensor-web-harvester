@@ -3,6 +3,8 @@
 # Package Files #
 *.war
 *.ear
+*.jar
+*.tar
 .cache
 .classpath
 .project

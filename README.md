@@ -14,6 +14,14 @@ The current sources that are implemented are:
 * [SnoTel](http://www.wcc.nrcs.usda.gov/)
 * [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
 
+
+This project uses a postgresql metadata database to store station information 
+from the sources. This database needs to be built from the provided database 
+backup in Github. The station information is used to retrieve observations 
+from the stations' sources.
+
+This project needs an already running instance of an 52 North SOS.
+
 Setup 
 -----
 A sensor database must be created with the sensor_database_0.0.1.tar. This tar file
