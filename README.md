@@ -73,18 +73,18 @@ java -jar source-sos-injectors.jar -updatesos sos.properties
 
 Example of a properties file
 
- database_url = jdbc:postgresql://localhost:5432/sensor
- database_username = sensoruser
- database_password = sensor
- sos_url = http://192.168.8.15:8080/sos/sos
- publisher_country = USA
- publisher_email = publisher@domain.com
- publisher_web_address = http://www.aoos.org/
- publisher_name = AOOS
- north_lat = 40.0
- south_lat = 39.0
- west_lon = -80.0
- east_lon = -74.0
+    database_url = jdbc:postgresql://localhost:5432/sensor
+    database_username = sensoruser
+    database_password = sensor
+    sos_url = http://192.168.8.15:8080/sos/sos
+    publisher_country = USA
+    publisher_email = publisher@domain.com
+    publisher_web_address = http://www.aoos.org/
+    publisher_name = AOOS
+    north_lat = 40.0
+    south_lat = 39.0
+    west_lon = -80.0
+    east_lon = -74.0
 
 There is also an example properties file on Github at the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads).
 
