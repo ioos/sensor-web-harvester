@@ -369,7 +369,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
     val foreignIdParser(foreignId) = descriptionText
     val labelParser(label) = descriptionText
 
-    return new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon)
+    return new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon)
   }
   
   private def createStations(): List[DatabaseStation] = {

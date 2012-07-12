@@ -179,7 +179,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val lat = getLatitude(siteDoc)
       val lon = getLongitude(siteDoc)
 
-      return Some(new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon))
+      return Some(new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon))
     } else {
       println("response not found ------------------------")
       None

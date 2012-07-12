@@ -286,7 +286,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
     val label = observationOfferingType.getDescription().getStringValue
     val (lat, lon) = getLatLon(observationOfferingType)
 
-    return new DatabaseStation(label, foreignId, foreignId, source.id, lat, lon)
+    return new DatabaseStation(label, foreignId, foreignId, "", "BUOY", source.id, lat, lon)
   }
 
   private def getLatLon(observationOfferingType: ObservationOfferingType): (Double, Double) = {

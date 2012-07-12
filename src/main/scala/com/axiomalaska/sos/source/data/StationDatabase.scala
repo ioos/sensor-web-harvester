@@ -7,6 +7,7 @@ import org.squeryl.dsl.OneToMany
 import org.squeryl.dsl.ManyToOne
 import org.squeryl.dsl.CompositeKey2
 import org.squeryl.Query
+import org.squeryl.annotations.Column
 
 object StationDatabase extends Schema {
 
@@ -52,7 +53,9 @@ object StationDatabase extends Schema {
       (autoIncremented("sensor_id_seq"))))
 }
 
-class Source(val name: String, val tag:String) extends KeyedEntity[Long] {
+class Source(val name: String, val tag:String, val country:String, 
+    val email:String, @Column("web_address") val webAddress:String, 
+    @Column("operator_sector") val operatorSector:String) extends KeyedEntity[Long] {
   val id: Long = -1
   
   lazy val stations: OneToMany[DatabaseStation] = 
@@ -63,6 +66,7 @@ class Source(val name: String, val tag:String) extends KeyedEntity[Long] {
 }
 
 class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
+  val description:String, @Column("platform_type") val platformType:String, 
   val source_id: Long, val latitude: Double, val longitude: Double) 
   extends KeyedEntity[Long] {
   val id: Long = -1

@@ -4,6 +4,7 @@ import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
 import org.apache.log4j.Logger
 import scala.util.Random
 import java.util.Calendar
+import com.axiomalaska.sos.data.PublisherInfo
 
 /**
  * This class manages updating the SOS with all the stations from the metadata database
@@ -19,6 +20,7 @@ class SosSourcesManager(
 	private val databaseUser:String, 
 	private val databasePassword:String, 
 	private val sosUrl:String, 
+	private val publisherInfo:PublisherInfo, 
 	private val logger: Logger = Logger.getRootLogger()) {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
@@ -30,7 +32,7 @@ class SosSourcesManager(
 
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery, logger)
+        sosUrl, stationQuery, publisherInfo, logger)
 
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
         observationUpdater.update()

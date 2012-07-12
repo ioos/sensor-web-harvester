@@ -24,6 +24,8 @@ import com.axiomalaska.sos.StationRetriever
 import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
+import com.axiomalaska.sos.source.data.LocalSource
+import com.axiomalaska.sos.data.PublisherInfoImp
 
 @Test
 class AppTest {
@@ -37,8 +39,8 @@ class AppTest {
   }
   
   def randomBoundingBox():BoundingBox ={
-    BoundingBox(new Location(44.0, -72.0), 
-        new Location(45.0, -71.0))
+    BoundingBox(new Location(39.0, -77.1), 
+        new Location(39.1, -77.0))
   }
 
   /**
@@ -129,9 +131,16 @@ class AppTest {
 //    val queryBuilder = new StationQueryBuilder(
 //        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
 //
+//    val publisherInfo = new PublisherInfoImp()
+//    
+//    publisherInfo.setCountry("")
+//    publisherInfo.setEmail("")
+//    publisherInfo.setName("")
+//    publisherInfo.setWebAddress("")
+//    
 //    queryBuilder.withStationQuery(stationQuery => {
 //      val observationUpdater = factory.buildNoaaWeatherObservationUpdater(
-//          "http://192.168.8.15:8080/sos/sos", stationQuery)
+//          "http://192.168.8.15:8080/sos/sos", stationQuery, publisherInfo)
 //          
 //      observationUpdater.update()
 //    })
@@ -164,28 +173,28 @@ class AppTest {
 //    })
 //  }
   
-//  @Test
-//  def updateStationsInDatabase(){
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
-//
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
+  @Test
+  def updateStationsInDatabase(){
+    val queryBuilder = new StationQueryBuilder(
+        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+
+    queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
+      stationUpdater.update()
+    })
+  }
   
   private class StationRetriever2(
     private val stationQuery: StationQuery) extends StationRetriever {
 
     override def getStations(): java.util.List[SosStation] = {
       val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
-
+      val sosSource = new LocalSource(source)
       for {
         station <- stationQuery.getStations(source)
         if (station.tag == "KBAN")
       } yield {
-        new LocalStation(source, station, stationQuery)
+        new LocalStation(sosSource, station, stationQuery)
       }
     }
   }

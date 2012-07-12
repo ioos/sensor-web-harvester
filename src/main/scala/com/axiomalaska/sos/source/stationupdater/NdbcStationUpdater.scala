@@ -320,7 +320,8 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
         }
       }
 
-      Some(new DatabaseStation(name, foreignId, foreignId, source.id, lat.toDouble, lon.toDouble))
+      Some(new DatabaseStation(name, foreignId, foreignId, "", 
+          "BUOY", source.id, lat.toDouble, lon.toDouble))
     } else {
       None
     }

@@ -7,8 +7,9 @@ import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.source.StationQuery
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.data.SosSource
 
-class LocalStation(val source:Source, 
+class LocalStation(val source:SosSource, 
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery) extends SosStation {
 
@@ -33,23 +34,14 @@ class LocalStation(val source:Source,
    *
    * If characters are over 100 they will be truncated to 80
    */
-  def getFeatureOfInterestName(): String = {
-    "station: " + databaseStation.name + " of source: " + source.name
-  }
+  def getFeatureOfInterestName() =
+    "station: " + databaseStation.name + " of source: " + source.getName
 
   /**
    * The location of the station
    */
-  def getLocation(): Location = {
+  def getLocation() = 
     new Location(databaseStation.latitude, databaseStation.longitude)
-  }
-
-  /**
-   * Name of the source for the station.
-   *
-   * @return
-   */
-  def getSourceId() = source.tag
 
   /**
    * A list of networks this station is associated to
@@ -60,4 +52,12 @@ class LocalStation(val source:Source,
   }
 
   def isMoving = false
+  
+  def getSource() = source
+  
+  def getName() = databaseStation.name
+  
+  def getDescription() = databaseStation.description
+    
+  def getPlatformType() = databaseStation.platformType
 }
