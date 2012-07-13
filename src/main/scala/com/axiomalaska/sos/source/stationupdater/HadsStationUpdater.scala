@@ -4,22 +4,27 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
-import java.text.SimpleDateFormat
-import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
-import org.jsoup.nodes.Element
-import org.jsoup.Jsoup
-import scala.collection.JavaConversions._
-import org.jsoup.nodes.Document
-import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.HttpPart
-import java.util.Date
 import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.tools.HttpPart
+
+import java.text.SimpleDateFormat
+import java.util.Date
+
+import org.apache.log4j.Logger
+
+import org.jsoup.nodes.Element
+import org.jsoup.nodes.Document
+import org.jsoup.Jsoup
+
+import scala.collection.mutable
+import scala.collection.JavaConversions._
 
 class HadsStationUpdater(
   private val stationQuery: StationQuery,
@@ -67,7 +72,7 @@ class HadsStationUpdater(
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      logger.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.debug("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
     
@@ -107,13 +112,18 @@ class HadsStationUpdater(
       return Nil
     }
   }
-  
-  private def createSourceStations():List[DatabaseStation] = {
+
+  private def createSourceStations(): List[DatabaseStation] = {
+    val set = new mutable.HashSet[String]()
     for {
       stateUrl <- getAllStateUrls()
       element <- getStationElements(stateUrl)
       station <- createStation(element)
-    } yield { station }
+      if (!set.contains(station.foreign_tag))
+    } yield {
+      set += station.foreign_tag
+      station
+    }
   }
 
   private def createStation(element: Element): Option[DatabaseStation] = {

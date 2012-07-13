@@ -179,7 +179,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val lat = getLatitude(siteDoc)
       val lon = getLongitude(siteDoc)
 
-      return Some(new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon))
+      return Some(new DatabaseStation(label, foreignId, foreignId, "", 
+          "FIXED MET STATION", source.id, lat, lon))
     } else {
       println("response not found ------------------------")
       None
@@ -187,7 +188,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def getStationName(siteDoc: Document): String = {
-    val rawLabel = siteDoc.getElementsContainingOwnText("Location").head.parent().nextElementSibling().text
+    val rawLabel = 
+      siteDoc.getElementsContainingOwnText("Location").head.parent().nextElementSibling().text
 
     val label = rawLabel.replace("(RAWS)", "").trim
 
@@ -195,7 +197,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def getLatitude(siteDoc: Document): Double = {
-    val rawLat = siteDoc.getElementsContainingOwnText("Latitude").head.parent().nextElementSibling().text
+    val rawLat = 
+      siteDoc.getElementsContainingOwnText("Latitude").head.parent().nextElementSibling().text
 
     val latLongParser(degree, minute, second) = rawLat
 
@@ -205,7 +208,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def getLongitude(siteDoc: Document): Double = {
-    val rawLong = siteDoc.getElementsContainingOwnText("Longitude").head.parent().nextElementSibling().text
+    val rawLong = 
+      siteDoc.getElementsContainingOwnText("Longitude").head.parent().nextElementSibling().text
 
     val latLongParser(degree, minute, second) = rawLong
 

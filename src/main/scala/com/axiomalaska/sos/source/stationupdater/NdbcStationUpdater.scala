@@ -40,6 +40,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   private val geoTools = new GeoTools()
   private val latParser = """var stnlat = (.*?);""".r
   private val lonParser = """var stnlon = (.*?);""".r
+  private val nameParser = """Station.*?[<a.*?<//a>.*?]?-\s*(.*)""".r
   
   // ---------------------------------------------------------------------------
   // Public Members
@@ -88,6 +89,112 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       getObservedProperty(sensorName))
       
     return sourceObservedProperties
+  }
+  
+  private def getSensorNames(foreignId: String): List[String] = {
+    val textResult = httpSender.sendGetMessage(
+        "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt")
+        
+    val sensorNames = mutable.Set.empty[String]
+    if (textResult != null) {
+      for (patternMatch <- textParser.findAllIn(textResult)) {
+        val textParser(year, month, day, hour, min, wdir, wspd, gst, wvht, dpd, apd,
+          mwd, pres, atmp, wtmp, dewp, vis, ptdy, tide) = patternMatch
+          
+        if (wdir != "MM") sensorNames.add("WDIR")
+        if (wspd != "MM") sensorNames.add("WSPD")
+        if (gst != "MM") sensorNames.add("GST")
+        // if(wvht != "MM") sensorNames.add("WVHT")
+        if (dpd != "MM") sensorNames.add("DPD")
+        // if(apd != "MM") sensorNames.add("APD")
+        // if(mwd != "MM") sensorNames.add("MWD")
+        if (pres != "MM") sensorNames.add("PRES")
+        if (atmp != "MM") sensorNames.add("ATMP")
+        if (wtmp != "MM") sensorNames.add("WTMP")
+        if (dewp != "MM") sensorNames.add("DEWP")
+        if (vis != "MM") sensorNames.add("VIS")
+        if (ptdy != "MM") sensorNames.add("PTDY")
+        if (tide != "MM") sensorNames.add("TIDE")
+      }
+    }
+
+    if (httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/realtime2/" + foreignId + ".spec")) {
+
+      val specResult = httpSender.sendGetMessage(
+        "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.spec")
+      if (specResult != null) {
+        for (patternMatch <- specParser.findAllIn(specResult)) {
+          val specParser(year, month, day, hour, min, wvht, swh, swp, wwh, wwp, swd, wwd, steepness, apd, mwd) = patternMatch
+          if (validValue(wvht)) sensorNames.add("WVHT")
+          if (validValue(swh)) sensorNames.add("SwH")
+          if (validValue(swp)) sensorNames.add("SwP")
+          if (validValue(swd)) sensorNames.add("SwD")
+          if (validValue(wwh)) sensorNames.add("WWH")
+          if (validValue(wwp)) sensorNames.add("WWP")
+          if (validValue(wwd)) sensorNames.add("WWD")
+          if (validValue(steepness)) sensorNames.add("STEEPNESS")
+          if (validValue(apd)) sensorNames.add("APD")
+          if (validValue(mwd)) sensorNames.add("MWD")
+        }
+      }
+    }
+    
+    return sensorNames.toList
+  }
+  
+  private def validValue(value:String):Boolean={
+    value != "MM" && value != "-99" && value != "N/A"
+  }
+
+  private def withInBoundingBox(station: DatabaseStation): Boolean = {
+    val stationLocation = new Location(station.latitude, station.longitude)
+    geoTools.isStationWithinRegion(stationLocation, boundingBox)
+  }
+
+  private def createSourceStation(foreignId: String): Option[DatabaseStation] = {
+    val result = httpSender.sendGetMessage(
+      "http://www.ndbc.noaa.gov/station_page.php?station=" + foreignId)
+
+    if (result != null) {
+      val doc = Jsoup.parse(result)
+
+      val latParser(lat) = latParser.findFirstIn(result).get
+      val lonParser(lon) = lonParser.findFirstIn(result).get
+      val header = doc.getElementsByTag("h1")(0).text()
+
+      val name = nameParser.findFirstMatchIn(header) match {
+        case Some(nameMatch) => {
+          nameMatch.group(1)
+        }
+        case None => {
+          foreignId
+        }
+      }
+
+      Some(new DatabaseStation(name, foreignId, foreignId, "", 
+          "BUOY", source.id, lat.toDouble, lon.toDouble))
+    } else {
+      None
+    }
+  }
+
+  private def getAllForeignIds(): List[String] = {
+    val result = httpSender.sendGetMessage("http://www.ndbc.noaa.gov/to_station.shtml")
+
+    if (result != null) {
+      val doc = Jsoup.parse(result)
+
+      val ndbcHeader = doc.getElementsMatchingOwnText("National Data Buoy Center Stations").head
+
+      val preElement = ndbcHeader.nextElementSibling
+
+      val foreignIds = preElement.children.map(_.text).toList
+
+      foreignIds.filter(foreignId =>
+        httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
+    } else {
+      Nil
+    }
   }
   
   private def getObservedProperty(id: String): 
@@ -235,114 +342,6 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
           " is not processed correctly.")
         return None
       }
-    }
-  }
-  
-  private def getSensorNames(foreignId: String): List[String] = {
-    val textResult = httpSender.sendGetMessage(
-        "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt")
-        
-    val sensorNames = mutable.Set.empty[String]
-    if (textResult != null) {
-      for (patternMatch <- textParser.findAllIn(textResult)) {
-        val textParser(year, month, day, hour, min, wdir, wspd, gst, wvht, dpd, apd,
-          mwd, pres, atmp, wtmp, dewp, vis, ptdy, tide) = patternMatch
-          
-        if (wdir != "MM") sensorNames.add("WDIR")
-        if (wspd != "MM") sensorNames.add("WSPD")
-        if (gst != "MM") sensorNames.add("GST")
-        // if(wvht != "MM") sensorNames.add("WVHT")
-        if (dpd != "MM") sensorNames.add("DPD")
-        // if(apd != "MM") sensorNames.add("APD")
-        // if(mwd != "MM") sensorNames.add("MWD")
-        if (pres != "MM") sensorNames.add("PRES")
-        if (atmp != "MM") sensorNames.add("ATMP")
-        if (wtmp != "MM") sensorNames.add("WTMP")
-        if (dewp != "MM") sensorNames.add("DEWP")
-        if (vis != "MM") sensorNames.add("VIS")
-        if (ptdy != "MM") sensorNames.add("PTDY")
-        if (tide != "MM") sensorNames.add("TIDE")
-      }
-    }
-
-    if (httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/realtime2/" + foreignId + ".spec")) {
-
-      val specResult = httpSender.sendGetMessage(
-        "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.spec")
-      if (specResult != null) {
-        for (patternMatch <- specParser.findAllIn(specResult)) {
-          val specParser(year, month, day, hour, min, wvht, swh, swp, wwh, wwp, swd, wwd, steepness, apd, mwd) = patternMatch
-          if (validValue(wvht)) sensorNames.add("WVHT")
-          if (validValue(swh)) sensorNames.add("SwH")
-          if (validValue(swp)) sensorNames.add("SwP")
-          if (validValue(swd)) sensorNames.add("SwD")
-          if (validValue(wwh)) sensorNames.add("WWH")
-          if (validValue(wwp)) sensorNames.add("WWP")
-          if (validValue(wwd)) sensorNames.add("WWD")
-          if (validValue(steepness)) sensorNames.add("STEEPNESS")
-          if (validValue(apd)) sensorNames.add("APD")
-          if (validValue(mwd)) sensorNames.add("MWD")
-        }
-      }
-    }
-    
-    return sensorNames.toList
-  }
-  
-  private def validValue(value:String):Boolean={
-    value != "MM" && value != "-99" && value != "N/A"
-  }
-
-  private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    val stationLocation = new Location(station.latitude, station.longitude)
-    geoTools.isStationWithinRegion(stationLocation, boundingBox)
-  }
-  
-  private val nameParser = """Station.*?[<a.*?<//a>.*?]?-\s*(.*)""".r
-
-  private def createSourceStation(foreignId: String): Option[DatabaseStation] = {
-    val result = httpSender.sendGetMessage(
-      "http://www.ndbc.noaa.gov/station_page.php?station=" + foreignId)
-
-    if (result != null) {
-      val doc = Jsoup.parse(result)
-
-      val latParser(lat) = latParser.findFirstIn(result).get
-      val lonParser(lon) = lonParser.findFirstIn(result).get
-      val header = doc.getElementsByTag("h1")(0).text()
-
-      val name = nameParser.findFirstMatchIn(header) match {
-        case Some(nameMatch) => {
-          nameMatch.group(1)
-        }
-        case None => {
-          foreignId
-        }
-      }
-
-      Some(new DatabaseStation(name, foreignId, foreignId, "", 
-          "BUOY", source.id, lat.toDouble, lon.toDouble))
-    } else {
-      None
-    }
-  }
-
-  private def getAllForeignIds(): List[String] = {
-    val result = httpSender.sendGetMessage("http://www.ndbc.noaa.gov/to_station.shtml")
-
-    if (result != null) {
-      val doc = Jsoup.parse(result)
-
-      val ndbcHeader = doc.getElementsMatchingOwnText("National Data Buoy Center Stations").head
-
-      val preElement = ndbcHeader.nextElementSibling
-
-      val foreignIds = preElement.children.map(_.text).toList
-
-      foreignIds.filter(foreignId =>
-        httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
-    } else {
-      Nil
     }
   }
 }

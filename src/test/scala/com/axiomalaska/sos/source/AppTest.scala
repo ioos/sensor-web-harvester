@@ -173,16 +173,16 @@ class AppTest {
 //    })
 //  }
   
-  @Test
-  def updateStationsInDatabase(){
-    val queryBuilder = new StationQueryBuilder(
-        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
-
-    queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
-      stationUpdater.update()
-    })
-  }
+//  @Test
+//  def updateStationsInDatabase(){
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
+//      stationUpdater.update()
+//    })
+//  }
   
   private class StationRetriever2(
     private val stationQuery: StationQuery) extends StationRetriever {

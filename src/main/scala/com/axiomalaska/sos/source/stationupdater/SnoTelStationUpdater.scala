@@ -164,6 +164,48 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       instrument, interval, ordinal, valueMeters)
   }
 
+  private def withInBoundingBox(station: DatabaseStation): Boolean = {
+    val stationLocation = new Location(station.latitude, station.longitude)
+    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
+  }
+
+  private def createStation(placemark: Node): DatabaseStation = {
+    val lat = (placemark \ "LookAt" \ "latitude").text.toDouble
+    val lon = (placemark \ "LookAt" \ "longitude").text.toDouble
+    val descriptionText = (placemark \ "description").text.replace("\n", "")
+    val foreignIdParser(foreignId) = descriptionText
+    val labelParser(label) = descriptionText
+
+    return new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon)
+  }
+  
+  private def createStations(): List[DatabaseStation] = {
+    val filename =
+      httpSender.downloadFile(
+        "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz")
+
+    if (filename != null) {
+      val rootzip = new ZipFile(filename);
+
+      val zipEntryOption =
+        rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
+
+      zipEntryOption match {
+        case Some(zipEntry) => {
+          val snotelKmlRootElem = XML.load(rootzip.getInputStream(zipEntry))
+          (snotelKmlRootElem \\ "Placemark").map(createStation).toList
+        }
+        case None => {
+          logger.error("snotelwithoutlabels.kml file not found")
+          Nil
+        }
+      }
+    } else {
+      logger.error("snotelwithoutlabels.kml could not be downloaded")
+      Nil
+    }
+  }
+  
   private def getObservedProperty(snotelSensor: SnotelSensor): Option[ObservedProperty] ={
     snotelSensor.observedpropertyshortcode match {
       case "WTEQ" => {
@@ -354,48 +396,6 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
           " == " + snotelSensor.observedpropertylongcode + " is not processed correctly.")
         return None
       }
-    }
-  }
-
-  private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    val stationLocation = new Location(station.latitude, station.longitude)
-    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
-  }
-
-  private def createStation(placemark: Node): DatabaseStation = {
-    val lat = (placemark \ "LookAt" \ "latitude").text.toDouble
-    val lon = (placemark \ "LookAt" \ "longitude").text.toDouble
-    val descriptionText = (placemark \ "description").text.replace("\n", "")
-    val foreignIdParser(foreignId) = descriptionText
-    val labelParser(label) = descriptionText
-
-    return new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon)
-  }
-  
-  private def createStations(): List[DatabaseStation] = {
-    val filename =
-      httpSender.downloadFile(
-        "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz")
-
-    if (filename != null) {
-      val rootzip = new ZipFile(filename);
-
-      val zipEntryOption =
-        rootzip.entries().find(_.getName == "snotelwithoutlabels.kml")
-
-      zipEntryOption match {
-        case Some(zipEntry) => {
-          val snotelKmlRootElem = XML.load(rootzip.getInputStream(zipEntry))
-          (snotelKmlRootElem \\ "Placemark").map(createStation).toList
-        }
-        case None => {
-          logger.error("snotelwithoutlabels.kml file not found")
-          Nil
-        }
-      }
-    } else {
-      logger.error("snotelwithoutlabels.kml could not be downloaded")
-      Nil
     }
   }
 }

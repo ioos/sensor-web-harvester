@@ -83,7 +83,8 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
         val longitudeRaw = rows(8)
         val latitude = parseLatitude(latitudeRaw)
         val longitude = parseLongitude(longitudeRaw)
-        val station = new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, latitude, longitude)
+        val station = new DatabaseStation(label, foreignId, foreignId, "", 
+            "FIXED MET STATION", source.id, latitude, longitude)
         if (withInBoundingBox(station))
         if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + foreignId + ".html"))
       } yield { station }
