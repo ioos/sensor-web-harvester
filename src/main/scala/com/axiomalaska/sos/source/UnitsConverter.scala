@@ -41,6 +41,7 @@ object UnitsConverter {
         case ("PPT", "PSU") =>  new NameConverter("psu")
         case ("UMOL/MOL", "MG/L") =>  new NameConverter("MG/L")
         case ("UMHOS/CM", "MS/M") => new UmhosPerCmToMsPerMUnitsConverter()
+        case ("VOLT","V") =>  new NameConverter("V")
       }
     }
   }
