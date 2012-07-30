@@ -80,7 +80,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if(sensors.nonEmpty)
     } yield {
-      logger.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.debug("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
     logger.info("finished with stations")
@@ -301,6 +301,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
       station: DatabaseStation): List[NamedQuantityType] = {
     val sensorForeignIds = getSensorForeignIds(observationOfferingType)
       
+    println("sensorForeignIds: " + sensorForeignIds.mkString(", "))
     val namedQuantityTypes = for (sensorForeignId <- sensorForeignIds) yield {
       val rawData = rawDataRetriever.getRawDataLatest(serviceUrl, offeringTag, observedPropertyTag,
         station.foreign_tag, sensorForeignId)

@@ -20,7 +20,8 @@ class ObservationUpdaterFactory {
   def buildAllSourceObservationUpdaters(sosUrl: String,
     stationQuery: StationQuery, publisherInfo:PublisherInfo,
     logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] =
-    List(buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+    List(
+      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),

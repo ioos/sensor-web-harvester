@@ -78,7 +78,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      logger.info("[" + index + " of " + size + "] station: " + station.name)
+      logger.debug("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
 

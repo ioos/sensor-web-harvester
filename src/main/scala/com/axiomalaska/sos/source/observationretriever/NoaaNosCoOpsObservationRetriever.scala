@@ -152,6 +152,9 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
       case SensorPhenomenonIds.AVERAGE_WAVE_PERIOD =>{
         "waves"
       }
+      case SensorPhenomenonIds.SALINITY =>{
+        "Salinity"
+      }
     }
   }
   

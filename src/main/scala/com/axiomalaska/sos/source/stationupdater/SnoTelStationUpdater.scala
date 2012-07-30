@@ -83,7 +83,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      logger.info("[" + index + " of " + size + "] done processing station: " + station.name)
+      logger.debug("[" + index + " of " + size + "] done processing station: " + station.name)
       (station, sensors)
     }
     logger.info("finished with stations")
