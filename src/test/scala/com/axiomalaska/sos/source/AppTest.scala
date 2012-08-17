@@ -26,6 +26,17 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
 import com.axiomalaska.sos.source.data.LocalSource
 import com.axiomalaska.sos.data.PublisherInfoImp
+import com.axiomalaska.sos.source.stationupdater.NerrsStationUpdater
+import webservices2.RequestsServiceLocator
+import org.w3c.dom.ls.DOMImplementationLS
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Calendar
+import java.util.TimeZone
+import com.axiomalaska.sos.source.observationretriever.NerrsObservationRetriever
+import org.apache.log4j.Logger
+import org.apache.log4j.BasicConfigurator
+import com.axiomalaska.sos.ObservationSubmitter
 
 @Test
 class AppTest {
@@ -47,12 +58,210 @@ class AppTest {
    * All
    */
   def worldBoundingBox():BoundingBox ={
-    BoundingBox(new Location(32.6666, -124.1245), 
-        new Location(35.7641, -114.0830))
+    BoundingBox(new Location(-85, -179.0), 
+        new Location(85.0, 179.0))
   }
   
   @Test
   def testOK() = assertTrue(true)
+
+//  @Test
+//  def updateSos() {
+//    val factory = new ObservationUpdaterFactory()
+//    val queryBuilder = new StationQueryBuilder(
+//      "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//
+//    val publisherInfo = new PublisherInfoImp()
+//
+//    publisherInfo.setCountry("")
+//    publisherInfo.setEmail("")
+//    publisherInfo.setName("")
+//    publisherInfo.setWebAddress("")
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val observationUpdater = factory.buildNerrsObservationUpdater(
+//        "http://192.168.8.15:8080/sos/sos", stationQuery, publisherInfo)
+//
+//      observationUpdater.update()
+//    })
+//  }
+
+//  @Test
+//  def updateSosOneStation() {
+//    val observationSubmitter = new ObservationSubmitter(
+//      "http://192.168.8.15:8080/sos/sos");
+//    val queryBuilder = new StationQueryBuilder(
+//      "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//
+//    val publisherInfo = new PublisherInfoImp()
+//
+//    publisherInfo.setCountry("")
+//    publisherInfo.setEmail("")
+//    publisherInfo.setName("")
+//    publisherInfo.setWebAddress("")
+//    
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val observationRetriever = new NerrsObservationRetriever(stationQuery)
+//      val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+//      val databaseSource = stationQuery.getSource(SourceId.NERRS)
+//      val sosSource = new LocalSource(databaseSource)
+//      val station = stationQuery.getStation(101829)
+//      val sosStation = new LocalStation(sosSource, station, stationQuery)
+//      observationSubmitter.update(sosStation,
+//        retrieverAdapter, publisherInfo);
+//    })
+//  }
+  
+//  
+//  @Test
+//  def test(){
+//    val httpSender = new HttpSender()
+//    val rawData =
+//      httpSender.sendGetMessage("http://www.nws.noaa.gov/data/obhistory/KBAN.html")
+//  }
+//  
+//  @Test
+//  def updateSosOne(){
+//    val factory = new ObservationUpdaterFactory()
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor",
+//        "sensoruser", "sensor")
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val stationRetriever = new StationRetriever2(stationQuery)
+//      val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery)
+//
+//      val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
+//      
+//      val observationUpdater = new ObservationUpdater("http://192.168.8.15:8080/sos/sos",
+//        stationRetriever, retrieverAdapter)
+//
+//      observationUpdater.update()
+//    })
+//  }
+  
+//  @Test
+//  def testRetriever(){
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//
+//    
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val source = new LocalSource(stationQuery.getSource(SourceId.NERRS))
+//      val databaseStation = stationQuery.getStation()
+//      val station = new LocalStation(source, stationQuery)
+//      val retriever = new NerrsObservationRetriever(stationQuery)
+//      val observationValuesCollections = 
+//        retriever.getObservationValues(station, sensor, phenomenon, startDate)
+//    })
+//  }
+  
+//  @Test
+//  def updateStationsInDatabase(){
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//    
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new NerrsStationUpdater(stationQuery, worldBoundingBox)
+//      stationUpdater.update()
+//    })
+//  }
+//  
+//  @Test
+//  def pullStationsNerrs(){
+//    val locator = new RequestsServiceLocator();
+//
+//    val requests = locator.getRequestsCfc();
+//
+//    val doc = requests.exportStationCodesXMLNew();
+//
+//    val domImplLS = doc.getImplementation().asInstanceOf[DOMImplementationLS]
+//
+//    val serializer = domImplLS.createLSSerializer();
+//    val str = serializer.writeToString(doc);
+//    
+//    for (row <- (scala.xml.XML.loadString(str) \\ "data")){
+//    	val paramsReported = (row \\ "Params_Reported").text.split(",").toList
+//    	if(paramsReported.contains("TIDE")){
+//    	  println((row \\ "Station_Code").text)
+//    	}
+//    }
+////    println(str)
+//  }
+  
+//  @Test
+//  def formatDate(){
+//    val dateParser:SimpleDateFormat = new SimpleDateFormat("MM/dd/yyyy")
+//    
+//    val cal:Calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
+//
+//    cal.set(2012, Calendar.AUGUST, 1)
+//    val date = cal.getTime
+//    println(dateParser.format(date))
+//    
+//  }
+//  
+//  @Test
+//  def pullValuesDateNerrs(){
+//    val locator = new RequestsServiceLocator()
+//
+//    val requests = locator.getRequestsCfc()
+//    
+//    val stationCode = "sosbhnut"
+//    val minDate = "08/01/2012"
+//    val maxDate = "08/12/2012"
+//    val param = "TIDE"
+//      
+//    val doc = requests.exportAllParamsDateRangeXMLNew(stationCode, minDate, maxDate, param)
+//    
+//    val domImplLS = doc.getImplementation().asInstanceOf[DOMImplementationLS]
+//
+//    val serializer = domImplLS.createLSSerializer()
+//    val str = serializer.writeToString(doc)
+//    
+//    println(str)
+//  }
+//  
+//  @Test
+//  def pullValuesNerrs(){
+//    val locator = new RequestsServiceLocator()
+//
+//    val requests = locator.getRequestsCfc()
+//    
+//    val stationCode = "lksblwq"
+//    val recs = "4"
+//    val param = "Temp"
+//      
+//    val doc = requests.exportSingleParamXMLNew(stationCode, recs, param)
+//    
+//    val domImplLS = doc.getImplementation().asInstanceOf[DOMImplementationLS]
+//
+//    val serializer = domImplLS.createLSSerializer()
+//    val str = serializer.writeToString(doc)
+//    
+//    println(str)
+//  }
+  
+  private def getString(cal:Calendar):String ={
+    cal.get(Calendar.YEAR) + "-" + cal.get(Calendar.MONTH) + "-" + 
+    cal.get(Calendar.DAY_OF_MONTH) + " " + cal.get(Calendar.HOUR_OF_DAY) + ":" +
+    cal.get(Calendar.MINUTE)
+  }
+  
+  private class StationRetriever2(
+    private val stationQuery: StationQuery) extends StationRetriever {
+
+    override def getStations(): java.util.List[SosStation] = {
+      val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
+      val sosSource = new LocalSource(source)
+      for {
+        station <- stationQuery.getStations(source)
+        if (station.tag == "KBAN")
+      } yield {
+        new LocalStation(sosSource, station, stationQuery)
+      }
+    }
+  }
   
   private def findPhenomenonIdName(id:Long):String ={
     id match{
@@ -122,80 +331,6 @@ class AppTest {
       case 80 => "STREAM_GAGE_HEIGHT" 
       case 32 => "WATER_LEVEL" 
       case 43 => "WATER_LEVEL_PREDICTIONS" 
-    }
-  }
-  
-//  @Test
-//  def updateSos(){
-//    val factory = new ObservationUpdaterFactory()
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
-//
-//    val publisherInfo = new PublisherInfoImp()
-//    
-//    publisherInfo.setCountry("")
-//    publisherInfo.setEmail("")
-//    publisherInfo.setName("")
-//    publisherInfo.setWebAddress("")
-//    
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildNoaaWeatherObservationUpdater(
-//          "http://192.168.8.15:8080/sos/sos", stationQuery, publisherInfo)
-//          
-//      observationUpdater.update()
-//    })
-//  }
-//  
-//  @Test
-//  def test(){
-//    val httpSender = new HttpSender()
-//    val rawData =
-//      httpSender.sendGetMessage("http://www.nws.noaa.gov/data/obhistory/KBAN.html")
-//  }
-//  
-//  @Test
-//  def updateSosOne(){
-//    val factory = new ObservationUpdaterFactory()
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor",
-//        "sensoruser", "sensor")
-//
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationRetriever = new StationRetriever2(stationQuery)
-//      val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery)
-//
-//      val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
-//      
-//      val observationUpdater = new ObservationUpdater("http://192.168.8.15:8080/sos/sos",
-//        stationRetriever, retrieverAdapter)
-//
-//      observationUpdater.update()
-//    })
-//  }
-  
-//  @Test
-//  def updateStationsInDatabase(){
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
-//
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new HadsStationUpdater(stationQuery, randomBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
-  
-  private class StationRetriever2(
-    private val stationQuery: StationQuery) extends StationRetriever {
-
-    override def getStations(): java.util.List[SosStation] = {
-      val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
-      val sosSource = new LocalSource(source)
-      for {
-        station <- stationQuery.getStations(source)
-        if (station.tag == "KBAN")
-      } yield {
-        new LocalStation(sosSource, station, stationQuery)
-      }
     }
   }
 }

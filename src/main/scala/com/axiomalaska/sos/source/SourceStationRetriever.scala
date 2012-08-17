@@ -20,10 +20,12 @@ class SourceStationRetriever(
       val source = stationQuery.getSource(sourceId)
       
       val sosSource = new LocalSource(source)
-      for {
-        station <- stationQuery.getStations(source)
-      } yield {
-    	  new LocalStation(sosSource, station, stationQuery)
-      }
+      
+      val databaseStations = stationQuery.getStations(source)
+      
+      val sosStations = databaseStations.map(station => 
+        new LocalStation(sosSource, station, stationQuery))
+        
+      return sosStations
   }
 }

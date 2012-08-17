@@ -38,6 +38,7 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
         new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
         new RawsStationUpdater(stationQuery, boundingBox, logger),
         new SnoTelStationUpdater(stationQuery, boundingBox, logger),
+        new NerrsStationUpdater(stationQuery, boundingBox, logger),
         new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
   }
 }

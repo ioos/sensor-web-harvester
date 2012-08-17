@@ -11,6 +11,7 @@ import com.axiomalaska.sos.source.observationretriever.UsgsWaterObservationRetri
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.PublisherInfo
+import com.axiomalaska.sos.source.observationretriever.NerrsObservationRetriever
 
 class ObservationUpdaterFactory {
 
@@ -27,6 +28,7 @@ class ObservationUpdaterFactory {
       buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
   
   /**
@@ -55,6 +57,23 @@ class ObservationUpdaterFactory {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NOAA_NOS_CO_OPS, logger)
     val observationRetriever = new NoaaNosCoOpsObservationRetriever(stationQuery, logger)
+
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    val observationUpdater = new ObservationUpdater(sosUrl,
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
+    
+    return observationUpdater
+  }
+  
+  /**
+   * Build a NERRS ObservationUpdater
+   */
+  def buildNerrsObservationUpdater(sosUrl: String, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
+
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NERRS, logger)
+    val observationRetriever = new NerrsObservationRetriever(stationQuery, logger)
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,

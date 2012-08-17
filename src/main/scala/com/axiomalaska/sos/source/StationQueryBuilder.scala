@@ -45,6 +45,7 @@ trait StationQuery{
   def getSensors(station:DatabaseStation):List[DatabaseSensor]
   def createSource(name: String, tag:String): Source
   def getSource(id:Long):Source
+  def getStation(id:Long): DatabaseStation
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
   def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon]
@@ -164,6 +165,12 @@ private class StationQueryImp(url:String,
   def getStations(source: Source): List[DatabaseStation] = {
     using(session) {
       return source.stations.toList
+    }
+  }
+  
+  def getStation(id:Long): DatabaseStation = {
+    using(session) {
+      return StationDatabase.stations.lookup(id).get
     }
   }
   

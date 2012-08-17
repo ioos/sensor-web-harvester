@@ -85,4 +85,13 @@ object SensorPhenomenonIds {
   val STREAM_GAGE_HEIGHT = 80
   val WATER_LEVEL = 32
   val WATER_LEVEL_PREDICTIONS = 43
+  
+  val CHLOROPHYLL_FLUORESCENCE = 82
+  val ORTHOPHOSPHATE = 83
+  val AMMONIUM = 84
+  val NITRITE = 85
+  val NITRATE = 86
+  val NITRITE_PLUS_NITRATE = 87
+  val CHLOROPHYLL = 88
+  
 }

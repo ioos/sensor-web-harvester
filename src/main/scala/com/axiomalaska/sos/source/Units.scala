@@ -35,4 +35,5 @@ object Units {
   val CELSIUS = "C"
   val METER_PER_SECONDS = "m/s"
   val MILLIGRAMS_PER_LITER = "mg/l"
+  val MICROGRAMS_PER_LITER = "µg/L"
 }
