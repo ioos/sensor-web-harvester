@@ -1,6 +1,6 @@
 #source-sos-injectors#
 ====================
-The source-sos-injectors project implements several common sources with the [SosInjector 
+The source-sos-injectors project implements several common sources by implementing the [SosInjector 
 project](https://github.com/axiomalaska/sos-injection). This project allows one 
 to inject these sources' observations into an SOS. 
 
