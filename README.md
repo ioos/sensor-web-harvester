@@ -1,10 +1,10 @@
 #source-sos-injectors#
 ====================
-The source-sos-injectors project implements several common sources by implementing the [SosInjector 
-project](https://github.com/axiomalaska/sos-injection). This project allows one 
-to inject these sources' observations into an SOS. 
+Source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector project is a project that wraps a [SOS](http://52north.org/communities/sensorweb/sos/) to allow the use of standard Java objects to enter stations, sensors, and observations into a SOS. 
 
-The current sources that are implemented are:
+The source-sos-injector is used to fill an Sensor Observation Service (SOS) with observations from many popular sensor sources. This project pulls the sensor observation values from the source’s stations and formats the data to be placed into the users SOS with the SosInjector. The stations that are used from the sources are filtered by the users chosen bounding box area. 
+
+The current sources that observations are pulled from are:
 
 * [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
 * [NDBC](http://www.ndbc.noaa.gov/)
@@ -13,25 +13,24 @@ The current sources that are implemented are:
 * [RAWS](http://www.raws.dri.edu/)
 * [SnoTel](http://www.wcc.nrcs.usda.gov/)
 * [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
+* [NERRS](http://www.nerrs.noaa.gov/)
 
 
 This project uses a postgresql metadata database to store station information 
-from the sources. This database needs to be built from the provided database 
-backup in Github. The station information is used to retrieve observations 
+from the sources. This database needs to be built/restored from the provided database 
+backup in Github. The metadata database information is used to retrieve observations 
 from the stations' sources.
 
-This project needs an already running instance of an 52 North SOS.
+This project needs an already running instance of an [52 North SOS](http://52north.org/communities/sensorweb/sos/).
 
-Setup 
------
-A sensor database must be created with the sensor_database_0.0.2.tar. This file can be
-found in the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. This tar file
-contains a backup of the postgresql metadata database used to update the SOS. Using
-pgAdmin, create a database right-click on it and select restore. Select the 
-sensor_database_0.0.1.tar file for the Filename and for "Format" select "Custom or tar". 
-Select "Restore" and the metadata database will be created. This database starts with
-all the Phenomena and Sources preloaded. 
+Setup Metadata Database base
+----------------------------
+A sensor metadata database must be created with the sensor_database_0.0.4.tar. This file can be found in the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. This tar file contains a backup of the postgresql metadata database used to update the SOS. Using pgAdmin, create a database then right-click on it and select restore. Select the sensor_database_0.0.4.tar file for the Filename and in the "Format" select "Custom or tar". Select "Restore" and the metadata database will be created. This database starts with all the Phenomena and Sources preloaded. Write down the IP address, port, and database name to this database like below. 
 
+jdbc:postgresql://<IPAddress>:<port #>/<databasename>
+jdbc:postgresql://192.168.1.40:5432/sensor
+
+The Metadata database is used to collected all the stations metadata information to allow observations to be pulled and placed in an SOS. 
 
 From Command line
 -----------------
@@ -40,10 +39,10 @@ To use the command line option and not have to build the code yourself one can d
 
 The command line takes in a properties file that contains all the needed variables to perform the SOS update. 
 The properties file needs all the required variables below:
-* database_url - the URL where the metadata database can be found. For example jdbc:postgresql://localhost:5432/sensor
+* database_url - the URL where the metadata database can be found. Writen from above,for example jdbc:postgresql://localhost:5432/sensor
 * database_username - a user name to access the metadata database
 * database_password - the password associated to the database_username
-* sos_url - the URL to the SOS being used
+* sos_url - the URL to the SOS being used. For example http://192.168.1.40:8080/sos/sos
 * publisher_country - the publisher's country. For example USA
 * publisher_email - the publisher's email address
 * publisher_web_address - the web address of the publisher. For example www.aoos.org

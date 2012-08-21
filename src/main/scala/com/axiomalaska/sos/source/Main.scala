@@ -45,7 +45,7 @@ object Main {
       logger.info("Database Password: " + databasePassword)
       
       logger.info("North Lat: " + northLat)
-      logger.info("Sourth Lat: " + southLat)
+      logger.info("South Lat: " + southLat)
       logger.info("West Lat: " + westLon)
       logger.info("East Lat: " + eastLon)
       
