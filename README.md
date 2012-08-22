@@ -35,8 +35,9 @@ Metadata Database
 -----------------
 A sensor metadata database must be created with the sensor_database_0.0.4.tar. This file can be found in the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. This tar file contains a backup of the postgresql metadata database used to update the SOS. Using pgAdmin, create a database then right-click on it and select restore. Select the sensor_database_0.0.4.tar file for the Filename and in the "Format" select "Custom or tar". Select "Restore" and the metadata database will be created. This database starts with all the Phenomena and Sources preloaded. Write down the IP address, port, and database name to this database like below. 
 
-jdbc:postgresql://<IPAddress>:<port #>/<databasename>
-jdbc:postgresql://192.168.1.40:5432/sensor
+    jdbc:postgresql://<IPAddress>:<port #>/<databasename>
+
+    jdbc:postgresql://192.168.1.40:5432/sensor
 
 The Metadata database is used to collected all the stations metadata information to allow observations to be pulled and placed in an SOS. 
 
@@ -47,7 +48,7 @@ To use the command line option and not have to build the code yourself one can d
 
 The command line takes in a properties file that contains all the needed variables to perform the SOS update. 
 The properties file needs all the required variables below:
-* database_url - the URL where the metadata database can be found. Writen from above,for example jdbc:postgresql://localhost:5432/sensor
+* database_url - the URL where the metadata database can be found, for example jdbc:postgresql://localhost:5432/sensor
 * database_username - a user name to access the metadata database
 * database_password - the password associated to the database_username
 * sos_url - the URL to the SOS being used. For example http://192.168.1.40:8080/sos/sos
