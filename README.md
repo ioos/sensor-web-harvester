@@ -33,12 +33,12 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-# Download the sensor_database_0.0.4.tar file from https://github.com/axiomalaska/source-sos-injectors/downloads.
-# Using pgAdmin, create a database.
-# right-click on this newly created database and select “Restore”.
-# Select the sensor_database_0.0.4.tar file for the “Filename” text field.
-# In the "Format" combobox select "Custom or tar" item.
-# Select the "Restore" button.
+* Download the sensor_database_0.0.4.tar file from https://github.com/axiomalaska/source-sos-injectors/downloads.
+* Using pgAdmin, create a database.
+* right-click on this newly created database and select “Restore”.
+* Select the sensor_database_0.0.4.tar file for the “Filename” text field.
+* In the "Format" combobox select "Custom or tar" item.
+* Select the "Restore" button.
 
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
