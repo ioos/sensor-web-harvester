@@ -1,6 +1,6 @@
 #source-sos-injectors#
 ====================
-source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). This allows the use of standard Java objects to enter stations, sensors, and observations into an SOS. 
+Source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector project is a project that wraps a [SOS](http://52north.org/communities/sensorweb/sos/) to allow the use of standard Java objects to enter stations, sensors, and observations into a SOS. 
 
 source-sos-injectors is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounded box area. 
 
@@ -42,8 +42,9 @@ The metadata database is used to collect the stations’ metadata in order to al
 
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
-jdbc:postgresql://<IPAddress>:<port #>/<databasename>
-jdbc:postgresql://192.168.1.40:5432/sensor
+    jdbc:postgresql://<IPAddress>:<port #>/<databasename>
+
+    jdbc:postgresql://192.168.1.40:5432/sensor
 
 Running the SOS Injector
 -----------
