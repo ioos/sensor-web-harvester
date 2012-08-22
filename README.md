@@ -21,10 +21,18 @@ from the sources. This database needs to be built/restored from the provided dat
 backup in Github. The metadata database information is used to retrieve observations 
 from the stations' sources.
 
-This project needs an already running instance of an [52 North SOS](http://52north.org/communities/sensorweb/sos/).
+Installation
+------------
+This project can be used on either a Windows or Linux computer. An Apple computer should work but it has not been tested. 
 
-Setup Metadata Database base
-----------------------------
+The following is the requirements to run this project
+* Java 1.6 or newer 
+* Already running instance of a [52 North SOS](http://52north.org/communities/sensorweb/sos/).
+* Postgresql database
+* Metadata Database (explained below)
+
+Metadata Database
+-----------------
 A sensor metadata database must be created with the sensor_database_0.0.4.tar. This file can be found in the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. This tar file contains a backup of the postgresql metadata database used to update the SOS. Using pgAdmin, create a database then right-click on it and select restore. Select the sensor_database_0.0.4.tar file for the Filename and in the "Format" select "Custom or tar". Select "Restore" and the metadata database will be created. This database starts with all the Phenomena and Sources preloaded. Write down the IP address, port, and database name to this database like below. 
 
 jdbc:postgresql://<IPAddress>:<port #>/<databasename>
