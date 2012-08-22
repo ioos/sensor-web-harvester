@@ -1,6 +1,6 @@
 #source-sos-injectors#
 ====================
-Source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector project is a project that wraps a [SOS](http://52north.org/communities/sensorweb/sos/) to allow the use of standard Java objects to enter stations, sensors, and observations into a SOS. 
+source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). This allows the use of standard Java objects to enter stations, sensors, and observations into an SOS. 
 
 source-sos-injectors is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounded box area. 
 
@@ -42,9 +42,8 @@ The metadata database is used to collect the stations’ metadata in order to al
 
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
-    jdbc:postgresql://<IPAddress>:<port #>/<databasename>
-
-    jdbc:postgresql://192.168.1.40:5432/sensor
+jdbc:postgresql://<IPAddress>:<port #>/<databasename>
+jdbc:postgresql://192.168.1.40:5432/sensor
 
 Running the SOS Injector
 -----------
@@ -101,7 +100,7 @@ An example of a properties file named  “example_sos.properties” is also prov
 
 Writing Custom Java Code
 -----------
-This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.
+This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.  
 
     // Southern California Bounding Box
     Location southWestCorner = new Location(32.0, -123.0);
@@ -117,8 +116,7 @@ This is example code demonstrating how to update the metadata database and the S
     	databaseUsername, databasePassword, boundingBox)
     
     // Updates the local metadata database with station information
-    // This call should be made conservatively (approx. 3 times a week) 
-    // since the sources’ stations do not change often and this call is taxing on the sources’ servers.
+    // This call should be made conservatively (approx. 3 times a week) since the sources’ stations do not change often and this call is taxing on the sources’ servers.
     metadataManager.update();
     
     // Information about the group publishing this data on the SOS. 
@@ -133,8 +131,7 @@ This is example code demonstrating how to update the metadata database and the S
     	
     // Updates the SOS with data pulled from the source sites. 
     // This uses the metadata database
-    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) 
-    // since the observations do not change often and this action is taxing on the sources’ servers.
+    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) since the observations do not change often and this action is taxing on the sources’ servers.
     sosManager.updateSos();
     
 
