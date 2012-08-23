@@ -43,6 +43,7 @@ The metadata database is used to collect the stations’ metadata in order to al
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
 jdbc:postgresql://[IPAddress]:[port #]/[databasename]
+
 jdbc:postgresql://192.168.1.40:5432/sensor
 
 Running the SOS Injector
