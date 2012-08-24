@@ -93,6 +93,8 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 
   private def getSourceObservedProperties(station: DatabaseStation): List[ObservedProperty] = {
     val snotelSensors = createSnotelSensors(station)
+    
+    logger.info("Processing station: " + station.name)
 
     return snotelSensors.flatMap(snotelSensor => getObservedProperty(snotelSensor))
   }

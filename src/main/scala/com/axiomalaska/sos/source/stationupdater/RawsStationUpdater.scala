@@ -105,6 +105,9 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def createStations():List[DatabaseStation] ={
+    val stationForeignIds = getAllStationForeignIds
+    logger.info("Processing " + stationForeignIds.size + " stations")
+
     getAllStationForeignIds.flatMap(createStation)
   }
   
@@ -179,10 +182,11 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val lat = getLatitude(siteDoc)
       val lon = getLongitude(siteDoc)
 
+      logger.info("Processed station: " + label)
       return Some(new DatabaseStation(label, foreignId, foreignId, "", 
           "FIXED MET STATION", source.id, lat, lon))
     } else {
-      println("response not found ------------------------")
+      logger.info("response not found ------------------------")
       None
     }
   }

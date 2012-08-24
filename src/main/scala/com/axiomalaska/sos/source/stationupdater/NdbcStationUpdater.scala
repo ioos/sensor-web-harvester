@@ -171,6 +171,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
         }
       }
 
+      logger.info("Processing station: " + name)
       Some(new DatabaseStation(name, foreignId, foreignId, "", 
           "BUOY", source.id, lat.toDouble, lon.toDouble))
     } else {
@@ -190,8 +191,15 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
 
       val foreignIds = preElement.children.map(_.text).toList
 
-      foreignIds.filter(foreignId =>
-        httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
+      logger.info("Processing foreign IDs")
+      val filterForeignIds = for {
+        foreignId <- foreignIds
+        if (httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
+      } yield {
+        logger.info("Processing foreign ID: " + foreignId)
+        foreignId
+      }
+      filterForeignIds
     } else {
       Nil
     }

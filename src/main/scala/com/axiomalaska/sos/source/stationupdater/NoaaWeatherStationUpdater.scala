@@ -77,22 +77,28 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
         line <- data.split("\n")
         val rows = line.split(";")
         if (rows.size > 8)
-        val foreignId = rows(0)
-        val label = rows(3)
-        val latitudeRaw = rows(7)
-        val longitudeRaw = rows(8)
-        val latitude = parseLatitude(latitudeRaw)
-        val longitude = parseLongitude(longitudeRaw)
-        val station = new DatabaseStation(label, foreignId, foreignId, "", 
-            "FIXED MET STATION", source.id, latitude, longitude)
+        val station = createStation(rows)
         if (withInBoundingBox(station))
-        if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + foreignId + ".html"))
+        if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + station.foreign_tag + ".html"))
       } yield { station }
 
       stations.toList
     } else {
       Nil
     }
+  }
+
+  private def createStation(rows: Array[String]): DatabaseStation = {
+    val foreignId = rows(0)
+    val label = rows(3)
+    val latitudeRaw = rows(7)
+    val longitudeRaw = rows(8)
+    val latitude = parseLatitude(latitudeRaw)
+    val longitude = parseLongitude(longitudeRaw)
+    
+    logger.info("Processing station: " + label)
+    new DatabaseStation(label, foreignId, foreignId, "",
+      "FIXED MET STATION", source.id, latitude, longitude)
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {

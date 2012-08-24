@@ -130,6 +130,8 @@ class HadsStationUpdater(
     val label = element.parent().parent().nextElementSibling().child(0).text
     val foreignIdParser(foreignId) = element.attr("HREF")
 
+    logger.info("Collected Metadata for station: " + label)
+    
     return getLatLon(foreignId) match {
       case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, 
           foreignId, "", "FIXED MET STATION", source.id, lat, lon))

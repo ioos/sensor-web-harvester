@@ -95,6 +95,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
       "wy")
   
   private def getTimeSeriesTypes(stateTag:String):List[TimeSeriesType] ={
+    logger.info("Processing state: " + stateTag)
     val rawServerData = httpSender.sendGetMessage(
         "http://waterservices.usgs.gov/nwis/iv?stateCd=" + stateTag + "&period=PT4H")
 
