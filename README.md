@@ -48,7 +48,7 @@ jdbc:postgresql://192.168.1.40:5432/sensor
 
 Running the SOS Injector
 -----------
-The pre-built jar can be downloaded from 
+The pre-built source-sos-injectors.jar and example.properties can be downloaded from the 
 [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
