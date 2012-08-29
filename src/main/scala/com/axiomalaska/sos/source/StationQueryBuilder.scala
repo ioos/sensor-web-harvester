@@ -188,7 +188,8 @@ private class StationQueryImp(url:String,
   
   def createSource(name: String, tag:String): Source = {
     using(session) {
-    	return StationDatabase.sources.insert(new Source(name, tag, "", "", "", ""))
+    	return StationDatabase.sources.insert(new Source(name, tag, 
+    	    "", "", "", "", "", "", "", ""))
     }
   }
   

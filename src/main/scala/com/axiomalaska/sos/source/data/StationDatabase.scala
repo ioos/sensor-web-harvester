@@ -55,7 +55,8 @@ object StationDatabase extends Schema {
 
 class Source(val name: String, val tag:String, val country:String, 
     val email:String, @Column("web_address") val webAddress:String, 
-    @Column("operator_sector") val operatorSector:String) extends KeyedEntity[Long] {
+    @Column("operator_sector") val operatorSector:String, val address:String, 
+    val city:String, val state:String, val zipcode:String) extends KeyedEntity[Long] {
   val id: Long = -1
   
   lazy val stations: OneToMany[DatabaseStation] = 

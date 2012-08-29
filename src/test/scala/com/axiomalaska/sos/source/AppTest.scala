@@ -55,6 +55,14 @@ class AppTest {
   }
 
   /**
+   * johnmarks
+   */
+  def johnmarksBoundingBox():BoundingBox ={
+    BoundingBox(new Location(39.0, -80.0), 
+        new Location(40.0, -74.0))
+  }
+  
+  /**
    * All
    */
   def worldBoundingBox():BoundingBox ={
@@ -162,11 +170,11 @@ class AppTest {
 //        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new NerrsStationUpdater(stationQuery, worldBoundingBox)
+//      val stationUpdater = new HadsStationUpdater(stationQuery, johnmarksBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }
-//  
+
 //  @Test
 //  def pullStationsNerrs(){
 //    val locator = new RequestsServiceLocator();

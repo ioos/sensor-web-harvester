@@ -6,6 +6,7 @@ import com.axiomalaska.sos.data.PublisherInfoImp
 import java.io.File
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
+import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
 
 object Main {
 
@@ -30,6 +31,17 @@ object Main {
           "or -updatesos [properties file]")
     }
   }
+  
+//  def main(args: Array[String]) {
+//    val queryBuilder = new StationQueryBuilder(
+//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//    
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new HadsStationUpdater(stationQuery, BoundingBox(new Location(39.0, -80.0), 
+//        new Location(40.0, -74.0)))
+//      stationUpdater.update()
+//    })
+//  }
   
   private def updateMetadata(properties:PropertiesConfiguration, logger: Logger){
       val databaseUrl = properties.getString("database_url")

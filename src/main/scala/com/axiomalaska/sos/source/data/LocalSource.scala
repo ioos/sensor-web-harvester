@@ -15,4 +15,12 @@ class LocalSource(val source:Source) extends SosSource {
 	def getWebAddress() = source.webAddress
 
 	def getOperatorSector() = source.operatorSector
+	
+	def getAddress() = source.address
+	
+	def getCity() = source.city
+	
+	def getState() = source.state
+	
+	def getZipcode() = source.zipcode
 }
