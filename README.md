@@ -2,7 +2,7 @@
 ====================
 sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
-sensor-web-harvester is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounding box area. 
+sensor-web-harvester is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the sos-injector. The source stations used are filtered by a chosen bounding box area. 
 
 The current sources that observations are pulled from are:
 
@@ -33,10 +33,10 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download the sensor_database_0.0.4.tar file from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+* Download the sensor_metadata_database.tar file from https://github.com/axiomalaska/sensor-web-harvester/downloads.
 * Using pgAdmin, create a database.
 * right-click on this newly created database and select “Restore”.
-* Select the sensor_database_0.0.4.tar file for the “Filename” text field.
+* Select the sensor_metadata_database.tar file for the “Filename” text field.
 * In the "Format" combobox select "Custom or tar" item.
 * Select the "Restore" button.
 
