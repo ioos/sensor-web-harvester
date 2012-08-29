@@ -1,8 +1,8 @@
 #source-sos-injectors#
 ====================
-source-sos-injectors is a project that implements the [SosInjector project](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). This allows the use of standard Java objects to enter stations, sensors, and observations into an SOS. 
+source-sos-injectors is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
-source-sos-injectors is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounded box area. 
+source-sos-injectors is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounding box area. 
 
 The current sources that observations are pulled from are:
 
