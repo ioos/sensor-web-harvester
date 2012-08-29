@@ -1,8 +1,8 @@
-#source-sos-injectors#
+#sensor-web-harvester#
 ====================
-source-sos-injectors is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
+sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
-source-sos-injectors is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounding box area. 
+sensor-web-harvester is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the SosInjector. The source stations used are filtered by a chosen bounding box area. 
 
 The current sources that observations are pulled from are:
 
@@ -33,7 +33,7 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download the sensor_database_0.0.4.tar file from https://github.com/axiomalaska/source-sos-injectors/downloads.
+* Download the sensor_database_0.0.4.tar file from https://github.com/axiomalaska/sensor-web-harvester/downloads.
 * Using pgAdmin, create a database.
 * right-click on this newly created database and select “Restore”.
 * Select the sensor_database_0.0.4.tar file for the “Filename” text field.
@@ -48,8 +48,8 @@ jdbc:postgresql://192.168.1.40:5432/sensor
 
 Running the SOS Injector
 -----------
-The pre-built source-sos-injectors.jar and example_sos.properties can be downloaded from the 
-[Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads) on Github. 
+The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
+[Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads) on Github. 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
 * database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor
@@ -68,19 +68,19 @@ The command line takes in a properties file which contains all of the needed var
 
 Use the line below to update the metadata database with all of the stations from the sources within the user-selected bounding box. This command should be run conservatively (approx. 3 times a week) since the sources’ stations do not change often and this command is taxing on the sources’ servers.
 
-java -jar source-sos-injectors.jar -metadata [path to properties file]
+java -jar sensor-web-harvester.jar -metadata [path to properties file]
 	
 Example: 
 
-java -jar source-sos-injectors.jar -metadata sos.properties
+java -jar sensor-web-harvester.jar -metadata sos.properties
 	
 Use the line below to update the SOS with all of the stations in the metadata database. Do not call this command more than once hourly (for reasons previously stated).
 
-java -jar source-sos-injectors.jar -updatesos [path to properties file]
+java -jar sensor-web-harvester.jar -updatesos [path to properties file]
 
 Example:
 
-java -jar source-sos-injectors.jar -updatesos sos.properties
+java -jar sensor-web-harvester.jar -updatesos sos.properties
 
 Example of a properties file:
 
@@ -97,7 +97,7 @@ Example of a properties file:
     west_lon = -80.0
     east_lon = -74.0
 
-An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads section](https://github.com/axiomalaska/source-sos-injectors/downloads).
+An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads).
 
 Writing Custom Java Code
 -----------
