@@ -42,6 +42,8 @@ object UnitsConverter {
         case ("UMOL/MOL", "MG/L") =>  new NameConverter("MG/L")
         case ("UMHOS/CM", "MS/M") => new UmhosPerCmToMsPerMUnitsConverter()
         case ("VOLT","V") =>  new NameConverter("V")
+        case ("WATT","W/M2") =>  new NameConverter("W/M2")
+        case _ => new NullUnitsConverter()
       }
     }
   }
