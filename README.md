@@ -75,6 +75,7 @@ The command line takes in a properties file which contains all of the needed var
 * west_lon - the westernmost longitude of the bounding box
 * east_lon - the easternmost longitude of the bounding box
 
+**Note that running these processes can take a long time (hours) as information is downloaded and extracted from many sources.**
 
 Use the line below to update the metadata database with all of the stations from the sources within the user-selected bounding box. This command should be run conservatively (approx. 3 times a week) since the sources’ stations do not change often and this command is taxing on the sources’ servers.
 
