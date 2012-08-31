@@ -46,6 +46,7 @@ Using pgadmin:
 * Click the "Restore" button.
 
 Using the command line (adjust host, port, user, dbname as needed):
+
     createdb --host localhost --port 5432 --user postgres sensor-metadata
     pg_restore --clean --dbname sensor-metadata --no-owner --no-tablespace --host localhost --port 5432 --username postgres sensor_metadata_database_0.1.0.backup 
 
@@ -53,7 +54,7 @@ Upon completing these steps the metadata database will be created. Record this d
 
 jdbc:postgresql://[IPAddress]:[port #]/[databasename]
 
-jdbc:postgresql://192.168.1.40:5432/sensor
+jdbc:postgresql://localhost:5432/sensor
 
 Running the SOS Injector
 -----------
@@ -77,19 +78,19 @@ The command line takes in a properties file which contains all of the needed var
 
 Use the line below to update the metadata database with all of the stations from the sources within the user-selected bounding box. This command should be run conservatively (approx. 3 times a week) since the sources’ stations do not change often and this command is taxing on the sources’ servers.
 
-java -jar sensor-web-harvester.jar -metadata [path to properties file]
+    java -jar sensor-web-harvester.jar -metadata [path to properties file]
 	
 Example: 
 
-java -jar sensor-web-harvester.jar -metadata sos.properties
+    java -jar sensor-web-harvester.jar -metadata sos.properties
 	
 Use the line below to update the SOS with all of the stations in the metadata database. Do not call this command more than once hourly (for reasons previously stated).
 
-java -jar sensor-web-harvester.jar -updatesos [path to properties file]
+    java -jar sensor-web-harvester.jar -updatesos [path to properties file]
 
 Example:
 
-java -jar sensor-web-harvester.jar -updatesos sos.properties
+    java -jar sensor-web-harvester.jar -updatesos sos.properties
 
 Example of a properties file:
 
