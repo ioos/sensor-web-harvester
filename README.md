@@ -54,7 +54,7 @@ Upon completing these steps the metadata database will be created. Record this d
 
 jdbc:postgresql://[IPAddress]:[port #]/[databasename]
 
-jdbc:postgresql://localhost:5432/sensor
+jdbc:postgresql://localhost:5432/sensor-metadata
 
 Running the SOS Injector
 -----------
@@ -62,7 +62,7 @@ The pre-built sensor-web-harvester.jar and example_sos.properties can be downloa
 [Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads) on Github. 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
-* database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor
+* database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor-metadata
 * database_username - the username used to access the metadata database
 * database_password - the password associated to the database_username
 * sos_url - the URL to the SOS being used. Example: http://192.168.1.40:8080/sos/sos
@@ -94,7 +94,7 @@ Example:
 
 Example of a properties file:
 
-    database_url = jdbc:postgresql://localhost:5432/sensor
+    database_url = jdbc:postgresql://localhost:5432/sensor-metadata
     database_username = sensoruser
     database_password = sensor
     sos_url = http://192.168.8.15:8080/sos/sos
