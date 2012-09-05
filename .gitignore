@@ -11,3 +11,9 @@
 .project
 .settings
 target
+
+# ignored example files
+ex_*
+example.properties
+*.backup
+epa_*
