@@ -26,21 +26,21 @@ This project can be used on either a Windows or Linux computer. An Apple compute
 
 The following are the requirements to run this project:
 * Java 1.6 or newer 
-* An already running instance of a [52 North SOS](http://52north.org/communities/sensorweb/sos/)
+* An already running instance of an [IOOS Customized 52 North SOS](http://ioostestsos.axiomalaska.com)
 * Postgresql database
 * Metadata Database (explained below)
 
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download sensor_metadata_database_0.1.0.backup from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/downloads.
 
 Then restore the backup to a PostgreSQL database.
 
 Using pgadmin:
 * Create a database (e.g. sensor-metadata).
 * Right-click on this newly created database and select “Restore”.
-* Select the sensor_metadata_database_0.1.0.backup file for the “Filename” text field.
+* Select the sensor_metadata_database_\[version\].backup file for the “Filename” text field.
 * In the "Format" combobox select "Custom or tar" item.
 * On the Restore Options #1 tab under Don't Save, check Owner.
 * Click the "Restore" button.
@@ -48,7 +48,7 @@ Using pgadmin:
 Using the command line (adjust host, port, user, dbname as needed):
 
     createdb --host localhost --port 5432 --user postgres sensor-metadata
-    pg_restore --clean --dbname sensor-metadata --no-owner --no-tablespace --host localhost --port 5432 --username postgres sensor_metadata_database_0.1.0.backup 
+    pg_restore --clean --dbname sensor-metadata --no-owner --no-tablespace --host localhost --port 5432 --username postgres sensor_metadata_database_\[version\].backup 
 
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
