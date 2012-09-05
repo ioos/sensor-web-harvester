@@ -26,7 +26,7 @@ This project can be used on either a Windows or Linux computer. An Apple compute
 
 The following are the requirements to run this project:
 * Java 1.6 or newer 
-* An already running instance of an [IOOS Customized 52 North SOS](http://ioostestsos.axiomalaska.com)
+* An already running instance of an [IOOS Customized 52 North SOS](http://ioossostest.axiomalaska.com)
 * Postgresql database
 * Metadata Database (explained below)
 
