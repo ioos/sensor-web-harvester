@@ -94,4 +94,11 @@ object SensorPhenomenonIds {
   val NITRITE_PLUS_NITRATE = 87
   val CHLOROPHYLL = 88
   
+  // new types used by STORET
+  val ALUMINUM = 89
+  val IRON = 90
+  val ALKALINITY_HCB = 91
+  val FRESH_WATER_TEMPERATURE = 92
+  val COPPER = 93
+  val ZINC = 94
 }
