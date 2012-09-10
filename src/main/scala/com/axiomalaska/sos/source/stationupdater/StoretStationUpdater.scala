@@ -17,7 +17,6 @@ import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.tools.HttpSender
 import org.apache.log4j.Logger
-import scala.xml.NodeSeq
 
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
 
@@ -28,20 +27,25 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
+  private val StationBlockLimit = 100
   
   private val SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 
   def update() {
-    val sourceStationSensors = getSourceStations()
+    val bboxList = getStationCount(boundingBox, List())
+    
+    for (bbox <- bboxList) {
+      val sourceStationSensors = getSourceStations(bbox)
 
-    val databaseStations = stationQuery.getStations(source)
+      val databaseStations = stationQuery.getStations(source)
 
-    stationUpdater.updateStations(sourceStationSensors, databaseStations)
+      stationUpdater.updateStations(sourceStationSensors, databaseStations)
+    }
   }
   
   val name = "STORET"
   
-  private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  private def getSourceStations(bbox: BoundingBox) : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     // get a list of the bounding boxes to iterate
     val bboxList = getStationCount(boundingBox, List())
     var orgStationList:List[(String, List[String])] = Nil
@@ -50,7 +54,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       (bbox, index) <- bboxList.zipWithIndex
     } yield {
       // get lat, lon, name, id, any description, and platform (if that is possible); create database station for each result
-      logger.info("getting stations for bbox: " + bbox.toString)
       val xml = getStationsForMap(bbox)
       val stations = xml match {
         case Some(xml) => {
@@ -61,7 +64,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                 val lat = (srow \\ "LatitudeMeasure").text
                 val lon = (srow \\ "LongitudeMeasure").text
                 StoretStation(stationId, stationName, lat.toDouble, lon.toDouble, (row \ "OrganizationDescription" \ "OrganizationIdentifier").text)
-                logger.info("adding station: " + stationId + ", " + stationName + ", " + lat + ", " + lon)
               }
               sublist.toList
             }
@@ -79,7 +81,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       
       stations.toList
    }
-  val flatStationList = stationlist.flatten
+   val flatStationList = stationlist.flatten
    // have list of stations to iterate through
    if (flatStationList != Nil) {
      val size = flatStationList.length - 1
@@ -94,7 +96,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       logger.info("[" + index + " of " + size + "] station: " + station.stationName)
       (dbStation, sensors)
     }
-    
     stationCollection.toList
    } else {
      Nil
@@ -108,6 +109,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                   <srs:getResults>
                     <OrganizationId>{orgId}</OrganizationId>
                     <MonitoringLocationId>{stationId}</MonitoringLocationId>
+                    <MonitoringLocationType/><MinimumActivityStartDate/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><CharacteristicName/><ResultType/>
                   </srs:getResults>
                 </soap:Body>
               </soap:Envelope>
@@ -144,7 +146,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
     else if (nameLower contains "ph") {
       new Some[ObservedProperty](
-        stationUpdater.createObservedProperty(name, source, Units.NONE, SensorPhenomenonIds.PH_WATER))
+        stationUpdater.createObservedProperty(name, source, Units.NONE, SensorPhenomenonIds.PH_FRESH_WATER))
     }
     else if (nameLower contains "temperature") {
       new Some[ObservedProperty](
@@ -217,7 +219,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                 </soap:Body>
               </soap:Envelope>
     // send xml requesting the station count
-    logger.info("sending request: " + xml.toString)
     val response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StationService/", xml.toString())
     if (response != null ) {
       // can we treat response as xml?
@@ -225,7 +226,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       logger.info("response: " + responseXML.toString)
       val stationCount = responseXML.text
       logger.info("bbox station count response: " + stationCount);
-      if (stationCount.toDouble < 20000)
+      if (stationCount.toDouble < 100)
         return bbox :: list
       else
         return sliceBoundingBox(bbox, list)
