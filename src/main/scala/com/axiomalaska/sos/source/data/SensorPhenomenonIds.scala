@@ -101,4 +101,5 @@ object SensorPhenomenonIds {
   val FRESH_WATER_TEMPERATURE = 92
   val COPPER = 93
   val ZINC = 94
+  val FRESH_WATER_CONDUCTIVITY = 95
 }

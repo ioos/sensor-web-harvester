@@ -29,7 +29,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
   
-  private val SOAP = "http://schemas.xmlsoap.org/soap/envelope"
+  private val SOAP = "http://schemas.xmlsoap.org/soap/envelope/"
 
   def update() {
     val sourceStationSensors = getSourceStations()
@@ -39,33 +39,42 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
   
+  val name = "STORET"
+  
   private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     // get a list of the bounding boxes to iterate
-    val bboxList = getQueribleBoundingBoxes(boundingBox, List())
+    val bboxList = getStationCount(boundingBox, List())
     var orgStationList:List[(String, List[String])] = Nil
-    
     // get station info for our bounding box(es)
     val stationlist = for {
       (bbox, index) <- bboxList.zipWithIndex
     } yield {
       // get lat, lon, name, id, any description, and platform (if that is possible); create database station for each result
+      logger.info("getting stations for bbox: " + bbox.toString)
       val xml = getStationsForMap(bbox)
       val stations = xml match {
         case Some(xml) => {
-            val slist = for (val row <- xml \\ "Orginization") yield {
+            val slist = for (val row <- xml \\ "Organization") yield {
              val sublist = for (val srow <- xml \\ "MonitoringLocation") yield {
-                val stationId = (row \\ "MonitoringLocationIdentifier").text
-                val stationName = (row \\ "MonitoringLocationName").text
-                val lat = (row \\ "LatitudeMeasure").text
-                val lon = (row \\ "LongitudeMeasure").text
-                
+                val stationId = (srow \\ "MonitoringLocationIdentifier").text
+                val stationName = (srow \\ "MonitoringLocationName").text
+                val lat = (srow \\ "LatitudeMeasure").text
+                val lon = (srow \\ "LongitudeMeasure").text
                 StoretStation(stationId, stationName, lat.toDouble, lon.toDouble, (row \ "OrganizationDescription" \ "OrganizationIdentifier").text)
+                logger.info("adding station: " + stationId + ", " + stationName + ", " + lat + ", " + lon)
               }
               sublist.toList
             }
             slist.toList.flatten
         }
-        case None => Nil
+        case None => {
+            logger.info("got None for getStationsForMap!")
+            Nil
+        }
+        case _ => {
+            logger.info("unhandled case: " + xml)
+            Nil
+        }
       }
       
       stations.toList
@@ -74,15 +83,15 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
    // have list of stations to iterate through
    if (flatStationList != Nil) {
      val size = flatStationList.length - 1
-    val stationCollection = for {
-      (station, index) <- flatStationList.zipWithIndex
-      val sourceObservedProperties = getObservedProperties(station.stationId, station.orgId)
-      val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, "", "Watershed", source.id, station.lat, station.lon)
-      val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
-      val sensors = stationUpdater.getSourceSensors(dbStation, databaseObservedProperties)
-      if (sensors.nonEmpty)
+     val stationCollection = for {
+       (station, index) <- flatStationList.zipWithIndex
+       val sourceObservedProperties = getObservedProperties(station.stationId, station.orgId)
+       val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, "", "Watershed", source.id, station.lat, station.lon)
+       val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
+       val sensors = stationUpdater.getSourceSensors(dbStation, databaseObservedProperties)
+       if (sensors.nonEmpty)
     } yield {
-      logger.debug("[" + index + " of " + size + "] station: " + station.stationName)
+      logger.info("[" + index + " of " + size + "] station: " + station.stationName)
       (dbStation, sensors)
     }
     
@@ -94,129 +103,130 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private def getObservedProperties(stationId: String, orgId: String) : List[ObservedProperty] = {
     // query the characteristics of each org-station
-    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope" xmlns:srs="http://storetresultservice.storet.epa.gov/">
+    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:srs="http://storetresultservice.storet.epa.gov/">
                 <soap:Body>
                   <srs:getResults>
-                    <OrganizationId>orgId</OrganizationId>
-                    <MonitoringLocationId>stationId</MonitoringLocationId>
+                    <OrganizationId>{orgId}</OrganizationId>
+                    <MonitoringLocationId>{stationId}</MonitoringLocationId>
                   </srs:getResults>
                 </soap:Body>
               </soap:Envelope>
-    var response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StoretResultService/", xml.toString)
+    val response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StoretResultService/", xml.toString)
+    //    use a test file
+//    var testFile = scala.io.Source.fromFile("ex_getResultsResponse.xml")
+//    var response = testFile.mkString
+//    testFile.close()
     if (response != null) {
-      val root = scala.xml.XML.loadString(response)
-      val charNameList:List[String] = Nil
-      // get all results and create an observed property for each unique
-      val properties = for {
-        val row <- root \\ "ResultDescription"
-        val cond:Boolean = (row \ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "non-detect")
-//        val cond:Boolean = checkDetectionNode(row) match {
-//          case Some(nodeseq) => {
-//              val txt = nodeseq.text.toLowerCase
-//              if (txt contains "non-detect")
-//                false
-//              else
-//                true
-//          }
-//          case None => true
-//        }
-        if (cond == false)
-        val name = (row \ "CharacteristicName").text
-        if (charNameList.exists(s => s == name) == false)
+      val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
+      val root = scala.xml.XML.loadString(responseFix)
+      var charNameList:List[String] = Nil
+      val results = for {
+        node <- (root \\ "ResultDescription")
+        if (node.nonEmpty)
+        if (!((node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "non-detect") || (node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "present")))
+        val name = (node \ "CharacteristicName").text
+        if (!charNameList.exists(p => p == name))
       } yield {
-        getObservedProperty(name) match {
-          case Some(property) => {
-              charNameList = name :: charNameList
-              property
-          }
-        }
+        charNameList = name :: charNameList
+        name
       }
-      properties.toList
+      results.toList.flatMap(charName => getObservedProperty(charName))
     } else
       Nil
   }
   
-  private def checkDetectionNode(row: scala.xml.NodeSeq) : Option[scala.xml.NodeSeq] = {
-    if ((row \ "ResultDetectionConditionText").nonEmpty)
-      Some[scala.xml.NodeSeq]((row \ "ResultDetectionConditionText"))
-    else
-      None
-  }
-  
   private def getObservedProperty(name: String) : Option[ObservedProperty] = {
     // condition on name as some of the names are stupidly long and difficult to parse
-    if (name contains "alkalinity") {
+    val nameLower = name.toLowerCase
+    if (nameLower contains "alkalinity") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.MICROGRAMS_PER_LITER, SensorPhenomenonIds.ALKALINITY_HCB))
     }
-    else if (name contains "ph") {
+    else if (nameLower contains "ph") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.NONE, SensorPhenomenonIds.PH_WATER))
     }
-    else if (name contains "temperature") {
+    else if (nameLower contains "temperature") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.CELSIUS, SensorPhenomenonIds.FRESH_WATER_TEMPERATURE))
     }
-    else if (name contains "flow") {
+    else if (nameLower contains "flow") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.CUBIC_FOOT_PER_SECOUND, SensorPhenomenonIds.STREAM_FLOW))
     }
-    else if (name contains "aluminum") {
+    else if (nameLower contains "aluminum") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.MICROGRAMS_PER_LITER, SensorPhenomenonIds.ALUMINUM))
     }
-    else if (name contains "iron") {
+    else if (nameLower contains "iron") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.MICROGRAMS_PER_LITER, SensorPhenomenonIds.IRON))
     }
-//    else if (name contains "conductance") {
-//      
-//    }
-    else if (name contains "zinc") {
+    else if (nameLower contains "conductance") {
+      new Some[ObservedProperty](
+        stationUpdater.createObservedProperty(name, source, Units.MICRO_MHOS_PER_CENTIMETERS, SensorPhenomenonIds.FRESH_WATER_CONDUCTIVITY))
+    }
+    else if (nameLower contains "oxygen") {
+      new Some[ObservedProperty](
+        stationUpdater.createObservedProperty(name, source, Units.MICROGRAMS_PER_LITER, SensorPhenomenonIds.DISSOLVED_OXYGEN))
+    }
+    else if (nameLower contains "zinc") {
       new Some[ObservedProperty](
         stationUpdater.createObservedProperty(name, source, Units.MICROGRAMS_PER_LITER, SensorPhenomenonIds.ZINC))
     }
     else {
+      logger.info("[" + source.name + "] observed property: " + nameLower +
+          " is not processed correctly.")
       None
     }
   }
   
   private def getStationsForMap(bbox : BoundingBox) : Option[scala.xml.Elem] = {
-    val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope" xmlns:ss="http://stationservice.storet.epa.gov/">
-                      <ss:getStationsForMap>
-                        <MinimumLatitude>bbox.southWestCorner.getLatitude()</MinimumLatitude>
-                        <MaximumLatitude>bbox.northEastCorner.getLatitude()</MaximumLatitude>
-                        <MinimumLongitude>bbox.southWestCorner.getLongitude()</MinimumLongitude>
-                        <MaximumLongitude>bbox.northEastCorner.getLongitude()</MaximumLongitude>
-                      </ss:getStationsForMap>
+    val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ss="http://stationservice.storet.epa.gov/">
+                      <soap:Body>
+                        <ss:getStationsForMap>
+                          <MinimumLatitude>{bbox.southWestCorner.getLatitude()}</MinimumLatitude>
+                          <MaximumLatitude>{bbox.northEastCorner.getLatitude()}</MaximumLatitude>
+                          <MinimumLongitude>{bbox.southWestCorner.getLongitude()}</MinimumLongitude>
+                          <MaximumLongitude>{bbox.northEastCorner.getLongitude()}</MaximumLongitude>
+                        </ss:getStationsForMap>
+                      </soap:Body>
                      </soap:Envelope>
-    val response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StationService/", xmlRequest.toString())
-    if (response != null)
-      Some(scala.xml.XML.loadString(response))
-    else
-      None
+   val response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StationService/", xmlRequest.toString())
+//   val testFile = scala.io.Source.fromFile("ex_getStationsForMapResponse.xml")
+//   val response = testFile.mkString
+//   testFile.close()
+   if (response != null) {
+     val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
+     Some(scala.xml.XML.loadString(responseFix.toString))
+   }
+   else
+     None
   }
   
-  private def getQueribleBoundingBoxes(bbox : BoundingBox, list : List[BoundingBox]) : List[BoundingBox] = {
+  private def getStationCount(bbox : BoundingBox, list : List[BoundingBox]) : List[BoundingBox] = {
     // use the bounding box to create xml for a soap instruction
-    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope" xmlns:ss="http://stationservice.storet.epa.gov/">
+    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ss="http://stationservice.storet.epa.gov/">
                 <soap:Body>
                   <ss:getStationCount>
-                    <MinimumLatitude>bbox.southWestCorner.getLatitude()</MinimumLatitude>
-                    <MaximumLatitude>bbox.northEastCorner.getLatitude()</MaximumLatitude>
-                    <MinimumLongitude>bbox.southWestCorner.getLongitude()</MinimumLongitude>
-                    <MaximumLongitude>bbox.northEastCorner.getLongitude()</MaximumLongitude>
+                    <MinimumLatitude>{bbox.southWestCorner.getLatitude()}</MinimumLatitude>
+                    <MaximumLatitude>{bbox.northEastCorner.getLatitude()}</MaximumLatitude>
+                    <MinimumLongitude>{bbox.southWestCorner.getLongitude()}</MinimumLongitude>
+                    <MaximumLongitude>{bbox.northEastCorner.getLongitude()}</MaximumLongitude>
                   </ss:getStationCount>
                 </soap:Body>
               </soap:Envelope>
     // send xml requesting the station count
+    logger.info("sending request: " + xml.toString)
     val response = httpSender.sendPostMessage("http://ofmpub.epa.gov/STORETwebservices/StationService/", xml.toString())
     if (response != null ) {
       // can we treat response as xml?
       val responseXML = scala.xml.XML.loadString(response)
+      logger.info("response: " + responseXML.toString)
       val stationCount = responseXML.text
+      logger.info("bbox station count response: " + stationCount);
       if (stationCount.toDouble < 20000)
-        return list.union(List(bbox))
+        return bbox :: list
       else
         return sliceBoundingBox(bbox, list)
     }
@@ -226,6 +236,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private def sliceBoundingBox(sliceBox : BoundingBox, boundingBoxList : List[BoundingBox]) : List[BoundingBox] = {
     // cut bounding box in half (along longitude)
+    logger.info("slicing bbox: " + sliceBox.toString)
     val midLongitude = sliceBox.southWestCorner.getLongitude() + (sliceBox.northEastCorner.getLongitude() - sliceBox.southWestCorner.getLongitude()) / 2
     val bbox1 = new BoundingBox(
       new Location(sliceBox.southWestCorner.getLatitude(),sliceBox.southWestCorner.getLongitude()),
@@ -234,9 +245,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       new Location(sliceBox.southWestCorner.getLatitude(),midLongitude),
       new Location(sliceBox.northEastCorner.getLatitude(), sliceBox.northEastCorner.getLongitude()))
     // send request for each bbox to see how many stations are in it
-    val list1 = getQueribleBoundingBoxes(bbox1, boundingBoxList)
-    val list2 = getQueribleBoundingBoxes(bbox2, boundingBoxList)
-    return list1.union(list2)
+    val list1 = getStationCount(bbox1, boundingBoxList)
+    val list2 = getStationCount(bbox2, boundingBoxList)
+    return list1 ::: list2
   }
 }
   
