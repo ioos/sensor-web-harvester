@@ -163,7 +163,7 @@ class HadsStationUpdater(
       case Some(element) => {
         val rawLong = element.nextElementSibling().text
 
-        val longParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
+        val longParser = """(\w) (\d+).(\d+)'(\d+)\""".r
 
         val longParser(direction, degree, minute, second) = rawLong
 
@@ -184,7 +184,7 @@ class HadsStationUpdater(
       case Some(element) => {
         val rawLat = element.nextElementSibling().text
 
-        val latParser = """(\w) (\d+).(\d+)'(\d+)\"""".r
+        val latParser = """(\w) (\d+).(\d+)'(\d+)\""".r
 
         val latParser(direction, degree, minute, second) = rawLat
 

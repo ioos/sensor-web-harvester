@@ -36,4 +36,7 @@ object Units {
   val METER_PER_SECONDS = "m/s"
   val MILLIGRAMS_PER_LITER = "mg/l"
   val MICROGRAMS_PER_LITER = "µg/L"
+  val PARTS_PER_100_MILILETER = "#/100ml"
+  val MILLI_EQUIVILANTS_OF_SOLVENT_PER_LITER = "mEq/L"
+  val PCU = "PCU"
 }
