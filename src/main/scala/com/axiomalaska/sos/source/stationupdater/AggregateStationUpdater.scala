@@ -32,14 +32,14 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
 
   private def getStationUpdaters():List[StationUpdater] = {
-//    List(new HadsStationUpdater(stationQuery, boundingBox, logger), 
-//        new NdbcStationUpdater(stationQuery, boundingBox, logger),
-//        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
-//        new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
-//        new RawsStationUpdater(stationQuery, boundingBox, logger),
-//        new SnoTelStationUpdater(stationQuery, boundingBox, logger),
-//        new NerrsStationUpdater(stationQuery, boundingBox, logger),
-//        new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
-     List(new StoretStationUpdater(stationQuery, boundingBox, logger))
+    List(new HadsStationUpdater(stationQuery, boundingBox, logger), 
+        new NdbcStationUpdater(stationQuery, boundingBox, logger),
+        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
+        new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
+        new RawsStationUpdater(stationQuery, boundingBox, logger),
+        new SnoTelStationUpdater(stationQuery, boundingBox, logger),
+        new NerrsStationUpdater(stationQuery, boundingBox, logger),
+        new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
+//     List(new StoretStationUpdater(stationQuery, boundingBox, logger))
   }
 }

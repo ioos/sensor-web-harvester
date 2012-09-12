@@ -49,6 +49,7 @@ trait StationQuery{
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
   def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon]
+  def getPhenomena():List[DatabasePhenomenon]
   def getObservedProperties(station: DatabaseStation,
     sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
   def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation)
@@ -75,7 +76,7 @@ private class StationQueryImp(url:String,
   // ---------------------------------------------------------------------------
   // StationQuery Members
   // ---------------------------------------------------------------------------
-  
+
   def getObservedProperty(source: Source): List[ObservedProperty] ={
     using(session){
       source.observedProperties.toList
@@ -208,6 +209,12 @@ private class StationQueryImp(url:String,
   def getPhenomenon(id:Long):DatabasePhenomenon ={
     using(session) {
       StationDatabase.phenomena.lookup(id).get
+    }
+  }
+  
+  def getPhenomena():List[DatabasePhenomenon] = {
+    using(session) {
+      StationDatabase.phenomena.toList
     }
   }
   
