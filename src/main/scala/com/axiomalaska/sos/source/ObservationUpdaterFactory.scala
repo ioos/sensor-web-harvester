@@ -7,6 +7,7 @@ import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRe
 import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NdbcObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.SnoTelObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.StoretObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.UsgsWaterObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
 import com.axiomalaska.sos.source.data.SourceId
@@ -21,15 +22,16 @@ class ObservationUpdaterFactory {
   def buildAllSourceObservationUpdaters(sosUrl: String,
     stationQuery: StationQuery, publisherInfo:PublisherInfo,
     logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] =
-    List(
-      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+//    List(
+//      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+  List(buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
   
   /**
    * Build a RAWS ObservationUpdater
@@ -166,4 +168,19 @@ class ObservationUpdaterFactory {
     
     return observationUpdater
   }
+  
+  def buildStoretObservationUpdater(sosUrl: String, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
+    logger.info("Building storet observation updater");
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.STORET, logger)
+    val observationRetriever = new StoretObservationRetriever(stationQuery, logger)
+
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    val observationUpdater = new ObservationUpdater(sosUrl,
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
+    logger.info("Finished building storet observation updater");
+    return observationUpdater
+  }
+  
 }

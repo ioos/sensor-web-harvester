@@ -37,7 +37,8 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val foreignIdParser = """/cgi-bin/rawMAIN\.pl\?(.*)""".r
   private val labelParser = """.*<strong>(.*)</strong>.*""".r
-  private val latLongParser = """(-?\d+). (\d+)' (\d+).\""".r
+//  private val latLongParser = """(-?\d+). (\d+)' (\d+).\""".r
+  private val latLongParser = """(-?\d+). (\d+)' (\d+).""".r
   private val yearFormatDate = new SimpleDateFormat("yy")
   private val monthFormatDate = new SimpleDateFormat("MM")
   private val dayFormatDate = new SimpleDateFormat("dd")

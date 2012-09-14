@@ -82,12 +82,12 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
      val stationCollection = for {
        (station, index) <- flatStationList.zipWithIndex
        val sourceObservedProperties = getObservedProperties(station.stationId, station.orgId)
-       val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, "", "Watershed", source.id, station.lat, station.lon)
+       val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.orgId, "Watershed", source.id, station.lat, station.lon)
        val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
        val sensors = stationUpdater.getSourceSensors(dbStation, databaseObservedProperties)
        if (sensors.nonEmpty)
     } yield {
-      logger.info("[" + (index+1).toString + " of " + size + "] station: " + station.stationId)
+      logger.info("[" + (index+1).toString + " of " + size + "] station: " + station.stationId + "::" + station.orgId)
       (dbStation, sensors)
     }
     stationCollection.toList
@@ -107,8 +107,11 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                   </srs:getResults>
                 </soap:Body>
               </soap:Envelope>
-    val response = httpSender.sendPostMessage(resultURL, xml.toString)
+//    val response = httpSender.sendPostMessage(resultURL, xml.toString)
     //    use a test file
+    val file = scala.io.Source.fromFile("ex_getResultsResponse.xml");
+    val response = file.mkString
+    file.close()
     if (response != null) {
       logger.debug("processing properties for " + stationId + " - " + orgId)
       val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
@@ -193,7 +196,11 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                         </ss:getStationsForMap>
                       </soap:Body>
                      </soap:Envelope>
-   val response = httpSender.sendPostMessage(stationURL, xmlRequest.toString())
+//   val response = httpSender.sendPostMessage(stationURL, xmlRequest.toString())
+   // test file
+   val file = scala.io.Source.fromFile("ex_getStationsForMapResponse.xml")
+   val response = file.mkString
+   file.close()
    if (response != null) {
      val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
      Some(scala.xml.XML.loadString(responseFix.toString))
@@ -215,7 +222,8 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                 </soap:Body>
               </soap:Envelope>
     // send xml requesting the station count
-    val response = httpSender.sendPostMessage(stationURL, xml.toString())
+//    val response = httpSender.sendPostMessage(stationURL, xml.toString())
+    val response = "<count>20</count>"
     if (response != null ) {
       // can we treat response as xml?
       val responseXML = scala.xml.XML.loadString(response)
