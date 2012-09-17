@@ -18,3 +18,4 @@ ex_*
 example.properties
 *.backup
 epa_*
+hudson_example_query.txt

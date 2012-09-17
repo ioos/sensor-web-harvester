@@ -13,8 +13,6 @@ import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.tools.HttpSender
 import org.apache.log4j.Logger
 
