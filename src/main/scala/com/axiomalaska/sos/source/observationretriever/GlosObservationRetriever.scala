@@ -29,7 +29,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   import GlosObservationRetriever._  
   
   private val httpSender = new HttpSender()
-  private val dateParser = new SimpleDateFormat("MM-dd-yyyy HH:mm:ss")
+  private val dateParser = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
     
   //ftp info
 //  private val ftp_host = "glos.us"
