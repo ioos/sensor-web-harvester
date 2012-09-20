@@ -32,8 +32,8 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
         case Some(xml) => {
             // iterate through each activity to get the date, value combo
             for (activity <- (xml \\ "Activity")) {
-              val rawDate = (activity \\ "ActivityStartDate").text
-              val rawTime = (activity \\ "ActivityStartTime").text
+              val rawDate = (activity \\ "ActivityStartDate").text.trim
+              val rawTime = (activity \\ "ActivityStartTime").text.trim
               val calendarDate = parseDateString(rawDate + " " + rawTime)
               if (calendarDate.after(startDate)) {
                 for (result <- (activity \\ "Result")) {

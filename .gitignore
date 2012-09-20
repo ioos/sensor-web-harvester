@@ -19,3 +19,5 @@ example.properties
 *.backup
 epa_*
 hudson_example_query.txt
+*.docx
+glos_station/*

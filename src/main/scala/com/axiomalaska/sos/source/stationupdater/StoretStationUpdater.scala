@@ -111,7 +111,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     val response = file.mkString
     file.close()
     if (response != null) {
-      logger.debug("processing properties for " + stationId + " - " + orgId)
+//      logger.debug("processing properties for " + stationId + " - " + orgId)
       val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
       val root = scala.xml.XML.loadString(responseFix)
       var charNameList:List[String] = Nil
@@ -152,7 +152,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     units = specialCaseUnits(units)
     var phenomenon = new DatabasePhenomenon(tag, units, description, name)
     phenomenon = stationQuery.createPhenomenon(phenomenon)
-    logger.info("new phenomenon:\n" + phenomenon.id + " | " + phenomenon.units + " | " + phenomenon.description + " | " + phenomenon.name)
+//    logger.info("new phenomenon:\n" + phenomenon.id + " | " + phenomenon.units + " | " + phenomenon.description + " | " + phenomenon.name)
     // update our phenomena list
     phenomenaList = stationQuery.getPhenomena
     // return our observed property
@@ -227,7 +227,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val responseXML = scala.xml.XML.loadString(response)
       val stationCount = responseXML.text
       if (stationCount.toDouble < stationBlockLimit) {
-        logger.debug("prepending bbox with station count: " + stationCount)
+//        logger.debug("prepending bbox with station count: " + stationCount)
         return bbox :: list
       }
       else
@@ -239,7 +239,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private def sliceBoundingBox(sliceBox : BoundingBox, boundingBoxList : List[BoundingBox]) : List[BoundingBox] = {
     // cut bounding box in half (along longitude)
-    logger.debug("slicing bbox: " + sliceBox.toString)
+//    logger.debug("slicing bbox: " + sliceBox.toString)
     val midLongitude = sliceBox.southWestCorner.getLongitude() + (sliceBox.northEastCorner.getLongitude() - sliceBox.southWestCorner.getLongitude()) / 2
     val bbox1 = new BoundingBox(
       new Location(sliceBox.southWestCorner.getLatitude(),sliceBox.southWestCorner.getLongitude()),

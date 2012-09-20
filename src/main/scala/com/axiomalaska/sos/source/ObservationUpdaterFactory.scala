@@ -4,6 +4,7 @@ import org.apache.log4j.Logger
 import com.axiomalaska.sos.ObservationUpdater
 import com.axiomalaska.sos.source.observationretriever.RawsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.GlosObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NdbcObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.SnoTelObservationRetriever
@@ -31,7 +32,8 @@ class ObservationUpdaterFactory {
 //      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
 //      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
 //      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
-  List(buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+//  List(buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+  List(buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
   
   /**
    * Build a RAWS ObservationUpdater
@@ -172,14 +174,24 @@ class ObservationUpdaterFactory {
   def buildStoretObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, publisherInfo:PublisherInfo, 
       logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
-    logger.info("Building storet observation updater");
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.STORET, logger)
     val observationRetriever = new StoretObservationRetriever(stationQuery, logger)
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, publisherInfo, retrieverAdapter)
-    logger.info("Finished building storet observation updater");
+    return observationUpdater
+  }
+  
+  def buildGlosObservationUpdater(sosUrl: String, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.GLOS, logger)
+    val observationRetriever = new GlosObservationRetriever(stationQuery, logger)
+
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    val observationUpdater = new ObservationUpdater(sosUrl,
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
     return observationUpdater
   }
   

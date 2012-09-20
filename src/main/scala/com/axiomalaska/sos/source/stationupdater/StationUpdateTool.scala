@@ -49,7 +49,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
           }
 
           if (createdSensors.nonEmpty) {
-            logger.info("Association Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
+            logger.info("Associating Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
               " to Station: " + sourceStation.name)
           }
         }

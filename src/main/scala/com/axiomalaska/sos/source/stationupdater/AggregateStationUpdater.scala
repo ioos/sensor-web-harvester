@@ -40,6 +40,7 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
 //        new SnoTelStationUpdater(stationQuery, boundingBox, logger),
 //        new NerrsStationUpdater(stationQuery, boundingBox, logger),
 //        new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
-     List(new StoretStationUpdater(stationQuery, boundingBox, logger))
+//     List(new StoretStationUpdater(stationQuery, boundingBox, logger))
+     List(new GlosStationUpdater(stationQuery, boundingBox, logger))
   }
 }
