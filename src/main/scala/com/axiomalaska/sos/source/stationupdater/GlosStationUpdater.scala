@@ -21,6 +21,8 @@ import org.apache.commons.net.ftp.FTPClient
 
 case class GlosStation (stationName: String, stationId: String, stationDesc: String, lat: Double, lon: Double)
 
+case class GLOSStation (stationName: String, stationId: String, stationDesc: String, platformType: String, lat: Double, lon: Double)
+
 class GlosStationUpdater (private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
   private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
@@ -35,11 +37,14 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private val glos_ftp: FTPClient = new FTPClient()
   
   private val temp_file = "platform.csv"
+  private val glos_metadata_file = "glos_metadata_test.xml"
 
   private val source = stationQuery.getSource(SourceId.GLOS)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
   private var stationList: List[String] = Nil
+  
+  private var phenomenaList = stationQuery.getPhenomena
   
   def update() {
     
@@ -49,6 +54,81 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
     
+  }
+  
+//  private def newGetSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+//    val xmlList = readInMetadata
+//    val finallist = for (xml <- xmlList) yield {
+//      val listitem = for {
+//        stationXML <- (xml \\ "Station")
+//        val station = readStationFromXML(stationXML)
+//        val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
+//        val sensors = readInSensors(stationXML, station.stationId)
+//        if (sensors.nonEmpty)
+//      } yield {
+//        (stationDB, sensors)
+//      }
+//      listitem
+//    }
+//    finallist.flatten.toList
+//  }
+  
+//  private def readInSensors(stationxml : scala.xml.Node, stationid : String) : List[(DatabaseSensor, List[(DatabasePhenomenon)])] = {
+//    val sensors = for {
+//      sensor <- (stationxml \ "Sensors" \\ "Sensor")
+//      val sensorid = (sensor \\ "id").text.trim
+//      val sensordesc = (sensor \\ "description").text.trim
+//      val dbsensor = new DatabaseSensor(stationid, sensordesc.toString, sensorid.toLong)
+//      val phenomena = for {
+//        phenomenon <- (sensor \ "phenomena" \\ "phenomenon")
+//      } yield {
+//        val phenomList = phenomenaList.filter(p => p.tag == (phenomenon \ "tag").text.trim)
+//        if (phenomList.isEmpty)
+//          (addPhenomenon(phenomenon), (phenomenon \ "foreigntag").text.trim)
+//        else
+//          (phenomList.head, (phenomenon \ "foreigntag").text.trim)
+//      }
+//      val observedProperties = newGetObservedProperties(phenomena.toList)
+//    } yield {
+//      
+//    }
+//  }
+  
+  private def newGetObservedProperties(phenomena : List[(DatabasePhenomenon, String)]) : List[ObservedProperty] = {
+    val obproplist = for((phenomenon, foreigntag) <- phenomena) yield {
+      new ObservedProperty(foreigntag, SourceId.GLOS, phenomenon.units, phenomenon.id)
+    }
+    obproplist.toList
+  }
+  
+  private def addPhenomenon(phenomxml : scala.xml.Node) : DatabasePhenomenon = {
+    val tag = (phenomxml \ "tag").text.trim
+    val units = (phenomxml \ "units").text.trim
+    val name = (phenomxml \ "name").text.trim
+    val desc = (phenomxml \ "description").text.trim
+    var retval = new DatabasePhenomenon(tag, units, desc, name)
+    retval = stationQuery.createPhenomenon(retval)
+    phenomenaList = stationQuery.getPhenomena
+    retval
+  }
+
+  private def readStationFromXML(stationxml : scala.xml.Node) : GLOSStation = {
+    val name = (stationxml \ "name").text.trim
+    val id = (stationxml \ "tag").text.trim
+    val desc = (stationxml \ "description").text.trim
+    val lat = (stationxml \ "latitude").text.trim.toDouble
+    val lon = (stationxml \ "longitude").text.trim.toDouble
+    val platform = (stationxml \ "platformtype").text.trim
+    new GLOSStation(name, id, desc, platform, lat, lon)
+  }
+  
+  private def readInMetadata() : List[scala.xml.Elem] = {
+    // read in file(s), not sure how they will be reached, maybe ftp?
+    // for now read in test file
+    val file = scala.io.Source.fromFile(glos_metadata_file)
+    // read in the file into xml
+    val xml = scala.xml.XML.loadString(file.toString)
+    List(xml)
   }
   
   private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
@@ -126,67 +206,4 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     logger.info("Populating station: " + brokenLine(14) + ", " + stationId + ", " + brokenLine(15) + ", " + lat + ", " + lon)
     new GlosStation(brokenLine(14), stationId, brokenLine(15), lat, lon)
   }
-  
-//  def update() {
-//    try {
-//      logger.info("Attempting to login to ftp")
-//      glos_ftp.connect(ftp_host, ftp_port)
-//      glos_ftp.login(ftp_user, ftp_pass)
-//    } catch {
-//      case e: Exception => logger.info("Exception in connecting to ftp: " + e.getMessage)
-//    }
-//    glos_ftp.enterLocalPassiveMode
-//    logger.info("Reply code: " + glos_ftp.getReplyCode)
-//    if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
-//      glos_ftp.disconnect
-//      logger.error("FTP connection was refused.")
-//      return
-//    }
-//    
-//    val sourceStationSensors = getSourceStations()
-////
-////    val databaseStations = stationQuery.getStations(source)
-////
-////    stationUpdater.updateStations(sourceStationSensors, databaseStations)
-////    
-//    if (glos_ftp.isConnected) {
-//      glos_ftp.disconnect
-//    }
-//  }
-//  
-//  private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-//    // read the ftp files to get the list of stations for updating
-//    val fileList = glos_ftp.listFiles
-//    val glosStations = for {
-//      ftpFile <- fileList
-//      if(!stationList.exists(p => p == ftpFile.getName))
-//      val fileString = readStationFile(ftpFile.getName)
-//      if (fileString.isDefined)
-//    } yield {
-//      
-//    }
-//    Nil
-//  }
-//  
-//  private def readStationFile(fileName: String) : Option[String] = {
-//    // create output stream to handle reading in file
-//    val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
-//    glos_ftp.retrieveFile(fileName, byteStream) match {
-//      case true => {
-//          // read in file
-//          new Some[String](byteStream.toString("UTF-8").trim)
-//      }
-//      case false => {
-//          logger.info("error reading file " + fileName)
-//          None
-//      }
-//    }
-//  }
-//  
-//  private def readInStation(file: String) : Option[GlosStation] = {
-//    val xml = scala.xml.XML.loadString(file)
-//    val stationName = (xml \ "message" \ "station").text.trim
-//    val lat = (xml \ "message" \ "date" \ "lat")
-//    None
-//  }
 }

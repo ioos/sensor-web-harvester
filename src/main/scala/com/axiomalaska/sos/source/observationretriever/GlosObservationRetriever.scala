@@ -20,7 +20,7 @@ import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
 
 object GlosObservationRetriever {
-  private var filesInMemory: List[String] = Nil
+  private var filesInMemory: List[scala.xml.Elem] = Nil
 }
 
 class GlosObservationRetriever(private val stationQuery:StationQuery, 
@@ -36,10 +36,10 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
 //  private val ftp_port = 21
 //  private val ftp_user = "asa"
 //  private val ftp_pass = "AGSLaos001"
-  private val ftp_host = "ftp.drivehq.com"
+  private val ftp_host = "ftp.oilmap.com"
   private val ftp_port = 21
-  private val ftp_user = "SMC0230"
-  private val ftp_pass = "submancow2.3"
+  private val ftp_user = "scowan"
+  private val ftp_pass = "KQ6T6m1B"
   private val glos_ftp: FTPClient = new FTPClient()  
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
@@ -70,7 +70,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
-          (message \\ tag).filter(p => p.text != "").foreach(f => observation.addValue(f.text.toDouble, reportDate))
+          (message \\ tag).filter(p => p.text != "").foreach(f => observation.addValue(f.text.trim.toDouble, reportDate))
         }
       }
     }
@@ -111,8 +111,9 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       var fileCount = 0
       val files = for (file <- fileList) yield {
         fileCount += 1
-        logger.info("Reading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
-        readFile(file.getName)
+        logger.info("\nReading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
+        readFileIntoXML(file.getName)
+//        logger.info("File\n" + fileread.toString)
       }
       // get a list with nones removed
       filesInMemory = files.filter(_.isDefined).map(m => m.get).toList
@@ -143,38 +144,36 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     logger.info("checking for station tag " + stationTag)
     val xmlList = for {
       file <- filesInMemory
-      val xmlOption = readXMLFromFile(file)
-      if (xmlOption.isDefined)
-      val xml = xmlOption.get
-      if ((xml \\ "message" \ "station").text.trim.equalsIgnoreCase(stationTag))
     } yield {
-      logger.info("found matching station tag")
-      xml
-    }
-    xmlList.toList
-  }
-  
-  private def readXMLFromFile(file: String) : Option[scala.xml.Elem] = {
-    try {
-      new Some[scala.xml.Elem](scala.xml.XML.loadString(file))
-    }
-    catch {
-      case ex:Exception => logger.error("Error parsing file: " + ex.toString)
+      if (file != null) {
+        if ((file \\ "message" \ "station").text.trim.equalsIgnoreCase(stationTag)) {
+          new Some[scala.xml.Elem](file)
+        } else {
+          None
+        }
+      } else {
+        logger.error("Removing file from memory")
+        filesInMemory = { filesInMemory diff List(file) }
         None
+      }
     }
+    xmlList.filter(_.isDefined).map(g => g.get).toList
   }
   
-  private def readFile(fileName : String) : Option[String] = {
+  private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
     val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
     var success = false
     var attempts = 0
-    var retval: Option[String] = None
+    var retval: Option[scala.xml.Elem] = None
     while (attempts < 3 && !success) {
       attempts += 1
       try {
         glos_ftp.retrieveFile(fileName, byteStream) match {
           case true => {
-              retval = new Some[String](byteStream.toString("UTF-8").trim)
+              logger.info("got a positive on file received")
+              // doing a test load of xml to throw exception in case file wasn't fully downloaded
+              val xml = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
+              retval = new Some[scala.xml.Elem](xml)
           }
           case false => {
               logger.info("could not read in file " + fileName)
@@ -188,6 +187,8 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
         }
       }
     }
+    if(!success)
+      logger.error("Could not read in file " + fileName + " after 3 attempts.")
     retval
   }
 }

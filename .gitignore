@@ -3,6 +3,7 @@
 *.csv
 
 # Package Files #
+*.gz
 *.war
 *.ear
 *.jar
@@ -22,3 +23,4 @@ epa_*
 hudson_example_query.txt
 *.docx
 glos_station/*
+glos_metadata_test.xml

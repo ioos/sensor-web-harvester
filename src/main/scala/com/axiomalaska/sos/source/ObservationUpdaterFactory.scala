@@ -23,17 +23,17 @@ class ObservationUpdaterFactory {
   def buildAllSourceObservationUpdaters(sosUrl: String,
     stationQuery: StationQuery, publisherInfo:PublisherInfo,
     logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] =
-//    List(
-//      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+    List(
+      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
 //  List(buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
-  List(buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+//  List(buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
   
   /**
    * Build a RAWS ObservationUpdater

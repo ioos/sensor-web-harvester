@@ -27,7 +27,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
       val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
       // request the result for each station using its foreign_tag, description (which is the organization id) and the phenomenon name
-      val xml = getResults(station.databaseStation.foreign_tag, station.databaseStation.description, phenomenon.databasePhenomenon.name)
+      val xml = getResults(station.databaseStation.foreign_tag, station.databaseStation.description, phenomenon.databasePhenomenon.name, startDate.toString)
       xml match {
         case Some(xml) => {
             // iterate through each activity to get the date, value combo
@@ -57,14 +57,15 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       }
     }
     
-    private def getResults(stationId : String, orgId : String, phenomenonName : String) : Option[scala.xml.Elem] = {
+    private def getResults(stationId : String, orgId : String, phenomenonName : String, startDate : String) : Option[scala.xml.Elem] = {
       val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:srs="http://storetresultservice.storet.epa.gov/">
                 <soap:Body>
                   <srs:getResults>
                     <OrganizationId>{orgId}</OrganizationId>
                     <MonitoringLocationId>{stationId}</MonitoringLocationId>
                     <CharacteristicName>{phenomenonName}</CharacteristicName>
-                    <MonitoringLocationType/><MinimumActivityStartDate/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><ResultType/>
+                    <MinimumActivityStartDate>{startDate}</MinimumActivityStartDate>
+                    <MonitoringLocationType/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><ResultType/>
                   </srs:getResults>
                 </soap:Body>
               </soap:Envelope>
