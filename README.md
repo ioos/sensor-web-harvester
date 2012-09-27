@@ -26,25 +26,35 @@ This project can be used on either a Windows or Linux computer. An Apple compute
 
 The following are the requirements to run this project:
 * Java 1.6 or newer 
-* An already running instance of a [52 North SOS](http://52north.org/communities/sensorweb/sos/)
+* An already running instance of an [IOOS Customized 52 North SOS](http://ioossostest.axiomalaska.com)
 * Postgresql database
 * Metadata Database (explained below)
 
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download the sensor_metadata_database.tar file from https://github.com/axiomalaska/sensor-web-harvester/downloads.
-* Using pgAdmin, create a database.
-* right-click on this newly created database and select “Restore”.
-* Select the sensor_metadata_database.tar file for the “Filename” text field.
+* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+
+Then restore the backup to a PostgreSQL database.
+
+Using pgadmin:
+* Create a database (e.g. sensor-metadata).
+* Right-click on this newly created database and select “Restore”.
+* Select the sensor_metadata_database_\[version\].backup file for the “Filename” text field.
 * In the "Format" combobox select "Custom or tar" item.
-* Select the "Restore" button.
+* On the Restore Options #1 tab under Don't Save, check Owner.
+* Click the "Restore" button.
+
+Using the command line (adjust host, port, user, dbname as needed):
+
+    createdb --host localhost --port 5432 --user postgres sensor-metadata
+    pg_restore --clean --dbname sensor-metadata --no-owner --no-tablespace --host localhost --port 5432 --username postgres sensor_metadata_database_\[version\].backup 
 
 Upon completing these steps the metadata database will be created. Record this database’s IP address, port, and name (as seen below) for use later on. 
 
 jdbc:postgresql://[IPAddress]:[port #]/[databasename]
 
-jdbc:postgresql://192.168.1.40:5432/sensor
+jdbc:postgresql://localhost:5432/sensor-metadata
 
 Running the SOS Injector
 -----------
@@ -52,7 +62,7 @@ The pre-built sensor-web-harvester.jar and example_sos.properties can be downloa
 [Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads) on Github. 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
-* database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor
+* database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor-metadata
 * database_username - the username used to access the metadata database
 * database_password - the password associated to the database_username
 * sos_url - the URL to the SOS being used. Example: http://192.168.1.40:8080/sos/sos
@@ -65,26 +75,27 @@ The command line takes in a properties file which contains all of the needed var
 * west_lon - the westernmost longitude of the bounding box
 * east_lon - the easternmost longitude of the bounding box
 
+**Note that running these processes can take a long time (hours) as information is downloaded and extracted from many sources.**
 
 Use the line below to update the metadata database with all of the stations from the sources within the user-selected bounding box. This command should be run conservatively (approx. 3 times a week) since the sources’ stations do not change often and this command is taxing on the sources’ servers.
 
-java -jar sensor-web-harvester.jar -metadata [path to properties file]
+    java -jar sensor-web-harvester.jar -metadata [path to properties file]
 	
 Example: 
 
-java -jar sensor-web-harvester.jar -metadata sos.properties
+    java -jar sensor-web-harvester.jar -metadata sos.properties
 	
 Use the line below to update the SOS with all of the stations in the metadata database. Do not call this command more than once hourly (for reasons previously stated).
 
-java -jar sensor-web-harvester.jar -updatesos [path to properties file]
+    java -jar sensor-web-harvester.jar -updatesos [path to properties file]
 
 Example:
 
-java -jar sensor-web-harvester.jar -updatesos sos.properties
+    java -jar sensor-web-harvester.jar -updatesos sos.properties
 
 Example of a properties file:
 
-    database_url = jdbc:postgresql://localhost:5432/sensor
+    database_url = jdbc:postgresql://localhost:5432/sensor-metadata
     database_username = sensoruser
     database_password = sensor
     sos_url = http://192.168.8.15:8080/sos/sos
