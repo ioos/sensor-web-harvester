@@ -17,3 +17,11 @@ ex_*
 example.properties
 *.backup
 epa_*
+
+*.txt
+*.log*
+*.csv
+glos_metadata_test.xml
+glos_station/*
+*.gz
+*doc*
