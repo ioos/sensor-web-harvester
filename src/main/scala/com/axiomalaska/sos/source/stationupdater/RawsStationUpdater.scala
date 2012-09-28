@@ -177,15 +177,22 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       "http://www.raws.dri.edu/cgi-bin/wea_info.pl?" + foreignId)
 
     if (response != null) {
-      val siteDoc = Jsoup.parse(response)
+      try {
+        val siteDoc = Jsoup.parse(response)
 
-      val label = getStationName(siteDoc)
-      val lat = getLatitude(siteDoc)
-      val lon = getLongitude(siteDoc)
+        val label = getStationName(siteDoc)
+        val lat = getLatitude(siteDoc)
+        val lon = getLongitude(siteDoc)
 
-      logger.info("Processed station: " + label)
-      return Some(new DatabaseStation(label, foreignId, foreignId, "", 
-          "FIXED MET STATION", source.id, lat, lon))
+        logger.info("Processed station: " + label)
+        return Some(new DatabaseStation(label, foreignId, foreignId, "", 
+            "FIXED MET STATION", source.id, lat, lon))
+      } catch {
+        case ex: Exception => {
+            logger.error("Could not read in station id " + foreignId)
+            None
+        }
+      }
     } else {
       logger.info("response not found ------------------------")
       None
