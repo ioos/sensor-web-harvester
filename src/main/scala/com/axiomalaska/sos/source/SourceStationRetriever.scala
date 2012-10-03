@@ -21,7 +21,7 @@ class SourceStationRetriever(
       
       val sosSource = new LocalSource(source)
       
-      val databaseStations = stationQuery.getStations(source)
+      val databaseStations = stationQuery.getActiveStations(source)
       
       val sosStations = databaseStations.map(station => 
         new LocalStation(sosSource, station, stationQuery))

@@ -35,7 +35,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
             logger.info("Updating Station " + databaseStation.name)
           }
 
-          val databaseSenors = stationQuery.getSensors(databaseStation)
+          val databaseSenors = stationQuery.getAllSensors(databaseStation)
           
           val createdSensors = for {
             (sourceSensor, phenomena) <- sourceSensors

@@ -17,7 +17,7 @@ class LocalStation(val source:SosSource,
    * A list of phenomena that this station has readings for
    */
   def getSensors(): java.util.List[SosSensor] = {
-    val sensors = stationQuery.getSensors(databaseStation)
+    val sensors = stationQuery.getActiveSensors(databaseStation)
     sensors.map(sensor => new LocalSensor(sensor, stationQuery))
   }
 

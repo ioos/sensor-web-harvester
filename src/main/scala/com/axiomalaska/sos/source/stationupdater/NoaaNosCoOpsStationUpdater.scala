@@ -53,7 +53,7 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
   def update() {
     val sourceStationSensors = getSourceStations(source)
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
