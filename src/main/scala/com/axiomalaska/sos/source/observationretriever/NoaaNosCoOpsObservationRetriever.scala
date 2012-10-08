@@ -3,7 +3,6 @@ package com.axiomalaska.sos.source.observationretriever
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.data.SosStation
 import java.util.Calendar
 import com.axiomalaska.sos.data.ObservationCollection
@@ -23,8 +22,8 @@ import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
-
 import org.apache.log4j.Logger
+import com.axiomalaska.phenomena.Phenomenon
 
 class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger()) 
@@ -85,7 +84,7 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
   // Private Members
   // ---------------------------------------------------------------------------
   
-  private def getSensorForeignId(phenomenon: SosPhenomenon):String = {
+  private def getSensorForeignId(phenomenon: Phenomenon):String = {
     val localPhenomenon = phenomenon.asInstanceOf[LocalPhenomenon]
     
     localPhenomenon.databasePhenomenon.id match{

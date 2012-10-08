@@ -3,7 +3,6 @@ package com.axiomalaska.sos.source.data
 import com.axiomalaska.sos.data.SosSensor
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.source.StationQuery
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork

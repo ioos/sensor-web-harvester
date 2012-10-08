@@ -2,9 +2,9 @@ package com.axiomalaska.sos.source.data
 
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosPhenomenon
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.phenomena.Phenomenon
 
 class LocalSensor(
   val databaseSensor: DatabaseSensor,
@@ -20,7 +20,7 @@ class LocalSensor(
 
   def getDescription() = databaseSensor.description
 
-  def getPhenomena(): java.util.List[SosPhenomenon] = {
+  def getPhenomena(): java.util.List[Phenomenon] = {
     val phenomena = stationQuery.getPhenomena(databaseSensor)
     phenomena.map(phenomenon => new LocalPhenomenon(phenomenon)).toList
   }
