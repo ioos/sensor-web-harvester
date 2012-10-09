@@ -263,7 +263,7 @@ class AppTest {
       val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
       val sosSource = new LocalSource(source)
       for {
-        station <- stationQuery.getStations(source)
+        station <- stationQuery.getAllStations(source)
         if (station.tag == "KBAN")
       } yield {
         new LocalStation(sosSource, station, stationQuery)
