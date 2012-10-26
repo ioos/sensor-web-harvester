@@ -13,10 +13,10 @@ class LocalPhenomenon(val databasePhenomenon:DatabasePhenomenon) extends Phenome
   
   def getName() = phenomenon.getName()
   def getId() = phenomenon.getId()
-  def getUnits() = phenomenon.getUnits()
+  def getUnit() = phenomenon.getUnit()
   
   private def findPhenomenon():Phenomenon = {
-    val option = Phenomena.getAllPhenomena().find(phenomenon =>{
+    val option = Phenomena.instance.getAllPhenomena().find(phenomenon =>{
       val index = phenomenon.getId().lastIndexOf("/") + 1
       val tag = phenomenon.getId().substring(index)
       tag == databasePhenomenon.tag
