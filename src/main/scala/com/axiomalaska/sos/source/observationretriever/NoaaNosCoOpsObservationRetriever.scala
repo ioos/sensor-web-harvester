@@ -1,14 +1,9 @@
 package com.axiomalaska.sos.source.observationretriever
 
-import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.SosSensor
 import com.axiomalaska.sos.data.SosPhenomenon
-import com.axiomalaska.sos.data.SosStation
+import com.axiomalaska.sos.source.StationQuery
 import java.util.Calendar
-import com.axiomalaska.sos.data.ObservationCollection
 import com.axiomalaska.sos.source.data.LocalStation
-import net.opengis.ows.x11.ExceptionReportDocument
 import net.opengis.om.x10.CompositeObservationDocument
 import scala.collection.mutable
 import gov.noaa.ioos.x061.CompositePropertyType
@@ -20,7 +15,6 @@ import net.opengis.gml.x32.TimeInstantType
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
-import com.axiomalaska.sos.source.data.ObservedProperty
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 
@@ -45,6 +39,8 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+
+    logger.info("NOOA-NOS: Collecting for station - " + station.databaseStation.foreign_tag)
 
     val thirdyDaysOld = Calendar.getInstance
     thirdyDaysOld.add(Calendar.DAY_OF_MONTH, -30)

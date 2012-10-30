@@ -25,9 +25,13 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     
     def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+
+      logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag)
+    
       val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
       // request the result for each station using its foreign_tag, description (which is the organization id) and the phenomenon name
-      val xml = getResults(station.databaseStation.foreign_tag, station.databaseStation.description, phenomenon.databasePhenomenon.name, startDate.toString)
+      val startDateString = startDate.get(Calendar.MONTH) + "/" + startDate.get(Calendar.DAY_OF_MONTH) + "/" + startDate.get(Calendar.YEAR)
+      val xml = getResults(station.databaseStation.foreign_tag, station.databaseStation.description, phenomenon.databasePhenomenon.name, startDateString)
       xml match {
         case Some(xml) => {
             // iterate through each activity to get the date, value combo
@@ -37,14 +41,19 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
               val calendarDate = parseDateString(rawDate + " " + rawTime)
               if (calendarDate.after(startDate)) {
                 for (result <- (activity \\ "Result")) {
-                  val measuredValue = (result \\ "ResultMeasureValue").text.toDouble
-                  for {
-                    observationValue <- observationValuesCollection
-                  }{
-                    logger.info("adding - " + measuredValue + ", " + calendarDate.toString)
-                    if(!observationValue.containsDate(calendarDate)) {
-                      observationValue.addValue(measuredValue, calendarDate)
+                  try {
+                    val measuredValue = (result \\ "ResultMeasureValue").text.trim.toDouble
+                    for {
+                      observationValue <- observationValuesCollection
+                    }{
+                      logger.info("adding observed value - " + measuredValue + "to " + station.databaseStation.name)
+                      if(!observationValue.containsDate(calendarDate)) {
+                        observationValue.addValue(measuredValue, calendarDate)
+                      }
                     }
+                  }
+                  catch {
+                    case ex: Exception => logger.error("Exception parsing observation value: " + (result \\ "ResultMeasuredValue").text.trim + "\n" + ex.toString)
                   }
                 }
               }
@@ -69,24 +78,13 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
                   </srs:getResults>
                 </soap:Body>
               </soap:Envelope>
-//      val response = httpSender.sendPostMessage(resultURL, xmlRequest.toString)
-    // read a file for now
-    var response = ""
-    if (phenomenonName.equalsIgnoreCase("iron")) {
-      val file = scala.io.Source.fromFile("ex_getResultsSinglePhenomenon_Iron.xml")
-      response = file.mkString
-      file.close()
-    } else {
-      val file = scala.io.Source.fromFile("ex_getResultsSinglePhenomenon.xml")
-      response = file.mkString
-      file.close()
-    }
-    if (response != null) {
-      val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
-      Some(scala.xml.XML.loadString(responseFix.toString))
-    }
-    else
-      None
+      val response = httpSender.sendPostMessage(resultURL, xmlRequest.toString)
+      if (response != null) {
+        val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
+        loadXMLFromString(responseFix)
+      }
+      else
+        None
   }
     
   private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
@@ -107,5 +105,16 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     calendar.getTime()
     
     return calendar
+  }
+  
+  private def loadXMLFromString(stringToLoad : String) : Option[scala.xml.Elem] = {
+    try {
+      Some(scala.xml.XML.loadString(stringToLoad))
+    } catch{
+      case ex: Exception => {
+          logger.error("Unable to load string into xml: " + stringToLoad + "\n" + ex.toString)
+          None
+      }
+    }
   }
 }

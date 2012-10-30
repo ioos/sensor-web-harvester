@@ -12,6 +12,7 @@ class MetadataDatabaseManager(
 	private val databaseUser:String, 
 	private val databasePassword:String,
 	private val boundingBox:BoundingBox, 
+        private val sources: String,
 	private val logger: Logger = Logger.getRootLogger()) {
 
   def update() {
@@ -20,7 +21,7 @@ class MetadataDatabaseManager(
       databaseUrl, databaseUser, databasePassword)
 
     queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new AggregateStationUpdater(stationQuery, boundingBox, logger)
+      val stationUpdater = new AggregateStationUpdater(stationQuery, boundingBox, sources, logger)
       stationUpdater.update()
     })
   }

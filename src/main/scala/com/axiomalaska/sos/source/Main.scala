@@ -51,6 +51,10 @@ object Main {
       val southLat = properties.getDouble("south_lat")
       val westLon = properties.getDouble("west_lon")
       val eastLon = properties.getDouble("east_lon")
+      var sources = "all"
+      
+      if (properties.containsKey("sources"))
+        sources = properties.getString("sources")
       
       logger.info("Database URL: " + databaseUrl)
       logger.info("Database Username: " + databaseUsername)
@@ -61,11 +65,13 @@ object Main {
       logger.info("West Lat: " + westLon)
       logger.info("East Lat: " + eastLon)
       
+      logger.info("Sources Used: " + sources)
+      
       val southWestCorner = new Location(southLat, westLon)
       val northEastCorner = new Location(northLat, eastLon)
       val boundingBox = BoundingBox(southWestCorner, northEastCorner)
       val metadataDatabaseManager = new MetadataDatabaseManager(
-          databaseUrl, databaseUsername, databasePassword, boundingBox, logger)
+        databaseUrl, databaseUsername, databasePassword, boundingBox, sources.toLowerCase, logger)
       
       metadataDatabaseManager.update()
   }
@@ -79,6 +85,10 @@ object Main {
       val email = properties.getString("publisher_email", "email")
       val name = properties.getString("publisher_name", "name")
       val webAddress = properties.getString("publisher_web_address", "web_address")
+      var sources: String = "all"
+      
+      if (properties.containsKey("sources"))
+        sources = properties.getString("sources")
       
       logger.info("SOS URL: " + sosUrl)
       logger.info("Database URL: " + databaseUrl)
@@ -96,7 +106,7 @@ object Main {
       publisherInfo.setWebAddress(webAddress)
       
       val sosManager = new SosSourcesManager(databaseUrl,
-        databaseUsername, databasePassword, sosUrl, publisherInfo, logger);
+        databaseUsername, databasePassword, sosUrl, publisherInfo, sources, logger);
 
       sosManager.updateSos();
   }

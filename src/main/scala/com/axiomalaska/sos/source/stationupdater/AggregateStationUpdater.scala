@@ -8,6 +8,7 @@ import java.util.Calendar
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
+  private val sources: String,
   private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
@@ -32,17 +33,37 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
 
   private def getStationUpdaters():List[StationUpdater] = {
-//    List(
-//        new HadsStationUpdater(stationQuery, boundingBox, logger), 
-//        new NdbcStationUpdater(stationQuery, boundingBox, logger),
-//        new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
-//        new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
-//        new RawsStationUpdater(stationQuery, boundingBox, logger),
-//        new SnoTelStationUpdater(stationQuery, boundingBox, logger),
-//        new NerrsStationUpdater(stationQuery, boundingBox, logger),
-//        new UsgsWaterStationUpdater(stationQuery, boundingBox, logger)
-//   )
-//     List(new StoretStationUpdater(stationQuery, boundingBox, logger))
-     List(new GlosStationUpdater(stationQuery, boundingBox, logger))
+    var retval: List[StationUpdater] = List()
+    if (sources.contains("all") || sources.contains("glos")) {
+      retval = new GlosStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("storet")) {
+      retval = new StoretStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("hads")) {
+      retval = new HadsStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("ndbc")) {
+      retval = new NdbcStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("noaanoscoops")) {
+      retval = new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("noaaweather")) {
+      retval = new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("raws")) {
+      retval = new RawsStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("snotel")) {
+      retval = new SnoTelStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("nerrs")) {
+      retval = new NerrsStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("usgswater")) {
+      retval = new UsgsWaterStationUpdater(stationQuery, boundingBox, logger) :: retval
+    }
+    return retval
   }
 }

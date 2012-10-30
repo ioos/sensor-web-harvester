@@ -11,6 +11,7 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
+import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
 import java.io.ByteArrayOutputStream
 import java.text.SimpleDateFormat
@@ -30,12 +31,20 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   
   private val httpSender = new HttpSender()
   private val dateParser = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
+  
+  private val source = stationQuery.getSource(SourceId.GLOS)
+  private val stationList = stationQuery.getStations(source)
+  
+  private val MAX_FILE_LIMIT = 200
+  
+  private var filesToRemove: List[String] = List()
     
-  //ftp info
+  //ftp info - below is the glos server
 //  private val ftp_host = "glos.us"
 //  private val ftp_port = 21
 //  private val ftp_user = "asa"
 //  private val ftp_pass = "AGSLaos001"
+  // below is a temp server used for testing
   private val ftp_host = "ftp.oilmap.com"
   private val ftp_port = 21
   private val ftp_user = "scowan"
@@ -44,6 +53,8 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
     phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+
+    logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
     // retrieve files if needed
     if (filesInMemory.size < 1)
@@ -105,20 +116,31 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     try {
-      // get file list
-      val fileList = glos_ftp.listFiles
+      // get file list; only taking the first MAX_FILE_LIMIT items
+      val fileList = glos_ftp.listFiles.take(MAX_FILE_LIMIT)
       // read files and add their contents to the file list in memory
       var fileCount = 0
-      val files = for (file <- fileList) yield {
+      val files = for {
+        file <- fileList
+      } yield {
         fileCount += 1
         logger.info("\nReading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
         readFileIntoXML(file.getName)
-//        logger.info("File\n" + fileread.toString)
       }
       // get a list with nones removed
       filesInMemory = files.filter(_.isDefined).map(m => m.get).toList
     } catch {
       case ex: Exception => logger.error("Exception reading in file: " + ex.toString)
+    }
+    
+    // remove files from ftp
+    try {
+      logger.info("removing files that have been read into memory")
+      for (file <- filesToRemove) {
+        removeFileOnServer(file)
+      }
+    } catch {
+      case ex: Exception => logger.error("Exception removing files from ftp")
     }
     
     try {
@@ -160,6 +182,28 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     xmlList.filter(_.isDefined).map(g => g.get).toList
   }
   
+  private def removeFileOnServer(fileName: String) = {
+    var success = false
+    var attempts = 0
+    while (attempts < 3 && !success) {
+      try {
+        success = glos_ftp.deleteFile(fileName)
+        attempts += 1
+      } catch {
+        case ex: Exception => {
+            logger.error("ERROR removinjavag file from server: " + fileName)
+            success = false
+            attempts = 3
+        }
+      }
+    }
+    
+    if (success)
+      logger.info("Successfully deleted file " + fileName + " from server.")
+    else
+      logger.info("Unable to delte file " + fileName + " after three attempts.")
+  }
+  
   private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
     val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
     var success = false
@@ -171,6 +215,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
         glos_ftp.retrieveFile(fileName, byteStream) match {
           case true => {
               logger.info("got a positive on file received")
+              filesToRemove = fileName :: filesToRemove
               // doing a test load of xml to throw exception in case file wasn't fully downloaded
               val xml = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
               retval = new Some[scala.xml.Elem](xml)

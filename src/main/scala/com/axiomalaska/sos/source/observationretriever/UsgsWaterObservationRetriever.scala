@@ -5,11 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.Date
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.data.ObservationValues
@@ -41,6 +36,9 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
 
   def getObservationValues(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon, startDate: Calendar): List[ObservationValues] = {
+
+    logger.info("USGS-WATER: Collecting for station - " + station.databaseStation.foreign_tag)
+    
     val observedProperties = stationQuery.getObservedProperties(
       station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 

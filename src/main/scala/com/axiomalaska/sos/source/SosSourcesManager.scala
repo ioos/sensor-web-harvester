@@ -21,6 +21,7 @@ class SosSourcesManager(
 	private val databasePassword:String, 
 	private val sosUrl:String, 
 	private val publisherInfo:PublisherInfo, 
+        private val sources: String,
 	private val logger: Logger = Logger.getRootLogger()) {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
@@ -32,9 +33,10 @@ class SosSourcesManager(
 
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery, publisherInfo, logger)
+        sosUrl, stationQuery, publisherInfo, sources.toLowerCase, logger)
 
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
+        logger.info("Running updater: " + observationUpdater.getName)
         observationUpdater.update()
       }
     })

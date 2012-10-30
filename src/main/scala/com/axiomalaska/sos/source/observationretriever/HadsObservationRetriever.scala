@@ -42,6 +42,8 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
   def getObservationValues(station: LocalStation,
     sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): 
     List[ObservationValues] = {
+      
+    logger.info("HADS: Collecting for station - " + station.databaseStation.foreign_tag)
 
     val parts = List[HttpPart](
       new HttpPart("state", "nil"),

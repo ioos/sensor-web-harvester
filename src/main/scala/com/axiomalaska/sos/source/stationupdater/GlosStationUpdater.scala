@@ -7,16 +7,13 @@ package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.BoundingBox
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpSender
-import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
-import java.io.ByteArrayOutputStream
 import org.apache.commons.net.ftp.FTPClient
 import scala.collection.mutable
 
@@ -49,11 +46,15 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   def update() {
     
+    logger.info("Updating GLOS...")
+    
     val sourceStationSensors = getSourceStations()
 
     val databaseStations = stationQuery.getStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
+    
+    logger.info("Finished updating GLOS")
     
   }
   
@@ -151,7 +152,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val file = scala.io.Source.fromFile(glos_metadata_file)
     val fileString = file.mkString
     file.close
-    logger.info("reading in file:\n" + fileString)
+//    logger.info("reading in file:\n" + fileString)
     // read in the file into xml
     val xml = scala.xml.XML.loadString(fileString)
     List(xml)

@@ -21,19 +21,46 @@ class ObservationUpdaterFactory {
    * Build all the Source ObservationUpdaters
    */
   def buildAllSourceObservationUpdaters(sosUrl: String,
-    stationQuery: StationQuery, publisherInfo:PublisherInfo,
-    logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] =
-//    List(
-//      buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-//      buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
-//  List(buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
-  List(buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger))
+    stationQuery: StationQuery, publisherInfo:PublisherInfo, sources: String,
+    logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] = {
+    var retval: List[ObservationUpdater] = List()
+    if (sources.contains("all") || sources.contains("glos")) {
+      retval = buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("hads")) {
+      retval = buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("ndbc")) {
+      retval = buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("nerrs")) {
+      retval = buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("noaanoscoops")) {
+      retval = buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("noaaweather")) {
+      retval = buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("raws")) {
+      retval = buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("snotel")) {
+      retval = buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("storet")) {
+      retval = buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    if (sources.contains("all") || sources.contains("usgswater")) {
+      retval = buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+    }
+    
+    for (item <- retval) {
+      logger.info("Getting observations from item: " + item.toString())
+    }
+    
+    return retval
+  }
   
   /**
    * Build a RAWS ObservationUpdater
