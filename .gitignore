@@ -1,6 +1,7 @@
 *.class
 *log*
 *.csv
+*.sql
 
 # Package Files #
 *.gz
@@ -8,7 +9,6 @@
 *.ear
 *.jar
 *.tar
-*.log
 .cache
 .classpath
 .project
