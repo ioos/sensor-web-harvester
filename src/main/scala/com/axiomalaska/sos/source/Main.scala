@@ -4,15 +4,24 @@ import com.axiomalaska.sos.data.Location
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.data.PublisherInfoImp
 import java.io.File
+import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
-import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
 
 object Main {
 
   def main(args: Array[String]) {
     val logger = Logger.getRootLogger()
-    if (args.size == 2) {
+    var timerBegin: Calendar = null
+    if (args.size == 3) {
+      val timer = args(2)
+      if (timer == "-timer" || timer == "-timer=true") {
+        // set a timer to report the time it takes to run the harverster
+        logger.info("USING: Starting Timer")
+        timerBegin = Calendar.getInstance
+      }
+    }
+    if (args.size >= 2) {
       val tag = args(0)
       val propertiesFilePath = args(1)
 
@@ -30,6 +39,11 @@ object Main {
     	logger.info("Must be a -metadata [properties file] \n" + 
           "or -updatesos [properties file]")
     }
+    
+    if (timerBegin != null) {
+      val elapsedTime = (Calendar.getInstance.getTimeInMillis - timerBegin.getTimeInMillis) / 1000L
+      logger.info("Total Elapsed Time for harvesting (in secs): " + elapsedTime)
+   }
   }
   
 //  def main(args: Array[String]) {

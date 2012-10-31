@@ -1,10 +1,5 @@
 package com.axiomalaska.sos.source.observationretriever
 
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.SosPhenomenon
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 
@@ -12,7 +7,6 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
-import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.ObservationValues
 
 import scala.collection.JavaConversions._

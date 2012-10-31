@@ -25,7 +25,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
-  private val stationBlockLimit = 100
+  private val stationBlockLimit = 200
   
   private val resultURL = "http://ofmpub.epa.gov/STORETwebservices/StoretResultService/"
   private val stationURL = "http://ofmpub.epa.gov/STORETwebservices/StationService/"
@@ -36,6 +36,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     val bboxList = divideBBoxIntoChunks(boundingBox, List())
     
     for (bbox <- bboxList) {
+      logger.info("Proccessing bbox: " + bbox.toString)
       val sourceStationSensors = getSourceStations(bbox)
 
       val databaseStations = stationQuery.getStations(source)
@@ -111,7 +112,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 //    val response = file.mkString
 //    file.close()
     if (response != null) {
-//      logger.debug("processing properties for " + stationId + " - " + orgId)
+      logger.debug("processing properties for " + stationId + " - " + orgId)
       val responseFix = fixResponseString(response.toString)
       val root = loadXMLFromString(responseFix)
       root match {
@@ -236,7 +237,8 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val responseXML = loadXMLFromString(responseFix)
       responseXML match {
         case Some(responseXML) => {
-            val stationCount = responseXML.text
+            val stationCount = responseXML.text.trim
+            logger.info(stationCount + " stations in bbox")
             if (stationCount.toDouble < stationBlockLimit) {
       //        logger.debug("prepending bbox with station count: " + stationCount)
               return bbox :: list
