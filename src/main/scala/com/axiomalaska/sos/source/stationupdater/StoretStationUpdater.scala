@@ -25,7 +25,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
-  private val stationBlockLimit = 200
+  private val stationBlockLimit = 250
   
   private val resultURL = "http://ofmpub.epa.gov/STORETwebservices/StoretResultService/"
   private val stationURL = "http://ofmpub.epa.gov/STORETwebservices/StationService/"

@@ -13,6 +13,8 @@ class LocalStation(val source:SosSource,
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery) extends SosStation {
 
+  private var networks: java.util.List[SosNetwork] = Nil
+
   /**
    * A list of phenomena that this station has readings for
    */
@@ -48,7 +50,11 @@ class LocalStation(val source:SosSource,
    * @return
    */
   def getNetworks(): java.util.List[SosNetwork] = {
-    Nil
+    networks
+  }
+  
+  def addNetwork(network: SosNetwork) = {
+    networks.add(network)
   }
 
   def isMoving = false

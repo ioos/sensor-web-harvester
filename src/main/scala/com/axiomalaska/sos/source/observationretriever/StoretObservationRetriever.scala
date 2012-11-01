@@ -13,6 +13,8 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
+import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.data.SosNetworkImp
 import java.text.SimpleDateFormat
 
 case class StoretResponse (stationId: String, requestDate: Calendar, obsList: List[(String, List[(Calendar, Double)])])

@@ -76,8 +76,8 @@ object Main {
       
       logger.info("North Lat: " + northLat)
       logger.info("South Lat: " + southLat)
-      logger.info("West Lat: " + westLon)
-      logger.info("East Lat: " + eastLon)
+      logger.info("West Lon: " + westLon)
+      logger.info("East Lon: " + eastLon)
       
       logger.info("Sources Used: " + sources)
       
