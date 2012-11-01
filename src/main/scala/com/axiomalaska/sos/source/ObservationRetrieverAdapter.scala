@@ -1,7 +1,6 @@
 package com.axiomalaska.sos.source
 
 import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.data.SosStation
 import java.util.Calendar
 import com.axiomalaska.sos.data.ObservationCollection
@@ -13,6 +12,7 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
+import com.axiomalaska.phenomena.Phenomenon
 
 class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever, 
     private val logger: Logger = Logger.getRootLogger()) 
@@ -23,7 +23,7 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
   // ---------------------------------------------------------------------------
   
   override def getObservationCollection( station:SosStation, 
-	sensor:SosSensor, phenomenon:SosPhenomenon, startDate:Calendar): ObservationCollection = {
+	sensor:SosSensor, phenomenon:Phenomenon, startDate:Calendar): ObservationCollection = {
 
     val observationValuesCollection = (station, sensor, phenomenon) match {
       case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {

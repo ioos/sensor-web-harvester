@@ -52,7 +52,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   def update() {
     val sourceStationSensors = getSourceStations()
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }

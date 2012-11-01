@@ -37,6 +37,7 @@ import com.axiomalaska.sos.source.observationretriever.NerrsObservationRetriever
 import org.apache.log4j.Logger
 import org.apache.log4j.BasicConfigurator
 import com.axiomalaska.sos.ObservationSubmitter
+import com.axiomalaska.sos.data.PublisherInfo
 
 @Test
 class AppTest {
@@ -97,9 +98,9 @@ class AppTest {
 //  @Test
 //  def updateSosOneStation() {
 //    val observationSubmitter = new ObservationSubmitter(
-//      "http://192.168.8.15:8080/sos/sos");
+//      "http://staging1.axiom:8080/52n-sos-ioos-dev/sos");
 //    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", "postgres", "postgres")
 //
 //    val publisherInfo = new PublisherInfoImp()
 //
@@ -132,17 +133,18 @@ class AppTest {
 //  def updateSosOne(){
 //    val factory = new ObservationUpdaterFactory()
 //    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor",
-//        "sensoruser", "sensor")
+//        "jdbc:postgresql://localhost:5432/sensor_metadata_database",
+//        "postgres", "postgres")
 //
 //    queryBuilder.withStationQuery(stationQuery => {
 //      val stationRetriever = new StationRetriever2(stationQuery)
 //      val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery)
 //
 //      val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
-//      
-//      val observationUpdater = new ObservationUpdater("http://192.168.8.15:8080/sos/sos",
-//        stationRetriever, retrieverAdapter)
+//      val publisherInfo = new PublisherInfoImp()
+//      val observationUpdater = new ObservationUpdater(
+//          "http://staging1.axiom:8080/52n-sos-ioos-dev/sos",
+//        stationRetriever, publisherInfo, retrieverAdapter)
 //
 //      observationUpdater.update()
 //    })
@@ -263,8 +265,8 @@ class AppTest {
       val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
       val sosSource = new LocalSource(source)
       for {
-        station <- stationQuery.getStations(source)
-        if (station.tag == "KBAN")
+        station <- stationQuery.getAllStations(source)
+//        if (station.tag == "KBAN")
       } yield {
         new LocalStation(sosSource, station, stationQuery)
       }

@@ -5,7 +5,6 @@ import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.data.SosStation
 import java.util.Calendar
 import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.data.SosSensor
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.DatabaseSensor

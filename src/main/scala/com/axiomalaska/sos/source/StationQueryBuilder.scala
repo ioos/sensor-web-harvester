@@ -40,14 +40,17 @@ class StationQueryBuilder(url:String,
  * The StationQuery is the object used to interact with the database
  */
 trait StationQuery{
-  def getStations(source: Source): List[DatabaseStation]
+  def getAllStations(source: Source): List[DatabaseStation]
+  def getActiveStations(source: Source): List[DatabaseStation]
   def getAllSource():List[Source]
-  def getSensors(station:DatabaseStation):List[DatabaseSensor]
+  def getAllSensors(station:DatabaseStation):List[DatabaseSensor]
+  def getActiveSensors(station:DatabaseStation):List[DatabaseSensor]
   def createSource(name: String, tag:String): Source
   def getSource(id:Long):Source
   def getStation(id:Long): DatabaseStation
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
+  def getAllPhenomena():List[DatabasePhenomenon]
   def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon]
   def getObservedProperties(station: DatabaseStation,
     sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
@@ -162,9 +165,15 @@ private class StationQueryImp(url:String,
     }
   }
   
-  def getStations(source: Source): List[DatabaseStation] = {
+  def getAllStations(source: Source): List[DatabaseStation] = {
     using(session) {
       return source.stations.toList
+    }
+  }
+  
+  def getActiveStations(source: Source): List[DatabaseStation] = {
+    using(session) {
+      return source.stations.where(station => station.active === true).toList
     }
   }
   
@@ -193,15 +202,27 @@ private class StationQueryImp(url:String,
     }
   }
   
-  def getSensors(station:DatabaseStation):List[DatabaseSensor] ={
+  def getAllSensors(station:DatabaseStation):List[DatabaseSensor] ={
     using(session) {
       station.sensors.toList
+    }
+  }
+  
+  def getActiveSensors(station:DatabaseStation):List[DatabaseSensor] ={
+    using(session) {
+      station.sensors.where(sensor => sensor.active === true).toList
     }
   }
   
   def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon] ={
     using(session) {
       sensor.phenomena.toList
+    }
+  }
+  
+  def getAllPhenomena():List[DatabasePhenomenon] ={
+    using(session) {
+      StationDatabase.phenomena.toList
     }
   }
   

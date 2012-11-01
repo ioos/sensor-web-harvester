@@ -68,9 +68,15 @@ class Source(val name: String, val tag:String, val country:String,
 
 class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
   val description:String, @Column("platform_type") val platformType:String, 
-  val source_id: Long, val latitude: Double, val longitude: Double) 
+  val source_id: Long, val latitude: Double, val longitude: Double, val active:Boolean) 
   extends KeyedEntity[Long] {
   val id: Long = -1
+  
+  def this(name: String, tag:String, foreign_tag: String, description:String, 
+      platformType:String, source_id: Long, latitude: Double, longitude: Double){
+    this(name, tag, foreign_tag, description, platformType, source_id, 
+        latitude, longitude, true)
+  }
   
   lazy val source: ManyToOne[Source] = 
     StationDatabase.sourceStationAssociation.right(this)
@@ -80,11 +86,15 @@ class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
 }
 
 class DatabaseSensor(val tag: String, val description:String, val station_id:Long, 
-    val depth:Double) extends KeyedEntity[Long] {
+    val depth:Double, val active:Boolean) extends KeyedEntity[Long] {
   val id: Long = -1
   
+  def this(tag: String, description:String, station_id:Long, depth:Double){
+    this(tag, description, station_id, depth, true)
+  }
+  
   def this(tag: String, description:String, station_id:Long){
-    this(tag, description, station_id, 0)
+    this(tag, description, station_id, 0, true)
   }
   
   lazy val phenomena = 
@@ -94,8 +104,7 @@ class DatabaseSensor(val tag: String, val description:String, val station_id:Lon
     StationDatabase.stationSensorAssociation.right(this)
 }
 
-class DatabasePhenomenon(val tag:String, val units:String, 
-    val description:String, val name:String) extends KeyedEntity[Long]{
+class DatabasePhenomenon(val tag:String) extends KeyedEntity[Long]{
   val id: Long = -1
 
   lazy val sensors:Query[DatabaseSensor] = StationDatabase.xSensorPhenomenon.right(this)

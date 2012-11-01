@@ -36,7 +36,7 @@ class NerrsStationUpdater(
   def update() {
     val sourceStationSensors = getSourceStations()
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
