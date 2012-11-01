@@ -1,4 +1,4 @@
-package com.axiomalaska.aoosSosInjector
+package com.axiomalaska.sos.source
 
 import org.junit._
 import Assert._

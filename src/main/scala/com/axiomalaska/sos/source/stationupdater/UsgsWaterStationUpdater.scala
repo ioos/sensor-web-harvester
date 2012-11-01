@@ -44,7 +44,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   def update() {
     val sourceStationSensors = getSourceStations()
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
@@ -101,6 +101,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
         "http://waterservices.usgs.gov/nwis/iv?stateCd=" + stateTag + "&period=PT4H")
 
     if (rawServerData != null) {
+<<<<<<< HEAD
       try {
         val document =
           TimeSeriesResponseDocument.Factory.parse(rawServerData)
@@ -115,6 +116,25 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
           Nil
       }
     }
+=======
+      val documentOption = try{
+        Some(TimeSeriesResponseDocument.Factory.parse(rawServerData))
+      }
+      catch{
+        case e:Exception =>{
+          None
+        }
+      }
+      documentOption match {
+        case Some(document) => {
+          document.getTimeSeriesResponse().getTimeSeriesArray().filter(timeSeriesType =>
+            timeSeriesType.getValuesArray().length > 0 &&
+              timeSeriesType.getValuesArray(0).getValueArray().length > 0 &&
+              !timeSeriesType.getValuesArray(0).getValueArray(0).getStringValue.equals("-999999")).toList
+        }
+        case None => Nil
+      }
+>>>>>>> master
     } else {
       Nil
     }

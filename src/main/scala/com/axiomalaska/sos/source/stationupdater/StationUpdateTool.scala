@@ -35,7 +35,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
             logger.info("Updating Station " + databaseStation.name)
           }
 
-          val databaseSenors = stationQuery.getSensors(databaseStation)
+          val databaseSenors = stationQuery.getAllSensors(databaseStation)
           
           val createdSensors = for {
             (sourceSensor, phenomena) <- sourceSensors
@@ -77,9 +77,9 @@ class StationUpdateTool(private val stationQuery:StationQuery,
       set += id
       val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
       val description = if (observedProperty.depth != 0) {
-        phenomenon.name + " with depth " + observedProperty.depth + " m"
+    	  phenomenon.tag + " with depth " + observedProperty.depth + " m"
       } else {
-    	phenomenon.name
+    	  phenomenon.tag
       }
       (new DatabaseSensor(phenomenon.tag, description, station.id, observedProperty.depth),
           List(phenomenon))

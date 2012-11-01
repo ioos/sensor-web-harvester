@@ -3,10 +3,10 @@ package com.axiomalaska.sos.source.data
 import java.util.Calendar
 import scala.collection.mutable
 import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosPhenomenon
+import com.axiomalaska.phenomena.Phenomenon
 
 class ObservationValues(val observedProperty: ObservedProperty, 
-    val sensor:SosSensor, val phenomenon:SosPhenomenon, val units:String){
+    val sensor:SosSensor, val phenomenon:Phenomenon, val units:String){
   private val valueCollection = new mutable.ListBuffer[java.lang.Double]()
   private val dateCollection = new mutable.ListBuffer[Calendar]()
   

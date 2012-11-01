@@ -44,7 +44,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
 
     val sourceStationSensors = getSourceStations(observedProperties)
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }

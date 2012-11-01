@@ -1,6 +1,5 @@
 package com.axiomalaska.sos.source.observationretriever
 
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import java.util.Calendar
 import com.axiomalaska.sos.data.SosSensor

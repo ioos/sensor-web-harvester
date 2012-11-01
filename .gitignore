@@ -20,7 +20,10 @@ ex_*
 example.properties
 *.backup
 epa_*
-hudson_example_query.txt
-*.docx
-glos_station/*
+*.txt
+*.log*
+*.csv
 glos_metadata_test.xml
+glos_station/*
+*.gz
+*doc*
