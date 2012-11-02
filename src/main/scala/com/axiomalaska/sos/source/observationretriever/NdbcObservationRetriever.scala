@@ -2,11 +2,6 @@ package com.axiomalaska.sos.source.observationretriever
 
 import com.axiomalaska.sos.source.StationQuery
 import java.util.Calendar
-<<<<<<< HEAD
-=======
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
->>>>>>> master
 import com.axiomalaska.sos.source.data.LocalStation
 import java.text.SimpleDateFormat
 import com.axiomalaska.sos.tools.HttpSender

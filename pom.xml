@@ -84,6 +84,11 @@
       <artifactId>nerrs_webservice</artifactId>
       <version>1.0.0</version>
     </dependency>
+	<dependency>
+		<groupId>commons-net</groupId>
+		<artifactId>commons-net</artifactId>
+		<version>3.1</version>
+	</dependency>
   </dependencies>
 
   <build>

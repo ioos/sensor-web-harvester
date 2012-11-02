@@ -39,7 +39,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       logger.info("Proccessing bbox: " + bbox.toString)
       val sourceStationSensors = getSourceStations(bbox)
 
-      val databaseStations = stationQuery.getStations(source)
+      val databaseStations = stationQuery.getAllStations(source)
 
       stationUpdater.updateStations(sourceStationSensors, databaseStations)
     }
@@ -148,8 +148,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     tag = specialCaseTags(tag)
     for (phenomenon <- phenomenaList) {
       if (tag contains phenomenon.tag) {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(phenomenon.tag, source, phenomenon.units, phenomenon.id))
+        None
+//        return new Some[ObservedProperty](
+//          stationUpdater.createObservedProperty(phenomenon.tag, source, phenomenon.units, phenomenon.id))
       }
     }
     // create a new phenomenon entry
@@ -159,14 +160,15 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     units = if (units.nonEmpty) units.trim else "None"
     // special case unit strings
     units = specialCaseUnits(units)
-    var phenomenon = new DatabasePhenomenon(tag, units, description, name)
-    phenomenon = stationQuery.createPhenomenon(phenomenon)
+//    var phenomenon = new DatabasePhenomenon(tag, units, description, name)
+//    phenomenon = stationQuery.createPhenomenon(phenomenon)
 //    logger.info("new phenomenon:\n" + phenomenon.id + " | " + phenomenon.units + " | " + phenomenon.description + " | " + phenomenon.name)
     // update our phenomena list
     phenomenaList = stationQuery.getPhenomena
+    None
     // return our observed property
-    new Some[ObservedProperty](
-      stationUpdater.createObservedProperty(tag, source, units, phenomenon.id))
+//    new Some[ObservedProperty](
+//      stationUpdater.createObservedProperty(tag, source, units, phenomenon.id))
   }
   
   private def specialCaseTags(tag : String) : String = {

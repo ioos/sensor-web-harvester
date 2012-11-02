@@ -33,7 +33,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private val dateParser = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
   
   private val source = stationQuery.getSource(SourceId.GLOS)
-  private val stationList = stationQuery.getStations(source)
+  private val stationList = stationQuery.getAllStations(source)
   
   private val MAX_FILE_LIMIT = 200
   

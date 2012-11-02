@@ -50,7 +50,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     
     val sourceStationSensors = getSourceStations()
 
-    val databaseStations = stationQuery.getStations(source)
+    val databaseStations = stationQuery.getAllStations(source)
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
     
@@ -120,7 +120,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def getObservedProperties(phenomena : List[(DatabasePhenomenon, String)]) : List[ObservedProperty] = {
     val obproplist = for((phenomenon, foreigntag) <- phenomena) yield {
-      new ObservedProperty(foreigntag, SourceId.GLOS, phenomenon.units, phenomenon.id)
+      new ObservedProperty(foreigntag, SourceId.GLOS, "", phenomenon.id)
     }
     obproplist.toList
   }
@@ -130,7 +130,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val units = (phenomxml \ "units").text.trim
     val name = (phenomxml \ "name").text.trim
     val desc = (phenomxml \ "description").text.trim
-    var retval = new DatabasePhenomenon(tag, units, desc, name)
+    var retval = new DatabasePhenomenon(tag)
     retval = stationQuery.createPhenomenon(retval)
     phenomenaList = stationQuery.getPhenomena
     retval

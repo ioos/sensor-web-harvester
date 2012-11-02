@@ -1,11 +1,6 @@
 package com.axiomalaska.sos.source.observationretriever
 
-<<<<<<< HEAD
-=======
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.ObservationCollection
->>>>>>> master
+
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor

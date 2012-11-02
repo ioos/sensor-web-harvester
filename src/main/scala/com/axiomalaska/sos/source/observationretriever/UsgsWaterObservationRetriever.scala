@@ -5,13 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.Date
-<<<<<<< HEAD
-=======
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
->>>>>>> master
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.data.ObservationValues

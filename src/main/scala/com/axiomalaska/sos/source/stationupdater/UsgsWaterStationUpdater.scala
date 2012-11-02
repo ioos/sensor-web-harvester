@@ -101,22 +101,6 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
         "http://waterservices.usgs.gov/nwis/iv?stateCd=" + stateTag + "&period=PT4H")
 
     if (rawServerData != null) {
-<<<<<<< HEAD
-      try {
-        val document =
-          TimeSeriesResponseDocument.Factory.parse(rawServerData)
-
-        document.getTimeSeriesResponse().getTimeSeriesArray().filter(timeSeriesType =>
-          timeSeriesType.getValuesArray().length > 0 &&
-            timeSeriesType.getValuesArray(0).getValueArray().length > 0 &&
-            !timeSeriesType.getValuesArray(0).getValueArray(0).getStringValue.equals("-999999")).toList
-     } catch {
-      case ex: Exception => {
-          logger.error("Could not successfully parse " + stateTag)
-          Nil
-      }
-    }
-=======
       val documentOption = try{
         Some(TimeSeriesResponseDocument.Factory.parse(rawServerData))
       }
@@ -134,7 +118,6 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
         }
         case None => Nil
       }
->>>>>>> master
     } else {
       Nil
     }

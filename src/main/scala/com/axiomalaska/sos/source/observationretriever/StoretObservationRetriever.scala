@@ -35,7 +35,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
 
-      logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " and observation - " + phenomenon.databasePhenomenon.name)
+    logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " and observation - " + phenomenon.databasePhenomenon.tag)
       logger.info("startDate is - " + startDate.toString)
       
       // check to see if the desired station is already in the list
@@ -79,9 +79,9 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       
      // get list of observed values matching the phenomenon name, then iterate and add the values and dates for the observation (phenomenon)
       for (observationValue <- observationValuesCollection) {
-        val observationList = stationItems.head.obsList.filter(p => p._1.equalsIgnoreCase(phenomenon.databasePhenomenon.name)).head
+        val observationList = stationItems.head.obsList.filter(p => p._1.equalsIgnoreCase(phenomenon.databasePhenomenon.tag)).head
         for (obs <- observationList._2; if !observationValue.containsDate(obs._1)) {
-          logger.info("adding observed value " + obs._2 + " to " + phenomenon.databasePhenomenon.name + " in " + station.databaseStation.name)
+//          logger.info("adding observed value " + obs._2 + " to " + phenomenon.databasePhenomenon.name + " in " + station.databaseStation.name)
           observationValue.addValue(obs._2, obs._1)
         }
         
