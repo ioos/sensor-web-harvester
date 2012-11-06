@@ -17,13 +17,14 @@ class LocalPhenomenon(val databasePhenomenon:DatabasePhenomenon) extends Phenome
   
   private def findPhenomenon():Phenomenon = {
     val option = Phenomena.instance.getAllPhenomena().find(phenomenon =>{
-      val index = phenomenon.getId().lastIndexOf("/") + 1
-      val tag = phenomenon.getId().substring(index)
-      tag == databasePhenomenon.tag
+//      val index = phenomenon.getId().lastIndexOf("/") + 1
+//      val tag = phenomenon.getId().substring(index)
+//      tag == databasePhenomenon.tag
+        phenomenon.getId() == databasePhenomenon.tag
     })
     
     if(option.isEmpty){
-      throw new Exception("Did not find Phenomenon");
+      throw new Exception("Did not find Phenomenon - " + databasePhenomenon.id + " - " + databasePhenomenon.tag);
     }
     
     option.get

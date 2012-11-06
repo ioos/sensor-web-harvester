@@ -12,7 +12,7 @@ class LocalStation(val source:SosSource,
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery) extends SosStation {
 
-  private var networks: java.util.List[SosNetwork] = Nil
+  private val networks: java.util.List[SosNetwork] = new java.util.ArrayList()
 
   /**
    * A list of phenomena that this station has readings for

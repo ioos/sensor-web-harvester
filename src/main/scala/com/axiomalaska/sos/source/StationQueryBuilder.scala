@@ -88,7 +88,12 @@ private class StationQueryImp(url:String,
   
   def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon ={
     using(session){
-      StationDatabase.phenomena.insert(phenomenon)
+      // only insert if it doesn't exist... ??
+      val inPhenomenaList = StationDatabase.phenomena.toList.filter(p => p.tag.equalsIgnoreCase(phenomenon.tag))
+      if (inPhenomenaList.isEmpty)
+        StationDatabase.phenomena.insert(phenomenon)
+      else
+        inPhenomenaList.head
     }
   }
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor ={

@@ -76,12 +76,14 @@ class StationUpdateTool(private val stationQuery:StationQuery,
       if(!set.contains(id))} yield{
       set += id
       val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
+      // needed to create a better sensor tag that just using the phenomenon id (since it changed) - SEAN M COWAN
+      val sensortag = phenomenon.tag.substring(phenomenon.tag.lastIndexOf("/")+1)
       val description = if (observedProperty.depth != 0) {
-    	  phenomenon.tag + " with depth " + observedProperty.depth + " m"
+    	  phenomenon.name + " with depth " + observedProperty.depth + " m"
       } else {
-    	  phenomenon.tag
+    	  phenomenon.name
       }
-      (new DatabaseSensor(phenomenon.tag, description, station.id, observedProperty.depth),
+      (new DatabaseSensor(sensortag, description, station.id, observedProperty.depth),
           List(phenomenon))
     }
 

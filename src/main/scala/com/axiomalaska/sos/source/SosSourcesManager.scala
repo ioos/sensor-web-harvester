@@ -4,6 +4,7 @@ import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
 import org.apache.log4j.Logger
 import scala.util.Random
 import java.util.Calendar
+import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
 
 /**
@@ -25,8 +26,9 @@ class SosSourcesManager(
 	private val logger: Logger = Logger.getRootLogger()) {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
-
+  
   def updateSos() {
+    
     val factory = new ObservationUpdaterFactory()
     val queryBuilder = new StationQueryBuilder(
       databaseUrl, databaseUser, databasePassword)
@@ -35,8 +37,14 @@ class SosSourcesManager(
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, publisherInfo, sources.toLowerCase, logger)
 
+      // load phenomenon
+      val phenomena = stationQuery.getPhenomena
+      for (phenom <- phenomena) {
+        Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), phenom.units)
+      }
+        
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
-        logger.info("Running updater: " + observationUpdater.getName)
+        logger.info("Running updater: " + observationUpdater.toString)
         observationUpdater.update()
       }
     })

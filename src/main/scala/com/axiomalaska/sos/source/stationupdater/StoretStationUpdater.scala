@@ -12,8 +12,12 @@ import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpSender
+import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.phenomena.Phenomena
+
 import org.apache.log4j.Logger
 
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
@@ -117,18 +121,18 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val root = loadXMLFromString(responseFix)
       root match {
         case Some(root) => {
-            var charNameList:List[String] = Nil
-            val results = for {
-              node <- (root \\ "ResultDescription")
-              if (node.nonEmpty)
-              if (!((node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "non-detect") || (node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "present")))
-              if ((node \\ "ResultMeasureValue").text.nonEmpty && (node \\ "ResultMeasureValue").text.trim != "")
-              val name = (node \ "CharacteristicName").text
-              if (!charNameList.exists(p => p == name))
-            } yield {
-              charNameList = name :: charNameList
-              (name, node)
-            }
+          var charNameList:List[String] = Nil
+          val results = for {
+            node <- (root \\ "ResultDescription")
+            if (node.nonEmpty)
+            if (!((node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "non-detect") || (node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "present")))
+            if ((node \\ "ResultMeasureValue").text.nonEmpty && (node \\ "ResultMeasureValue").text.trim != "")
+            val name = (node \ "CharacteristicName").text
+            if (!charNameList.exists(p => p == name))
+          } yield {
+            charNameList = name :: charNameList
+            (name, node)
+          }
           results.toList.flatMap(property => getObservedProperty(property._1, property._2))
         }
         case None => {
@@ -146,29 +150,53 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     var tag = name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
     // add special cases here
     tag = specialCaseTags(tag)
-    for (phenomenon <- phenomenaList) {
-      if (tag contains phenomenon.tag) {
-        None
-//        return new Some[ObservedProperty](
-//          stationUpdater.createObservedProperty(phenomenon.tag, source, phenomenon.units, phenomenon.id))
-      }
-    }
-    // create a new phenomenon entry
-    var description = (result \ "ResultCommentText").text
-    description = if (description.nonEmpty) description.trim.replaceAll("""[\s]""", " ") else ""
     var units = (result \ "ResultMeasure" \ "MeasureUnitCode").text
     units = if (units.nonEmpty) units.trim else "None"
-    // special case unit strings
     units = specialCaseUnits(units)
-//    var phenomenon = new DatabasePhenomenon(tag, units, description, name)
-//    phenomenon = stationQuery.createPhenomenon(phenomenon)
-//    logger.info("new phenomenon:\n" + phenomenon.id + " | " + phenomenon.units + " | " + phenomenon.description + " | " + phenomenon.name)
-    // update our phenomena list
-    phenomenaList = stationQuery.getPhenomena
-    None
-    // return our observed property
-//    new Some[ObservedProperty](
-//      stationUpdater.createObservedProperty(tag, source, units, phenomenon.id))
+    val phenom = findPhenomenon(tag, units)
+    try {
+      var lPhenom = new LocalPhenomenon(new DatabasePhenomenon(phenom.getId))
+      if (lPhenom.databasePhenomenon.id < 0) {
+        // create the phenomenon
+        logger.info("Inserting phenomenon " + lPhenom.getId + " into database")
+        val unitString = if (phenom.getUnit != null && phenom.getUnit.getSymbol != null && !phenom.getUnit.getSymbol.equalsIgnoreCase("")) phenom.getUnit.getSymbol else units
+        lPhenom = new LocalPhenomenon(insertPhenomenon(lPhenom.databasePhenomenon, unitString, "", lPhenom.getName))
+      }
+      return new Some[ObservedProperty](
+        stationUpdater.createObservedProperty(name, source, lPhenom.databasePhenomenon.units, lPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {
+//          try {
+//            var nPhenom: DatabasePhenomenon = new DatabasePhenomenon(phenom.getId)
+//            if (phenom != null && phenom.getUnit != null && phenom.getUnit.getSymbol != null && !phenom.getUnit.getSymbol.equalsIgnoreCase("")) {
+//              nPhenom.units = phenom.getUnit.getSymbol
+//            } else {
+//              nPhenom.units = units
+//            }
+//            nPhenom.name = phenom.getName
+//            logger.info("Will create phenom - " + nPhenom.tag)
+//            return new Some[ObservedProperty](
+//              stationUpdater.createObservedProperty(name, source, nPhenom.units, stationQuery.createPhenomenon(nPhenom).id))
+//          } catch {
+//            case ex: Exception =>{
+//                logger.info("Unable to create observed property: " + name)
+//                logger.warn("Exception in getObservedProperty -\n" + ex.toString + ":\n" + ex.getStackTraceString)
+//                exit(-1)
+//                None
+//            }
+//          }
+          logger.info("Unable to create observed property: " + name)
+          logger.warn("Exception in getObservedProperty -\n" + ex.toString + ":\n" + ex.getStackTraceString)
+          None
+      }
+    }
+  }
+  
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    dbPhenom.units = units
+    dbPhenom.description = description
+    dbPhenom.name = name
+    stationQuery.createPhenomenon(dbPhenom)
   }
   
   private def specialCaseTags(tag : String) : String = {
@@ -180,6 +208,43 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
           tag
       }
     }
+  }
+  
+  private def findPhenomenon(name: String, units: String) : Phenomenon = {
+    val lname = name.toLowerCase
+    if (lname contains "ammonium") {
+      return Phenomena.instance.AMMONIUM
+    } else if (lname.contains("chlorophyll") && lname.contains("fluorescence")) {
+      return Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
+    }  else if (lname contains "nitrite") {
+      if (lname.contains("+")) {
+        return Phenomena.instance.NITRITE_PLUS_NITRATE
+      }
+      // else it is prob just nitrite
+      return Phenomena.instance.NITRITE
+    } else if (lname contains "nitrate") {
+      return Phenomena.instance.NITRATE
+    } else if (lname contains "water") {
+      if (lname contains "temperature") {
+        return Phenomena.instance.SEA_WATER_TEMPERATURE
+      }
+    } else if (lname contains "wind") {
+      if (lname contains "direction") {
+        return Phenomena.instance.WIND_FROM_DIRECTION
+      }
+    } else if (lname contains "gust") {
+      return Phenomena.instance.WIND_SPEED_OF_GUST
+    } else if (lname contains "dew") {
+      return Phenomena.instance.DEW_POINT_TEMPERATURE
+    }
+    // create a homeless parameter
+    logger.info("Creating a homeless parameter for " + name + " - " + units)
+//    stationQuery.createPhenomenon(new DatabasePhenomenon(lname))
+    val phenomena = Phenomena.instance.createHomelessParameter(lname, units)
+    if (phenomena == null) {
+      logger.error("Null phenomena instance created with units - " + units)
+    }
+    return phenomena
   }
   
   private def specialCaseUnits(units : String) : String = {

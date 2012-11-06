@@ -13,8 +13,6 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
-import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.data.SosNetworkImp
 import java.text.SimpleDateFormat
 
 case class StoretResponse (stationId: String, requestDate: Calendar, obsList: List[(String, List[(Calendar, Double)])])
@@ -35,8 +33,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
 
-    logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " and observation - " + phenomenon.databasePhenomenon.tag)
-      logger.info("startDate is - " + startDate.toString)
+      logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " - observation - " + phenomenon.databasePhenomenon.tag)
       
       // check to see if the desired station is already in the list
       var stationItems: List[StoretResponse] = storedStationRequests.filter(p => p.stationId.equalsIgnoreCase(station.databaseStation.foreign_tag))
@@ -79,15 +76,60 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       
      // get list of observed values matching the phenomenon name, then iterate and add the values and dates for the observation (phenomenon)
       for (observationValue <- observationValuesCollection) {
-        val observationList = stationItems.head.obsList.filter(p => p._1.equalsIgnoreCase(phenomenon.databasePhenomenon.tag)).head
-        for (obs <- observationList._2; if !observationValue.containsDate(obs._1)) {
-//          logger.info("adding observed value " + obs._2 + " to " + phenomenon.databasePhenomenon.name + " in " + station.databaseStation.name)
-          observationValue.addValue(obs._2, obs._1)
+        try {
+          logger.info("looking for obsValue: " + phenomenon.databasePhenomenon.name)
+          val observationList = stationItems.flatMap(itm => matchObsTags(phenomenon.databasePhenomenon.name, itm.obsList))
+          logger.info("Have " + observationList.size + " observations for phenomenon")
+          for (obs <- observationList; if !observationValue.containsDate(obs._1)) {
+            observationValue.addValue(obs._2, obs._1)
+          }
+        } catch {
+          case ex: Exception => { logger.info(ex.toString + "\n\t" + ex.getStackTraceString) }
         }
-        
       }
       
       observationValuesCollection.filter(_.getValues.size > 0)
+    }
+    
+  /**
+   * attempts to match the names for phenomenon in the database to those provided by storet
+   */
+    private def matchObsTags(phenomName: String, observations: List[(String, List[(Calendar, Double)])]) : List[(Calendar, Double)] = {
+      // need to compare the string value of observations to the phenomenon tag, unfortunately a direct comparison will not work here
+      var retval: List[(Calendar, Double)] = Nil
+      val lphenomName = phenomName.toLowerCase
+      var primaryTagToSearch: String = "nothing"
+      var secondaryTagToSearch: String = "nothing"
+      if (lphenomName.contains("temperature")) {
+        if (lphenomName.contains("water")) {
+          secondaryTagToSearch = "water"
+        }
+        primaryTagToSearch = "temperature"
+      } else if (lphenomName contains "acidity") {
+        primaryTagToSearch = "ph"
+      } else if (lphenomName.contains("_")) {
+        primaryTagToSearch = lphenomName.split("_").head
+        secondaryTagToSearch = (lphenomName.split("_").toList diff primaryTagToSearch).head
+      } else if (lphenomName.contains("\\s+")) {
+        primaryTagToSearch = lphenomName.split("\\s+").head
+        secondaryTagToSearch = (lphenomName.split("\\s+").toList diff primaryTagToSearch).head
+      } else {
+        primaryTagToSearch = lphenomName
+      }
+      
+      if (secondaryTagToSearch != "nothing") {
+        observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch) && p._1.toLowerCase.contains(secondaryTagToSearch)).map(p => logger.info(p._1))
+        retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch) && p._1.toLowerCase.contains(secondaryTagToSearch)).flatMap(p => p._2)
+      } else {
+        retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch)).flatMap(p => p._2)
+      }
+      
+      if (retval.size > 0) {
+        logger.info("returning obsrevations for " + lphenomName + ": ")
+        retval.map(p => logger.info(p._1.getTime.toString + " - " + p._2.toString))
+      }
+      
+      return retval
     }
     
     private def tryGetResultsForStation(stationId: String, orgId: String, startDate: Calendar) : Option[StoretResponse] = {
@@ -150,7 +192,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
           } catch {
             case ex: Exception => {
                 // don't add it to the list
-                logger.error("Unable to add a measured value for " + phenName)
+                logger.error("Unable to add a measured value for " + phenName + "\n\t" + ex.toString)
             }
           }
         }

@@ -6,6 +6,8 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.sos.source.StationQuery
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
@@ -135,6 +137,38 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     phenomenaList = stationQuery.getPhenomena
     retval
   }
+  
+    private def findPhenomenon(tag: String, units: String) : Phenomenon = {
+      val ltag = tag.toLowerCase
+      // check the tag to list of known phenomena
+      if (tag contains "wdir") {
+        return Phenomena.instance.WIND_FROM_DIRECTION
+      } else if (tag contains "wspd") {
+        return Phenomena.instance.WIND_SPEED
+      } else if (tag contains "gust") {
+        return Phenomena.instance.WIND_SPEED_OF_GUST
+      } else if (tag contains "atmp") {
+        return Phenomena.instance.AIR_TEMPERATURE
+      } else if (tag contains "wtmp") {
+        return Phenomena.instance.SEA_WATER_TEMPERATURE
+      } else if (tag contains "rh") {
+        return Phenomena.instance.RELATIVE_HUMIDITY
+      } else if (tag contains "dewpt") {
+        return Phenomena.instance.DEW_POINT_TEMPERATURE
+      } else if (tag contains "baro") {
+        return Phenomena.instance.AIR_PRESSURE
+      } else if (tag contains "wvhgt") {
+        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT
+      } else if (tag contains "dompd") {
+        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD
+      } else if (tag contains "mwdir") {
+        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION
+      } else if (tag contains "tp") {
+        return Phenomena.instance.SEA_WATER_TEMPERATURE
+      }
+      // create a phenomena
+      Phenomena.instance.createHomelessParameter(ltag, units)
+    }
 
   private def readStationFromXML(stationxml : scala.xml.Node) : GLOSStation = {
     val name = (stationxml \ "name").text.trim
@@ -157,80 +191,4 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val xml = scala.xml.XML.loadString(fileString)
     List(xml)
   }
-  
-//  private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-//    // read in csv file and parse each line into a station to read in
-//    val file = scala.io.Source.fromFile(temp_file)
-//    val stationCollection = for {
-//      line <- file.getLines
-//      if(!line.contains("row_id"))
-//      val station = readStationFromLine(line)
-//      val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, "BUOY", SourceId.GLOS, station.lat, station.lon)
-//      val sourceObservedProperties = getObservedProperties
-//      val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
-//      val sensors = stationUpdater.getSourceSensors(dbStation, databaseObservedProperties)
-//      if (sensors.nonEmpty)
-//    } yield {
-//      (dbStation, sensors)
-//    }
-//    if (stationCollection.nonEmpty) {
-//      stationCollection.toList
-//    }
-//    else {
-//      logger.info("Empty station collection!")
-//      Nil
-//    }
-//  }
-//  
-//  private def getObservedProperties() : List[ObservedProperty] = {
-//    List(new ObservedProperty("wdir1",SourceId.GLOS,"deg",98),
-//        new ObservedProperty("wspd1",SourceId.GLOS,"m/s", 99),
-//        new ObservedProperty("gust1",SourceId.GLOS,"m/s", 100),
-//        new ObservedProperty("atmp1",SourceId.GLOS,"C", 101),
-//        new ObservedProperty("wtmp1",SourceId.GLOS,"C", 102),
-//        new ObservedProperty("rh1",SourceId.GLOS,"%", 103),
-//        new ObservedProperty("dewpt1",SourceId.GLOS,"C", 104),
-//        new ObservedProperty("barol",SourceId.GLOS,"atm", 105),
-//        new ObservedProperty("wvhgt",SourceId.GLOS,"m", 106),
-//        new ObservedProperty("dompd",SourceId.GLOS,"s", 107),
-//        new ObservedProperty("mwdir",SourceId.GLOS,"deg", 108),
-//        new ObservedProperty("dp001",SourceId.GLOS,"m", 109),
-//        new ObservedProperty("tp001",SourceId.GLOS,"C", 110),
-//        new ObservedProperty("dp002",SourceId.GLOS,"m", 109),
-//        new ObservedProperty("tp002",SourceId.GLOS,"C", 110),
-//        new ObservedProperty("dp003",SourceId.GLOS,"m", 109),
-//        new ObservedProperty("tp003",SourceId.GLOS,"C", 110))
-//  }
-//  
-//  private def readStationFromLine(line: String) : GlosStation = {
-//    val brokenLine = line.split("\",\"").map(_.replace("\"", ""))
-//    logger.info("line:\n" + line)
-//    var stationId = brokenLine(6)
-//    if (stationId == """\N""") {
-//      val stationBreak = brokenLine(16).split("=")
-//      logger.info("Breaking url:")
-//      for(break <- stationBreak) {
-//        logger.info(break)
-//      }
-//      if (stationBreak.size > 1)
-//        stationId = stationBreak(1)
-//      else {
-//        stationId = brokenLine(28)
-//        if (stationId == """\N""")
-//          stationId = brokenLine(14)
-//      }
-//    }
-//    var lat = 0d
-//    var lon = 0d
-//    if (brokenLine(7) == """\N""")
-//      lon = -9999d
-//    else
-//      lon = brokenLine(7).toDouble
-//    if (brokenLine(8) == """\N""")
-//      lat = -9999d
-//    else
-//      lat = brokenLine(8).toDouble
-//    logger.info("Populating station: " + brokenLine(14) + ", " + stationId + ", " + brokenLine(15) + ", " + lat + ", " + lon)
-//    new GlosStation(brokenLine(14), stationId, brokenLine(15), lat, lon)
-//  }
 }
