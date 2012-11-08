@@ -1,5 +1,7 @@
 package com.axiomalaska.sos.source.stationupdater
 
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
@@ -8,6 +10,7 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
@@ -146,15 +149,37 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     }
   }
   
-  private def getSourceObservedProperties() = List(
-    stationUpdater.createObservedProperty("Temperature", source,
-       Units.FAHRENHEIT, SensorPhenomenonIds.AIR_TEMPERATURE),
-    stationUpdater.createObservedProperty("Dew Point", source,
-      Units.FAHRENHEIT, SensorPhenomenonIds.DEW_POINT),
-    stationUpdater.createObservedProperty("Wind Speed", source, 
-        Units.MILES_PER_HOUR, SensorPhenomenonIds.WIND_SPEED),
-    stationUpdater.createObservedProperty("Wind Direction",
-      source, Units.DEGREES, SensorPhenomenonIds.WIND_DIRECTION),
-    stationUpdater.createObservedProperty("Pressure",
-      source, Units.INCHES_OF_MERCURY, SensorPhenomenonIds.BAROMETRIC_PRESSURE))
+//  private def getSourceObservedProperties() = List(
+//    stationUpdater.createObservedProperty("Temperature", source,
+//       Units.FAHRENHEIT, SensorPhenomenonIds.AIR_TEMPERATURE),
+//    stationUpdater.createObservedProperty("Dew Point", source,
+//      Units.FAHRENHEIT, SensorPhenomenonIds.DEW_POINT),
+//    stationUpdater.createObservedProperty("Wind Speed", source, 
+//        Units.MILES_PER_HOUR, SensorPhenomenonIds.WIND_SPEED),
+//    stationUpdater.createObservedProperty("Wind Direction",
+//      source, Units.DEGREES, SensorPhenomenonIds.WIND_DIRECTION),
+//    stationUpdater.createObservedProperty("Pressure",
+//      source, Units.INCHES_OF_MERCURY, SensorPhenomenonIds.BAROMETRIC_PRESSURE))
+//      
+    private def getSourceObservedProperties() = List(
+      getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, "Temperature"),
+      getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, "Dew Point"),
+      getObservedProperty(Phenomena.instance.WIND_SPEED, "Wind Speed"),
+      getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, "Wind Direction"),
+      getObservedProperty(Phenomena.instance.AIR_PRESSURE, "Pressure"))
+    
+    private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : ObservedProperty = {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, phenomenon.getUnit.getSymbol, phenomenon.getId, phenomenon.getName))
+      }
+      stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id)
+    }
+    
+    private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+      dbPhenom.units = units
+      dbPhenom.description = description
+      dbPhenom.name = name
+      stationQuery.createPhenomenon(dbPhenom)
+    }
 }

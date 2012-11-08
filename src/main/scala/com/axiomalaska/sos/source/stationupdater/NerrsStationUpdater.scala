@@ -5,13 +5,15 @@ import com.axiomalaska.sos.source.BoundingBox
 import org.apache.log4j.Logger
 import org.w3c.dom.ls.DOMImplementationLS
 import webservices2.RequestsServiceLocator
-import scala.xml.NodeSeq
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
@@ -74,136 +76,86 @@ class NerrsStationUpdater(
   }
   
   private def getSourceObservedProperties(nerrsStation: NerrsStation) =
-    nerrsStation.paramsReported.flatMap(getObservedProperty)
+    nerrsStation.paramsReported.flatMap(matchObservedProperty)
 
   //WINDIR, , Sal, NO3F, TotSoRad, CLOUD, RH, TotPAR, ChlFluor, NO23F, TIDE, 
   //WINSPD, WAVHGT, Ke_N, PHOSH, NO2F, ATemp, CHLA_N, MaxWSpdT, UREA, Level, 
   //NH4F, TotPrcp, PRECIP, SpCond, MaxWSpd, PO4F, DO_mgl, pH, DO_pct, CumPrcp, 
   //Turb, BP, Depth, WSpd, SDWDir, Wdir, Temp
-  private def getObservedProperty(param: String): Option[ObservedProperty] = {
+  private def matchObservedProperty(param: String): Option[ObservedProperty] = {
     param match {
       case "ATemp" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.CELSIUS, SensorPhenomenonIds.AIR_TEMPERATURE_AVERAGE))
+            getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_AVERAGE, param)
       }
       case "RH" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.PERCENT, SensorPhenomenonIds.RELATIVE_HUMIDITY_AVERAGE))
+            getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_AVERAGE, param)
       }
       case "BP" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLI_BAR, SensorPhenomenonIds.BAROMETRIC_PRESSURE))
+            getObservedProperty(Phenomena.instance.AIR_PRESSURE, param)
       }
       case "WSpd" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.METER_PER_SECONDS, SensorPhenomenonIds.WIND_SPEED))
+            getObservedProperty(Phenomena.instance.WIND_SPEED, param)
       }
       case "Wdir" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.DEGREES, SensorPhenomenonIds.WIND_DIRECTION))
+            getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, param)
       }
       case "MaxWSpd" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.METER_PER_SECONDS, SensorPhenomenonIds.WIND_GUST))
+            getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, param)
       }
       case "TotPrcp" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIMETERS, SensorPhenomenonIds.PRECIPITATION_ACCUMULATION))
+            getObservedProperty(Phenomena.instance.PRECIPITATION_ACCUMULATED, param)
       }
       case "AvgVolt" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.VOLTAGE, SensorPhenomenonIds.BATTERY))
+            getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE, param)
       }
       case "CumPrcp" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIMETERS, SensorPhenomenonIds.PRECIPITATION_INCREMENT))
+            getObservedProperty(Phenomena.instance.PRECIPITATION_INCREMENT, param)
       }
       case "TotSoRad" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.WATT_PER_METER_SQUARED, SensorPhenomenonIds.SOLAR_RADIATION))
+            getObservedProperty(Phenomena.instance.SOLAR_RADIATION, param)
       }
       case "Temp" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.CELSIUS, SensorPhenomenonIds.SEA_WATER_TEMPERATURE))
+            getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, param)
       }
       case "Sal" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.PARTS_PER_TRILLION, SensorPhenomenonIds.SALINITY))
+            getObservedProperty(Phenomena.instance.SALINITY, param)
       }
       case "DO_pct" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.PERCENT, SensorPhenomenonIds.DISSOLVED_OXYGEN_SATURATION))
+            getObservedProperty(Phenomena.instance.DISSOLVED_OXYGEN_SATURATION, param)
       }
       case "DO_mgl" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, SensorPhenomenonIds.DISSOLVED_OXYGEN))
+            getObservedProperty(Phenomena.instance.DISSOLVED_OXYGEN, param)
       }
       case "pH" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.STD_UNITS, SensorPhenomenonIds.PH_WATER))
+            getObservedProperty(Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE, param)
       }
       case "Turb" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.NEPHELOMETRIC_TURBIDITY_UNITS, 
-            SensorPhenomenonIds.WATER_TURBIDITY))
+            getObservedProperty(Phenomena.instance.TURBIDITY, param)
       }
       case "ChlFluor" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MICROGRAMS_PER_LITER, 
-            SensorPhenomenonIds.CHLOROPHYLL_FLUORESCENCE))
+            getObservedProperty(Phenomena.instance.CHLOROPHYLL_FLOURESCENCE, param)
       }
       case "PO4F" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, 
-            SensorPhenomenonIds.ORTHOPHOSPHATE))
+            getObservedProperty(Phenomena.instance.PHOSPHATE, param)
       }
       case "NH4F" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, 
-            SensorPhenomenonIds.AMMONIUM))
+            getObservedProperty(Phenomena.instance.AMMONIUM, param)
       }
       case "NO2F" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, 
-            SensorPhenomenonIds.NITRITE))
+            getObservedProperty(Phenomena.instance.NITRITE, param)
       }
       case "NO3F" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, 
-            SensorPhenomenonIds.NITRATE))
+            getObservedProperty(Phenomena.instance.NITRATE, param)
       }
       case "NO23F" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MILLIGRAMS_PER_LITER, 
-            SensorPhenomenonIds.NITRITE_PLUS_NITRATE))
+            getObservedProperty(Phenomena.instance.NITRITE_PLUS_NITRATE, param)
       }
       case "CHLA_N" => {
         new Some[ObservedProperty](
           stationUpdater.createObservedProperty(param,
             source, Units.MICROGRAMS_PER_LITER, 
             SensorPhenomenonIds.CHLOROPHYLL))
+            getObservedProperty(Phenomena.instance.CHLOROPHYLL, param)
       }
       case "Depth" => None
       case "Level" => None
@@ -228,6 +180,27 @@ class NerrsStationUpdater(
         None
       }
     }
+  }
+  
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
+    }
+    None
+  }
+
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    dbPhenom.units = units
+    dbPhenom.description = description
+    dbPhenom.name = name
+    stationQuery.createPhenomenon(dbPhenom)
   }
   
   private def withInBoundingBox(station: NerrsStation): Boolean = {

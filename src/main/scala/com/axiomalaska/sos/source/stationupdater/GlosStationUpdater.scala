@@ -13,6 +13,7 @@ import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpSender
 import org.apache.log4j.Logger
@@ -169,6 +170,27 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       // create a phenomena
       Phenomena.instance.createHomelessParameter(ltag, units)
     }
+    
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
+    }
+    None
+  }
+
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    dbPhenom.units = units
+    dbPhenom.description = description
+    dbPhenom.name = name
+    stationQuery.createPhenomenon(dbPhenom)
+  }
 
   private def readStationFromXML(stationxml : scala.xml.Node) : GLOSStation = {
     val name = (stationxml \ "name").text.trim

@@ -12,8 +12,10 @@ import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
 
 import net.opengis.sos.x10.ObservationOfferingType
@@ -129,139 +131,76 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
     val namedQuantityTypes = getNamedQuantityTypes(observationOfferingType, station)
 
     val sourceObservedProperty = namedQuantityTypes.flatMap(namedQuantity => 
-      getObservedProperty(namedQuantity, source))
+      matchObservedProperty(namedQuantity, source))
 
     return sourceObservedProperty
   }
   
-  private def getObservedProperty(namedQuantity: NamedQuantityType, 
+  private def matchObservedProperty(namedQuantity: NamedQuantityType, 
       source: Source): Option[ObservedProperty] = {
     namedQuantity.getName match {
       case "WaterTemperature" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SEA_WATER_TEMPERATURE))
+        getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, namedQuantity.getName)
       }
       case "SignificantWaveHeight" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT, namedQuantity.getName)
       }
       case "DominantWavePeriod" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.DOMINANT_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.DOMINANT_WAVE_PERIOD, namedQuantity.getName)
       }
       case "AverageWavePeriod" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.AVERAGE_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_MEAN_PERIOD, namedQuantity.getName)
       }
       case "SwellHeight" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SWELL_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT, namedQuantity.getName)
       }
       case "SwellPeriod" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SWELL_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD, namedQuantity.getName)
       }
       case "WindWaveHeight" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_WAVE_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT, namedQuantity.getName)
       }
       case "WindWavePeriod" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD, namedQuantity.getName)
       }
       case "SwellWaveDirection" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SWELL_WAVE_DIRECTION))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION, namedQuantity.getName)
       }
       case "WindWaveDirection" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_WAVE_DIRECTION))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_TO_DIRECTION, namedQuantity.getName)
       }
       case "WindSpeed" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_SPEED))
+        getObservedProperty(Phenomena.instance.WIND_SPEED, namedQuantity.getName)
       }
       case "WindDirection" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, convertUnits(namedQuantity.getUom), 
-            SensorPhenomenonIds.WIND_DIRECTION))
+        getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, namedQuantity.getName)
       }
       case "WindVerticalVelocity" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_VERTICAL_VELOCITY))
+        getObservedProperty(Phenomena.instance.WIND_VERTICAL_VELOCITY, namedQuantity.getName)
       }
       case "WindGust" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WIND_GUST))
+        getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, namedQuantity.getName)
       }
       case "WaterLevel" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.WATER_LEVEL))
+        getObservedProperty(Phenomena.instance.createHomelessParameter("water_level", namedQuantity.getUom), namedQuantity.getName)
       }
       case "Salinity" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SALINITY))
+        getObservedProperty(Phenomena.instance.SALINITY, namedQuantity.getName)
       }
       case "Depth" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.SEA_FLOOR_DEPTH_BELOW_SEA_SURFACE))
+        getObservedProperty(Phenomena.instance.SEA_FLOOR_DEPTH_BELOW_SEA_SURFACE, namedQuantity.getName)
       }
       case "CurrentDirection" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.CURRENT_DIRECTION))
+        getObservedProperty(Phenomena.instance.CURRENT_DIRECTION, namedQuantity.getName)
       }
       case "CurrentSpeed" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.CURRENT_SPEED))
+        getObservedProperty(Phenomena.instance.CURRENT_SPEED, namedQuantity.getName)
       }
       case "AirTemperature" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.AIR_TEMPERATURE)) 
+        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, namedQuantity.getName)
       }
       case "BarometricPressure" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(namedQuantity.getName,
-            source, namedQuantity.getUom, 
-            SensorPhenomenonIds.BAROMETRIC_PRESSURE)) 
+        getObservedProperty(Phenomena.instance.AIR_PRESSURE, namedQuantity.getName)
       }
       case "SamplingRate" => None
       case "WaveDuration" => None
@@ -272,6 +211,27 @@ class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
         return None
       }
     }
+  }
+  
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
+    }
+    None
+}
+
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    dbPhenom.units = units
+    dbPhenom.description = description
+    dbPhenom.name = name
+    stationQuery.createPhenomenon(dbPhenom)
   }
   
   private def convertUnits(originalUnits:String)=

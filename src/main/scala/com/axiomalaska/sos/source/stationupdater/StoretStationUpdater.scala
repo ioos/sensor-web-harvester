@@ -29,7 +29,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
-  private val stationBlockLimit = 250
+  // value that determines the maximum number of stations that will be made in a single getStation request
+  // the harvester will cut up the bbox until each segment has a number of stations at or under this value
+  private val stationBlockLimit = 300
   
   private val resultURL = "http://ofmpub.epa.gov/STORETwebservices/StoretResultService/"
   private val stationURL = "http://ofmpub.epa.gov/STORETwebservices/StationService/"
@@ -111,10 +113,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                 </soap:Body>
               </soap:Envelope>
     val response = httpSender.sendPostMessage(resultURL, xml.toString)
-    //    use a test file
-//    val file = scala.io.Source.fromFile("ex_getResultsResponse.xml");
-//    val response = file.mkString
-//    file.close()
     if (response != null) {
       logger.debug("processing properties for " + stationId + " - " + orgId)
       val responseFix = fixResponseString(response.toString)
@@ -133,7 +131,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
             charNameList = name :: charNameList
             (name, node)
           }
-          results.toList.flatMap(property => getObservedProperty(property._1, property._2))
+          results.toList.flatMap(property => readObservedProperty(property._1, property._2))
         }
         case None => {
             Nil
@@ -144,59 +142,15 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       Nil
   }
   
-  private def getObservedProperty(name: String, result: scala.xml.NodeSeq) : Option[ObservedProperty] = {
-    // condition on name as some of the names are stupidly long and difficult to parse
+  private def readObservedProperty(name: String, result: scala.xml.NodeSeq) : Option[ObservedProperty] = {
+    // condition on name as some of the names are stupidly long and difficult to parse (human readable)
     // iterate through phenomena list to see if this exists in there
     var tag = name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
     // add special cases here
-    tag = specialCaseTags(tag)
     var units = (result \ "ResultMeasure" \ "MeasureUnitCode").text
     units = if (units.nonEmpty) units.trim else "None"
     units = specialCaseUnits(units)
-    val phenom = findPhenomenon(tag, units)
-    try {
-      var lPhenom = new LocalPhenomenon(new DatabasePhenomenon(phenom.getId))
-      if (lPhenom.databasePhenomenon.id < 0) {
-        // create the phenomenon
-        logger.info("Inserting phenomenon " + lPhenom.getId + " into database")
-        val unitString = if (phenom.getUnit != null && phenom.getUnit.getSymbol != null && !phenom.getUnit.getSymbol.equalsIgnoreCase("")) phenom.getUnit.getSymbol else units
-        lPhenom = new LocalPhenomenon(insertPhenomenon(lPhenom.databasePhenomenon, unitString, "", lPhenom.getName))
-      }
-      return new Some[ObservedProperty](
-        stationUpdater.createObservedProperty(name, source, lPhenom.databasePhenomenon.units, lPhenom.databasePhenomenon.id))
-    } catch {
-      case ex: Exception => {
-//          try {
-//            var nPhenom: DatabasePhenomenon = new DatabasePhenomenon(phenom.getId)
-//            if (phenom != null && phenom.getUnit != null && phenom.getUnit.getSymbol != null && !phenom.getUnit.getSymbol.equalsIgnoreCase("")) {
-//              nPhenom.units = phenom.getUnit.getSymbol
-//            } else {
-//              nPhenom.units = units
-//            }
-//            nPhenom.name = phenom.getName
-//            logger.info("Will create phenom - " + nPhenom.tag)
-//            return new Some[ObservedProperty](
-//              stationUpdater.createObservedProperty(name, source, nPhenom.units, stationQuery.createPhenomenon(nPhenom).id))
-//          } catch {
-//            case ex: Exception =>{
-//                logger.info("Unable to create observed property: " + name)
-//                logger.warn("Exception in getObservedProperty -\n" + ex.toString + ":\n" + ex.getStackTraceString)
-//                exit(-1)
-//                None
-//            }
-//          }
-          logger.info("Unable to create observed property: " + name)
-          logger.warn("Exception in getObservedProperty -\n" + ex.toString + ":\n" + ex.getStackTraceString)
-          None
-      }
-    }
-  }
-  
-  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
-    stationQuery.createPhenomenon(dbPhenom)
+    getObservedProperty(matchPhenomenaToName(tag, units), name)
   }
   
   private def specialCaseTags(tag : String) : String = {
@@ -210,41 +164,70 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
   }
   
-  private def findPhenomenon(name: String, units: String) : Phenomenon = {
+  private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
+    
     if (lname contains "ammonium") {
-      return Phenomena.instance.AMMONIUM
-    } else if (lname.contains("chlorophyll") && lname.contains("fluorescence")) {
-      return Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
-    }  else if (lname contains "nitrite") {
+      Phenomena.instance.AMMONIUM
+    } else if (lname.contains("chlorophyll")) {
+        if (lname.contains("fluorescence")) {
+          Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
+        } else {
+          Phenomena.instance.CHLOROPHYLL
+        }
+    } else if (lname contains "nitrite") {
       if (lname.contains("+")) {
-        return Phenomena.instance.NITRITE_PLUS_NITRATE
+        Phenomena.instance.NITRITE_PLUS_NITRATE
+      } else {
+        // else it is prob just nitrite
+        Phenomena.instance.NITRITE
       }
-      // else it is prob just nitrite
-      return Phenomena.instance.NITRITE
     } else if (lname contains "nitrate") {
-      return Phenomena.instance.NITRATE
+      Phenomena.instance.NITRATE
     } else if (lname contains "water") {
       if (lname contains "temperature") {
-        return Phenomena.instance.SEA_WATER_TEMPERATURE
+        Phenomena.instance.SEA_WATER_TEMPERATURE
+      } else {
+        // prob water speed
+        Phenomena.instance.SEA_WATER_SPEED
       }
     } else if (lname contains "wind") {
       if (lname contains "direction") {
-        return Phenomena.instance.WIND_FROM_DIRECTION
+        Phenomena.instance.WIND_FROM_DIRECTION
+      } else {
+        Phenomena.instance.WIND_SPEED_OF_GUST
       }
-    } else if (lname contains "gust") {
-      return Phenomena.instance.WIND_SPEED_OF_GUST
     } else if (lname contains "dew") {
-      return Phenomena.instance.DEW_POINT_TEMPERATURE
+      Phenomena.instance.DEW_POINT_TEMPERATURE
+    } else if (lname contains "ph") {
+      Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
+    } else if (lname contains "alkalinity") {
+      Phenomena.instance.ALKALINITY
+    } else {
+      // create a homeless parameter
+      Phenomena.instance.createHomelessParameter(lname, units)
     }
-    // create a homeless parameter
-    logger.info("Creating a homeless parameter for " + name + " - " + units)
-//    stationQuery.createPhenomenon(new DatabasePhenomenon(lname))
-    val phenomena = Phenomena.instance.createHomelessParameter(lname, units)
-    if (phenomena == null) {
-      logger.error("Null phenomena instance created with units - " + units)
+  }
+  
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
     }
-    return phenomena
+    None
+  }
+  
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    dbPhenom.units = units
+    dbPhenom.description = description
+    dbPhenom.name = name
+    stationQuery.createPhenomenon(dbPhenom)
   }
   
   private def specialCaseUnits(units : String) : String = {
@@ -271,10 +254,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
                       </soap:Body>
                      </soap:Envelope>
    val response = httpSender.sendPostMessage(stationURL, xmlRequest.toString())
-   // test file
-//   val file = scala.io.Source.fromFile("ex_getStationsForMapResponse.xml")
-//   val response = file.mkString
-//   file.close()
    if (response != null) {
      val responseFix = fixResponseString(response.toString)
      loadXMLFromString(responseFix)
@@ -297,7 +276,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
               </soap:Envelope>
     // send xml requesting the station count
     val response = httpSender.sendPostMessage(stationURL, xml.toString())
-//    val response = "<count>20</count>"
     if (response != null ) {
       // can we treat response as xml?
       val responseFix = fixResponseString(response.toString)
@@ -307,7 +285,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
             val stationCount = responseXML.text.trim
             logger.info(stationCount + " stations in bbox")
             if (stationCount.toDouble < stationBlockLimit) {
-      //        logger.debug("prepending bbox with station count: " + stationCount)
               return bbox :: list
             }
             else
