@@ -92,10 +92,12 @@ class StationUpdateTool(private val stationQuery:StationQuery,
     sourceObservedProperies: List[ObservedProperty]): List[ObservedProperty] = {
 
     val observedProperties = for(observedProperty <- sourceObservedProperies) yield {
-      stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source) match {
+      stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
+          observedProperty.phenomenon_id, source) match {
         case Some(databaseObservedProperty) => {
           stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
-          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source).get
+          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
+              observedProperty.phenomenon_id, source).get
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)

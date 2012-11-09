@@ -56,7 +56,8 @@ trait StationQuery{
     sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
   def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation)
   def associateSensorToStation(station: DatabaseStation, sensor: DatabaseSensor)
-  def getObservedProperty(foreignTag: String, depth:Double, source: Source): Option[ObservedProperty]
+  def getObservedProperty(foreignTag: String, depth:Double, phenomenon_id:Long, 
+      source: Source): Option[ObservedProperty]
   def updateObservedProperty(databaseObservedProperty: ObservedProperty,
     newObservedProperty: ObservedProperty)
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
@@ -116,17 +117,18 @@ private class StationQueryImp(url:String,
       update(StationDatabase.observedProperties)(s =>
         where(s.foreign_tag === databaseObservedProperty.foreign_tag and
             s.source_id === databaseObservedProperty.source_id and 
-            s.depth === databaseObservedProperty.depth)
-          set (s.foreign_units := newObservedProperty.foreign_units,
-            s.phenomenon_id := newObservedProperty.phenomenon_id))
+            s.depth === databaseObservedProperty.depth and 
+            s.phenomenon_id === newObservedProperty.phenomenon_id)
+          set (s.foreign_units := newObservedProperty.foreign_units))
     }
   }
 
-  def getObservedProperty(foreignTag: String, depth:Double, source: Source): 
+  def getObservedProperty(foreignTag: String, depth:Double, phenomenon_id:Long, source: Source): 
 	  Option[ObservedProperty] ={
     using(session) {
       val observedProperties = source.observedProperties.where(observedProperty =>
-        observedProperty.foreign_tag === foreignTag and observedProperty.depth === depth)
+        observedProperty.foreign_tag === foreignTag and observedProperty.depth === depth and 
+        observedProperty.phenomenon_id === phenomenon_id)
 
       return observedProperties.headOption
     }

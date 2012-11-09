@@ -25,10 +25,10 @@ import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import org.apache.log4j.Logger
 import com.axiomalaska.phenomena.Phenomenon
 
-class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery, 
+class NdbcSosObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger()) 
 	extends SosObservationRetriever(stationQuery, logger) {
   
-  protected val serviceUrl = "http://opendap.co-ops.nos.noaa.gov/ioos-dif-sos/SOS"
+  protected val serviceUrl = "http://sdf.ndbc.noaa.gov/sos/server.php"
   
 }

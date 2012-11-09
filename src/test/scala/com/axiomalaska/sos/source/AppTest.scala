@@ -38,6 +38,7 @@ import org.apache.log4j.Logger
 import org.apache.log4j.BasicConfigurator
 import com.axiomalaska.sos.ObservationSubmitter
 import com.axiomalaska.sos.data.PublisherInfo
+import com.axiomalaska.sos.source.stationupdater.NdbcSosStationUpdater
 
 @Test
 class AppTest {
@@ -78,7 +79,7 @@ class AppTest {
 //  def updateSos() {
 //    val factory = new ObservationUpdaterFactory()
 //    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
 //
 //    val publisherInfo = new PublisherInfoImp()
 //
@@ -88,8 +89,8 @@ class AppTest {
 //    publisherInfo.setWebAddress("")
 //
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildNerrsObservationUpdater(
-//        "http://192.168.8.15:8080/sos/sos", stationQuery, publisherInfo)
+//      val observationUpdater = factory.buildNdbcSosObservationUpdater(
+//        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo)
 //
 //      observationUpdater.update()
 //    })
@@ -169,10 +170,10 @@ class AppTest {
 //  @Test
 //  def updateStationsInDatabase(){
 //    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new HadsStationUpdater(stationQuery, johnmarksBoundingBox)
+//      val stationUpdater = new NdbcSosStationUpdater(stationQuery, worldBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }

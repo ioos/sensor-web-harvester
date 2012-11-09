@@ -12,6 +12,7 @@ import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRet
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.observationretriever.NerrsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.NdbcSosObservationRetriever
 
 class ObservationUpdaterFactory {
 
@@ -25,7 +26,8 @@ class ObservationUpdaterFactory {
       buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
-      buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+      buildNdbcSosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
+//      buildNdbcFlatFileObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
       buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger),
@@ -102,13 +104,30 @@ class ObservationUpdaterFactory {
   /**
    * Build a NDBC ObservationUpdater
    */
-  def buildNdbcObservationUpdater(sosUrl: String, 
+  def buildNdbcFlatFileObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, publisherInfo:PublisherInfo, 
       logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
     val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC, logger)
     val observationRetriever = new NdbcObservationRetriever(stationQuery, logger)
 
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    val observationUpdater = new ObservationUpdater(sosUrl,
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
+    
+    return observationUpdater
+  }
+  
+  /**
+   * Build a NDBC SOS ObservationUpdater
+   */
+  def buildNdbcSosObservationUpdater(sosUrl: String, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
+
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC, logger)
+    val observationRetriever = new NdbcSosObservationRetriever(stationQuery, logger)
+                                   
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, publisherInfo, retrieverAdapter)
