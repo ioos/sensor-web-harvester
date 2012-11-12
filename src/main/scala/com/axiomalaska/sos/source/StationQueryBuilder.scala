@@ -111,19 +111,21 @@ private class StationQueryImp(url:String,
   }
   
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty = {
+    val obsProp = if (observedProperty.foreign_units != null) observedProperty else new ObservedProperty(observedProperty.foreign_tag, observedProperty.source_id, "none", observedProperty.phenomenon_id, observedProperty.depth)
     using(session) {
-      StationDatabase.observedProperties.insert(observedProperty)
+      StationDatabase.observedProperties.insert(obsProp)
     }
   }
   
   def updateObservedProperty(databaseObservedProperty: ObservedProperty,
     newObservedProperty: ObservedProperty) {
+    val foreign_units = if (newObservedProperty.foreign_units != null) newObservedProperty.foreign_units else "none"
     using(session) {
       update(StationDatabase.observedProperties)(s =>
         where(s.foreign_tag === databaseObservedProperty.foreign_tag and
             s.source_id === databaseObservedProperty.source_id and 
             s.depth === databaseObservedProperty.depth)
-          set (s.foreign_units := newObservedProperty.foreign_units,
+          set (s.foreign_units := foreign_units,
             s.phenomenon_id := newObservedProperty.phenomenon_id))
     }
   }

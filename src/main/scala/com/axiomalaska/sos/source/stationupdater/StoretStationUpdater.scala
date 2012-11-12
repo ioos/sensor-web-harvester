@@ -164,9 +164,15 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
   }
   
+  private def fixUnitsString(units: String) : String = {
+    // fix any unit string issues here (ex: cannot contain '#' and '/' should be replaced with a '.' and then add a '-1')
+    var retval = units.replaceAll("#", "parts")
+    retval
+  }
+  
   private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
-    
+    logger.info("Looking for phenom " + name + " " + units)
     if (lname contains "ammonium") {
       Phenomena.instance.AMMONIUM
     } else if (lname.contains("chlorophyll")) {
@@ -203,6 +209,12 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
     } else if (lname contains "alkalinity") {
       Phenomena.instance.ALKALINITY
+    } else if (units contains "#/100ml") {
+      Phenomena.instance.createPhenomenonWithPPmL(lname)
+    } else if (units.toLowerCase contains "ug/l") {
+      Phenomena.instance.createPhenomenonWithugL(lname)
+    } else if (units.toLowerCase contains "cfu") {
+      Phenomena.instance.createPhenonmenonWithCFU(lname)
     } else {
       // create a homeless parameter
       Phenomena.instance.createHomelessParameter(lname, units)

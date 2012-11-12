@@ -40,7 +40,14 @@ class SosSourcesManager(
       // load phenomenon
       val phenomena = stationQuery.getPhenomena
       for (phenom <- phenomena) {
-        Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), phenom.units)
+        val units = if (phenom.units.equalsIgnoreCase("none")) "" else phenom.units
+        if (units.equalsIgnoreCase("\u00B5g.L-1")) {
+          Phenomena.instance.createPhenomenonWithugL(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1))
+        } else if (units.contains("100mL")) {
+          Phenomena.instance.createPhenomenonWithPPmL(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1))
+        } else {
+          Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), units)
+        }
       }
         
       for (observationUpdater <- random.shuffle(observationUpdaters)) {

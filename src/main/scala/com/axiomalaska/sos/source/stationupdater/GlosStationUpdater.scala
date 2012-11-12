@@ -84,99 +84,76 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       val sensorid = (sensor \\ "id").text.trim
       val sensordesc = (sensor \\ "description").text.trim
       val dbsensor = new DatabaseSensor(sensorid, sensordesc.toString, station.id)
-      val phenomena = for {
-        phenomenon <- (sensor \ "Phenomena" \\ "Phenomenon")
-      } yield {
-        val phenomList = phenomenaList.filter(p => p.tag == (phenomenon \ "tag").text.trim)
-        if (phenomList.isEmpty)
-          (addPhenomenon(phenomenon), (phenomenon \ "foreigntag").text.trim)
-        else
-          (phenomList.head, (phenomenon \ "foreigntag").text.trim)
-      }
-      val observedProperties = getObservedProperties(phenomena.toList)
+      val observedProperties = getObservedProperties((sensor \ "Phenomena"))
       val dbObservedProperties = stationUpdater.updateObservedProperties(source, observedProperties)
     } yield {
-        val sensorPhenomena = phenomena.map{case(p,s) => p}
-        (dbsensor, sensorPhenomena.toList)
+      val phenomenaIGuess = observedProperties.map(p => p.phenomenon.toList)
+        (dbsensor, phenomenaIGuess.flatten)
     }
     val phenomSensors = for {
-      phenomSensor <- (stationxml \ "Sensors" \ "Phenomenon")
+      phenomSensor <- (stationxml \ "Sensors" \\ "Phenomenon")
       val sensorid = (phenomSensor \ "foreigntag").text.trim
       val sensordesc = (phenomSensor \ "name").text.trim
       val dbsensor = new DatabaseSensor(sensorid, sensordesc, station.id)
-      val phenomena = {
-        val list = phenomenaList.filter(p => p.tag == (phenomSensor \ "tag").text.trim)
-        if (list.isEmpty)
-          List((addPhenomenon(phenomSensor), sensorid))
-        else
-          List((list.head, sensorid))
-      }
-      val observedProperties = getObservedProperties(phenomena)
+      val observedProperties = getObservedProperties(phenomSensor)
       val dbObservedProperties = stationUpdater.updateObservedProperties(source, observedProperties)
     } yield {
-      logger.info("looking at: " + (phenomSensor).text)
-      val sensorPhenomenon = phenomena.map{case(p,s) => p}
-      (dbsensor, sensorPhenomenon.toList)
+        val phenomenaSupposedly = observedProperties.map(p => p.phenomenon.toList)
+        (dbsensor, phenomenaSupposedly.flatten)
     }
     sensors.toList ::: phenomSensors.toList
   }
   
-  private def getObservedProperties(phenomena : List[(DatabasePhenomenon, String)]) : List[ObservedProperty] = {
-    val obproplist = for((phenomenon, foreigntag) <- phenomena) yield {
-      new ObservedProperty(foreigntag, SourceId.GLOS, "", phenomenon.id)
+  private def getObservedProperties(parentNode: scala.xml.NodeSeq) : List[ObservedProperty] = {
+    val phenomena = for {
+      phenomena <- (parentNode \\ "Phenomenon")
+    } yield {
+      getObservedProperty(findPhenomenon((phenomena \ "tag").text.trim, (phenomena \ "units").text.trim),
+                          (phenomena \ "tag").text.trim,
+                          (phenomena \ "description").text.trim,
+                          (phenomena \ "name").text.trim)
     }
-    obproplist.toList
+    phenomena.toList.filter(p => p.isDefined).map(p => p.get)
   }
   
-  private def addPhenomenon(phenomxml : scala.xml.Node) : DatabasePhenomenon = {
-    val tag = (phenomxml \ "tag").text.trim
-    val units = (phenomxml \ "units").text.trim
-    val name = (phenomxml \ "name").text.trim
-    val desc = (phenomxml \ "description").text.trim
-    var retval = new DatabasePhenomenon(tag)
-    retval = stationQuery.createPhenomenon(retval)
-    phenomenaList = stationQuery.getPhenomena
-    retval
-  }
-  
-    private def findPhenomenon(tag: String, units: String) : Phenomenon = {
-      val ltag = tag.toLowerCase
-      // check the tag to list of known phenomena
-      if (tag contains "wdir") {
-        return Phenomena.instance.WIND_FROM_DIRECTION
-      } else if (tag contains "wspd") {
-        return Phenomena.instance.WIND_SPEED
-      } else if (tag contains "gust") {
-        return Phenomena.instance.WIND_SPEED_OF_GUST
-      } else if (tag contains "atmp") {
-        return Phenomena.instance.AIR_TEMPERATURE
-      } else if (tag contains "wtmp") {
-        return Phenomena.instance.SEA_WATER_TEMPERATURE
-      } else if (tag contains "rh") {
-        return Phenomena.instance.RELATIVE_HUMIDITY
-      } else if (tag contains "dewpt") {
-        return Phenomena.instance.DEW_POINT_TEMPERATURE
-      } else if (tag contains "baro") {
-        return Phenomena.instance.AIR_PRESSURE
-      } else if (tag contains "wvhgt") {
-        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT
-      } else if (tag contains "dompd") {
-        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD
-      } else if (tag contains "mwdir") {
-        return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION
-      } else if (tag contains "tp") {
-        return Phenomena.instance.SEA_WATER_TEMPERATURE
-      }
-      // create a phenomena
-      Phenomena.instance.createHomelessParameter(ltag, units)
+  private def findPhenomenon(tag: String, units: String) : Phenomenon = {
+    val ltag = tag.toLowerCase
+    // check the tag to list of known phenomena
+    if (ltag contains "wdir") {
+      return Phenomena.instance.WIND_FROM_DIRECTION
+    } else if (ltag contains "wspd") {
+      return Phenomena.instance.WIND_SPEED
+    } else if (ltag contains "gust") {
+      return Phenomena.instance.WIND_SPEED_OF_GUST
+    } else if (ltag contains "atmp") {
+      return Phenomena.instance.AIR_TEMPERATURE
+    } else if (ltag contains "wtmp") {
+      return Phenomena.instance.SEA_WATER_TEMPERATURE
+    } else if (ltag contains "rh") {
+      return Phenomena.instance.RELATIVE_HUMIDITY
+    } else if (ltag contains "dewpt") {
+      return Phenomena.instance.DEW_POINT_TEMPERATURE
+    } else if (ltag contains "baro") {
+      return Phenomena.instance.AIR_PRESSURE
+    } else if (ltag contains "wvhgt") {
+      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT
+    } else if (ltag contains "dompd") {
+      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD
+    } else if (ltag contains "mwdir") {
+      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION
+    } else if (ltag contains "tp") {
+      return Phenomena.instance.SEA_WATER_TEMPERATURE
     }
+    // create a phenomena
+    Phenomena.instance.createHomelessParameter(ltag, units)
+  }
     
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String) : Option[ObservedProperty] = {
     try {
       var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
       var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
       if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, desc, name))
       }
       return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
     } catch {
