@@ -173,41 +173,31 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
     logger.info("Looking for phenom " + name + " " + units)
-    if (lname contains "ammonium") {
+    if (lname equals "ammonium") {
       Phenomena.instance.AMMONIUM
-    } else if (lname.contains("chlorophyll")) {
-        if (lname.contains("fluorescence")) {
-          Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
-        } else {
+    } else if (lname equals "chlorophyll") {
           Phenomena.instance.CHLOROPHYLL
-        }
-    } else if (lname contains "nitrite") {
-      if (lname.contains("+")) {
+    } else if (lname equals "chlorophyll_flourescence") {
+          Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
+    } else if (lname equals "nitrite+nitrate") {
         Phenomena.instance.NITRITE_PLUS_NITRATE
-      } else {
-        // else it is prob just nitrite
+    } else if (lname equals "nitrite") {
         Phenomena.instance.NITRITE
-      }
-    } else if (lname contains "nitrate") {
+    } else if (lname equals "nitrate") {
       Phenomena.instance.NITRATE
-    } else if (lname contains "water") {
-      if (lname contains "temperature") {
+    } else if (lname equals "temperature, water") {
         Phenomena.instance.SEA_WATER_TEMPERATURE
-      } else {
-        // prob water speed
+    } else if (lname equals "speed, water") {     // not sure if this is actually a variable name in storet
         Phenomena.instance.SEA_WATER_SPEED
-      }
-    } else if (lname contains "wind") {
-      if (lname contains "direction") {
+    } else if (lname equals "wind, direction") {  // not sure if this is actually a variable name in storet
         Phenomena.instance.WIND_FROM_DIRECTION
-      } else {
+    } else if (lname equals "wind, gust") {       // not sure if this is actually a variable name in storet
         Phenomena.instance.WIND_SPEED_OF_GUST
-      }
-    } else if (lname contains "dew") {
+    } else if (lname equals "dew") {
       Phenomena.instance.DEW_POINT_TEMPERATURE
-    } else if (lname contains "ph") {
+    } else if (lname equals "ph") {
       Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
-    } else if (lname contains "alkalinity") {
+    } else if (lname equals "alkalinity, total (total hydroxide+carbonate+bicarbonate)") {
       Phenomena.instance.ALKALINITY
     } else if (units contains "#/100ml") {
       Phenomena.instance.createPhenomenonWithPPmL(lname)

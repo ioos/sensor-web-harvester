@@ -77,14 +77,12 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
      // get list of observed values matching the phenomenon name, then iterate and add the values and dates for the observation (phenomenon)
       for (observationValue <- observationValuesCollection) {
         try {
-          logger.info("looking for obsValue: " + phenomenon.databasePhenomenon.name)
           val observationList = stationItems.flatMap(itm => matchObsTags(phenomenon.databasePhenomenon.name, itm.obsList))
-          logger.info("Have " + observationList.size + " observations for phenomenon")
           for (obs <- observationList; if !observationValue.containsDate(obs._1)) {
             observationValue.addValue(obs._2, obs._1)
           }
         } catch {
-          case ex: Exception => { logger.info(ex.toString + "\n\t" + ex.getStackTraceString) }
+          case ex: Exception => { logger.error(ex.toString + "\n\t" + ex.getStackTraceString) }
         }
       }
       
@@ -118,15 +116,9 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       }
       
       if (secondaryTagToSearch != "nothing") {
-        observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch) && p._1.toLowerCase.contains(secondaryTagToSearch)).map(p => logger.info(p._1))
         retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch) && p._1.toLowerCase.contains(secondaryTagToSearch)).flatMap(p => p._2)
       } else {
         retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch)).flatMap(p => p._2)
-      }
-      
-      if (retval.size > 0) {
-        logger.info("returning obsrevations for " + lphenomName + ": ")
-        retval.map(p => logger.info(p._1.getTime.toString + " - " + p._2.toString))
       }
       
       return retval

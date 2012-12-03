@@ -82,75 +82,89 @@ class NoaaNosCoOpsObservationRetriever(private val stationQuery:StationQuery,
   
   private def getSensorForeignId(phenomenon: Phenomenon):String = {
     val localPhenomenon = phenomenon.asInstanceOf[LocalPhenomenon]
-    
-    localPhenomenon.databasePhenomenon.id match{
-      case SensorPhenomenonIds.BAROMETRIC_PRESSURE =>{
-        "air_pressure"
+    logger.info(localPhenomenon.getName)
+    localPhenomenon.getName match {
+      case "water_level" => {
+          "water_surface_height_above_reference_datum"
       }
-      case SensorPhenomenonIds.AIR_TEMPERATURE =>{
-        "air_temperature"
+      case "Air Pressure" => {
+          "air_pressure"
       }
-      case SensorPhenomenonIds.SEA_WATER_TEMPERATURE =>{
-        "sea_water_temperature"
+      case "Air Temperature" => {
+          "air_temperature"
       }
-      case SensorPhenomenonIds.CURRENT_DIRECTION =>{
-        "currents"
-      }
-      case SensorPhenomenonIds.CURRENT_SPEED =>{
-        "currents"
-      }
-      case SensorPhenomenonIds.WATER_LEVEL_PREDICTIONS =>{
-        "sea_surface_height_amplitude_due_to_equilibrium_ocean_tide"
-      }
-      case SensorPhenomenonIds.WATER_LEVEL =>{
-        "water_surface_height_above_reference_datum"
-      }
-      case SensorPhenomenonIds.WIND_DIRECTION =>{
-        "winds"
-      }
-      case SensorPhenomenonIds.WIND_GUST =>{
-        "winds"
-      }
-      case SensorPhenomenonIds.WIND_SPEED =>{
-        "winds"
-      }
-      case SensorPhenomenonIds.WIND_GUST_DIRECTION =>{
-        "winds"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_DIRECTION =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_PERIOD =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_HEIGHT =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.SWELL_PERIOD =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.SWELL_HEIGHT =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.SWELL_WAVE_DIRECTION =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.DOMINANT_WAVE_DIRECTION =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.DOMINANT_WAVE_PERIOD =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.AVERAGE_WAVE_PERIOD =>{
-        "waves"
-      }
-      case SensorPhenomenonIds.SALINITY =>{
-        "Salinity"
+      case _ => {
+          localPhenomenon.getName
       }
     }
+//    localPhenomenon.databasePhenomenon.id match{
+//      case SensorPhenomenonIds.BAROMETRIC_PRESSURE =>{
+//        "air_pressure"
+//      }
+//      case SensorPhenomenonIds.AIR_TEMPERATURE =>{
+//        "air_temperature"
+//      }
+//      case SensorPhenomenonIds.SEA_WATER_TEMPERATURE =>{
+//        "sea_water_temperature"
+//      }
+//      case SensorPhenomenonIds.CURRENT_DIRECTION =>{
+//        "currents"
+//      }
+//      case SensorPhenomenonIds.CURRENT_SPEED =>{
+//        "currents"
+//      }
+//      case SensorPhenomenonIds.WATER_LEVEL_PREDICTIONS =>{
+//        "sea_surface_height_amplitude_due_to_equilibrium_ocean_tide"
+//      }
+//      case SensorPhenomenonIds.WATER_LEVEL =>{
+//        "water_surface_height_above_reference_datum"
+//      }
+//      case SensorPhenomenonIds.WIND_DIRECTION =>{
+//        "winds"
+//      }
+//      case SensorPhenomenonIds.WIND_GUST =>{
+//        "winds"
+//      }
+//      case SensorPhenomenonIds.WIND_SPEED =>{
+//        "winds"
+//      }
+//      case SensorPhenomenonIds.WIND_GUST_DIRECTION =>{
+//        "winds"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_DIRECTION =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_PERIOD =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_HEIGHT =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_PERIOD =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_HEIGHT =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_WAVE_DIRECTION =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.DOMINANT_WAVE_DIRECTION =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.DOMINANT_WAVE_PERIOD =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.AVERAGE_WAVE_PERIOD =>{
+//        "waves"
+//      }
+//      case SensorPhenomenonIds.SALINITY =>{
+//        "Salinity"
+//      }
+//    }
   }
   
   private def buildSensorObservationValues(
