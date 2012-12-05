@@ -1,11 +1,16 @@
 package com.axiomalaska.sos.source
 
+import com.axiomalaska.sos.data.SosStation
+import com.axiomalaska.sos.source.isowriter.ISOWriterAdapter
+import com.axiomalaska.sos.source.isowriter.NdbcIsoWriter
 import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
 import org.apache.log4j.Logger
 import scala.util.Random
 import java.util.Calendar
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
+
+import collection.JavaConversions._
 
 /**
  * This class manages updating the SOS with all the stations from the metadata database
@@ -36,6 +41,13 @@ class SosSourcesManager(
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, publisherInfo, sources.toLowerCase, logger)
+      
+        // stupidly hacky approach here only temporary
+//      val isoWriter = new NdbcIsoWriter(stationQuery, "./iso", logger)
+//      val isoAdapter = new ISOWriterAdapter(isoWriter)
+//      val stationRetv = new SourceStationRetriever(stationQuery, 4, logger)
+//      stationRetv.getStations.foreach(s => isoAdapter.writeISOFileForStation(s))
+      //////////////////////////////////////////////////////////////////////////////////
 
       // load phenomenon
       val phenomena = stationQuery.getPhenomena

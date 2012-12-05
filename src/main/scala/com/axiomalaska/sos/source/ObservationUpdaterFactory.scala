@@ -4,6 +4,8 @@ import org.apache.log4j.Logger
 import com.axiomalaska.sos.ObservationUpdater
 import com.axiomalaska.sos.source.observationretriever.RawsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRetriever
+import com.axiomalaska.sos.source.isowriter.ISOWriterAdapter
+import com.axiomalaska.sos.source.isowriter.NdbcIsoWriter
 import com.axiomalaska.sos.source.observationretriever.GlosObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NdbcObservationRetriever
@@ -152,8 +154,12 @@ class ObservationUpdaterFactory {
     addSourceNetworkToStations(stationRetriever, "network-ndbc", "ndbc", "ndbc network stations")
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    
+    val isoWriter = new NdbcIsoWriter(stationQuery, "./iso", logger)
+    val isoAdapter = new ISOWriterAdapter(isoWriter)
+    
     val observationUpdater = new ObservationUpdater(sosUrl,
-      logger, stationRetriever, publisherInfo, retrieverAdapter)
+      logger, stationRetriever, publisherInfo, retrieverAdapter, isoAdapter)
     
     return observationUpdater
   }
