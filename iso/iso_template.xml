@@ -93,23 +93,23 @@
 					  <gmd:phone>
 						<gmd:CI_Telephone>
 						  <gmd:voice>
-							<CharacterString xmlns="http://www.isotc211.org/2005/gco">(734) 332-6113</CharacterString>
+							<gco:CharacterString>(734) 332-6113</gco:CharacterString>
 						  </gmd:voice>
 						</gmd:CI_Telephone>
 					  </gmd:phone>
 					  <gmd:address>
 						<gmd:CI_Address>
 						  <gmd:deliveryPoint>
-							<CharacterString xmlns="http://www.isotc211.org/2005/gco">229 Nickels Arcade</CharacterString>
+							<gco:CharacterString>229 Nickels Arcade</gco:CharacterString>
 						  </gmd:deliveryPoint>
 						  <gmd:city>
-							<CharacterString xmlns="http://www.isotc211.org/2005/gco">Ann Arbor</CharacterString>
+							<gco:CharacterString>Ann Arbor</gco:CharacterString>
 						  </gmd:city>
 						  <gmd:administrativeArea>
-							<CharacterString xmlns="http://www.isotc211.org/2005/gco">Michigan</CharacterString>
+							<gco:CharacterString>Michigan</gco:CharacterString>
 						  </gmd:administrativeArea>
 						  <gmd:postalCode>
-							<CharacterString xmlns="http://www.isotc211.org/2005/gco">48104</CharacterString>
+							<gco:CharacterString>48104</gco:CharacterString>
 						  </gmd:postalCode>
 						  <gmd:electronicMailAddress>
 							<gco:CharacterString>dmac@glos.us</gco:CharacterString>
@@ -128,6 +128,9 @@
       <gmd:abstract>
         <gco:CharacterString></gco:CharacterString>
       </gmd:abstract>
+	  <gmd:descriptiveKeywords>
+        <gmd:MD_Keywords></gmd:MD_Keywords>
+      </gmd:descriptiveKeywords>
       <gmd:aggregationInfo>
         <gmd:MD_AggregateInformation>
           <gmd:aggregateDataSetIdentifier>
@@ -179,8 +182,8 @@
               <gmd:extent>
                 <gml:TimePeriod gml:id="d5489">
                   <gml:description>seconds</gml:description>
-                  <gml:beginPosition></gml:beginPosition>
-                  <gml:endPosition></gml:endPosition>
+                  <gml:beginPosition indeterminatePosition="now"/>
+                  <gml:endPosition indeterminatePosition="now"/>
                 </gml:TimePeriod>
               </gmd:extent>
             </gmd:EX_TemporalExtent>
@@ -200,4 +203,10 @@
       </gmd:extent>
     </gmd:MD_DataIdentification>
   </gmd:identificationInfo>
+  <gmd:contentInfo>
+    <gmi:MI_CoverageDescription>
+      <gmd:attributeDescription gco:nilReason="unknown" />
+      <gmd:contentType gco:nilReason="unknown" />
+	</gmi:MI_CoverageDescription>
+  </gmd:contentInfo>
 </gmi:MI_Metadata>

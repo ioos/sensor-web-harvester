@@ -11,9 +11,9 @@ import com.axiomalaska.sos.source.data.LocalStation
 
 class ISOWriterAdapter(private val writer: ISOWriter) extends ISOFileWriter {
 
-  override def writeISOFileForStation(station: SosStation, sosURL: String) = {
+  override def writeISOFileForStation(station: SosStation) = {
     station match {
-      case localStation: LocalStation => writer.writeISOFile(localStation, sosURL)
+      case localStation: LocalStation => writer.writeISOFile(localStation)
     }
   }
 }
