@@ -16,11 +16,9 @@ class MetadataDatabaseManager(
 	private val logger: Logger = Logger.getRootLogger()) {
 
   def update() {
-    logger.info("In update of observation retriever")
     val factory = new ObservationUpdaterFactory()
     val queryBuilder = new StationQueryBuilder(
       databaseUrl, databaseUser, databasePassword)
-    logger.info("Running update on individ updaters")
     queryBuilder.withStationQuery(stationQuery => {
       val stationUpdater = new AggregateStationUpdater(stationQuery, boundingBox, sources, logger)
       stationUpdater.update()

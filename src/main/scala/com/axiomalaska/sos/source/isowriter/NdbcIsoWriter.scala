@@ -16,12 +16,16 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     private val isoDirectory: String,
     private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoDirectory, logger) {
 
-  private val currentDate = Calendar.getInstance
   private val httpSender = new HttpSender()
   private val dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
   
   private val ndbcDSURL = "http://sdftest.ndbc.noaa.gov/sos/server.php?request=GetCapabilities&service=SOS&Sections=Contents"
   private val ndbcGetCapsFile = isoDirectory + "/ndbc_getcaps_section.xml"
+  private val ndbcServiceType = "National Data Buoy Center SOS"
+  private val ndbcOrgName = "National Data Buoy Center"
+  private val ndbcSOSUrl = "http://sdf.ndbc.noaa.gov/sos"
+  private val ndbcRole = "originator"
+  
   
   private var ndbcGetCaps: scala.xml.Elem = null
   
@@ -70,15 +74,38 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
       if (attrs.nonEmpty)
     } yield {
       val tn = for (obsprop <- obsoff \ "observedProperty") yield {
-        val vals = obsprop.attributes map { _.value } flatten
-        val tags = vals map { _.text.trim } filter { _.contains("/") }
-        tags foreach { logger info "have tag " + _ }
-        val names = tags map { s => s.substring(s.lastIndexOf("/") + 1) }
+        val vals = obsprop.attributes.map{ _.value }.flatten
+        val tags = vals.map{ _.text.trim }.filter{ _.contains("/") }
+        tags.foreach{ logger info  "have tag " + _  }
+        val names = tags.map{ s => s.substring(s.lastIndexOf("/") + 1) }
         tags zip names
       }
       tn.toList.flatten
     }
     retval.toList.flatten
+  }
+  
+  override def getStationAbstract(station: LocalStation) : String = {
+    val stid = station.getId.toLowerCase
+    val retval = for {
+      obsoff <- ndbcGetCaps \\ "ObservationOffering"
+      val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)
+      if (attrs.nonEmpty)
+    } yield {
+      (obsoff \ "description").text.trim
+    }
+    retval.filter{ _.length != 0 }.head
+  }
+  
+  override def checkToAddServiceIdent : Boolean = {
+    true
+  }
+  
+  /**
+   * @return string - service title, string - organisation name, string - role, string - service type, string - service url, string - service description
+   */
+  override def getServiceInformation(station: LocalStation) : (String, String, String, String, String, String) = {
+    (ndbcServiceType, ndbcOrgName, ndbcRole, ndbcServiceType, ndbcSOSUrl, ndbcServiceType)
   }
   
   //////////////////////////////////////////////////////////////////////////////

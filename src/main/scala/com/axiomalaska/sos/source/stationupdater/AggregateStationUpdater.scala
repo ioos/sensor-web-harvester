@@ -34,43 +34,56 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
 
   private def getStationUpdaters():List[StationUpdater] = {
     var retval: List[StationUpdater] = List()
-    if (sources.contains("all") || sources.contains("glos")) {
+    if (sources.contains("all")) {
+      logger info "adding all sources"
+      return List(new GlosStationUpdater(stationQuery, boundingBox, logger),
+              new StoretStationUpdater(stationQuery, boundingBox, logger),
+              new HadsStationUpdater(stationQuery, boundingBox, logger),
+              new NdbcStationUpdater(stationQuery, boundingBox, logger),
+              new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
+              new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
+              new RawsStationUpdater(stationQuery, boundingBox, logger),
+              new SnoTelStationUpdater(stationQuery, boundingBox, logger),
+              new NerrsStationUpdater(stationQuery, boundingBox, logger),
+              new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
+    }
+    if (sources.contains("glos")) {
       logger.info("adding GLOS updater")
       retval = new GlosStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("storet")) {
+    if (sources.contains("storet")) {
       logger.info("adding STORET updater")
       retval = new StoretStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("hads")) {
+    if (sources.contains("hads")) {
       logger.info("adding HADS updater")
       retval = new HadsStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("ndbc")) {
+    if (sources.contains("ndbc")) {
       logger.info("adding NDBC updater")
       retval = new NdbcStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("noaanoscoops")) {
+    if (sources.contains("noaanoscoops")) {
       logger.info("adding NOAA-NOSCOOPS updater")
       retval = new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("noaaweather")) {
+    if (sources.contains("noaaweather")) {
       logger.info("adding NOAA-WEATHER updater")
       retval = new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("raws")) {
+    if (sources.contains("raws")) {
       logger.info("adding RAWS updater")
       retval = new RawsStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("snotel")) {
+    if (sources.contains("snotel")) {
       logger.info("adding SNOTEL updater")
       retval = new SnoTelStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("nerrs")) {
+    if (sources.contains("nerrs")) {
       logger.info("adding NERRS updater")
       retval = new NerrsStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
-    if (sources.contains("all") || sources.contains("usgswater")) {
+    if (sources.contains("usgswater")) {
       logger.info("adding USGS-WATER updater")
       retval = new UsgsWaterStationUpdater(stationQuery, boundingBox, logger) :: retval
     }

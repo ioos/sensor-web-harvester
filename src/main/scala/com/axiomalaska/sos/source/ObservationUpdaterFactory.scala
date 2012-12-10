@@ -6,6 +6,7 @@ import com.axiomalaska.sos.source.observationretriever.RawsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRetriever
 import com.axiomalaska.sos.source.isowriter.ISOWriterAdapter
 import com.axiomalaska.sos.source.isowriter.NdbcIsoWriter
+import com.axiomalaska.sos.source.isowriter.StoretIsoWriter
 import com.axiomalaska.sos.source.observationretriever.GlosObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NdbcObservationRetriever
@@ -155,11 +156,8 @@ class ObservationUpdaterFactory {
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     
-    val isoWriter = new NdbcIsoWriter(stationQuery, "./iso", logger)
-    val isoAdapter = new ISOWriterAdapter(isoWriter)
-    
     val observationUpdater = new ObservationUpdater(sosUrl,
-      logger, stationRetriever, publisherInfo, retrieverAdapter, isoAdapter)
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
     
     return observationUpdater
   }
@@ -232,6 +230,7 @@ class ObservationUpdaterFactory {
     val observationRetriever = new StoretObservationRetriever(stationQuery, logger)
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
+    
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, publisherInfo, retrieverAdapter)
     return observationUpdater

@@ -39,13 +39,22 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
             val sensorTagAndNames = getSensorTagsAndNames(station)
             // write the to the xml
             // write the extents
-            var finishedXML = writeStationExtentsAndInfo(isoTemplate, stationName, stationID, stationAbstract, geoPosition, tempPosition)
+            var finishedXML = writeIdentificationInfoData(isoTemplate, stationName, stationID, stationAbstract, geoPosition, tempPosition)
+            // write the service identification
+            if (checkToAddServiceIdent) {
+              val (serviceTitle, orgName, role, serviceType, url, serviceDescription) = getServiceInformation(station)
+              finishedXML = writeIdentificationInfoService(finishedXML.head, serviceTitle, orgName, role, stationAbstract, serviceType, geoPosition, tempPosition, url, serviceTitle, serviceDescription)
+            }
             // write the keywords and contentinfo
-            finishedXML = writeKeywordsContent(finishedXML.head, sensorTagAndNames)
+            finishedXML = writeContentInfo(finishedXML.head, sensorTagAndNames)
             // write the xml to file
             val fileName = isoDirectory + "/" + station.getId + ".xml"
-            scala.xml.XML.save(fileName, finishedXML.head)
-            logger info "wrote iso file to " + fileName
+            try {
+              scala.xml.XML.save(fileName, finishedXML.head)
+              logger info "wrote iso file to " + fileName
+            } catch {
+              case ex: Exception => logger error ex.toString
+            }
         }
         case None => {
             // unable to load template
@@ -61,23 +70,23 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   protected def initialSetup(station: LocalStation) : Boolean = { true }
   
   protected def getStationName(station: LocalStation) : String = {
-    return station.getName
+    station.getName()
   }
   
   protected def getStationID(station: LocalStation) : String = {
-    return station.getId
+    station.getId()
   }
-  
+
   protected def getStationGeographicExtents(station: LocalStation) : (Double,Double) = {
-    return (station.getLocation.getLatitude, station.getLocation.getLongitude)
+    (station.getLocation.getLatitude(), station.getLocation.getLongitude())
   }
   
   protected def getStationTemporalExtents(station: LocalStation) : (Calendar,Calendar) = {
-    return (currentDate, currentDate)
+    (currentDate, currentDate)
   }
   
   protected def getStationAbstract(station: LocalStation) : String = {
-    return station.getDescription
+    station.getDescription()
   }
   
   protected def getSensorTagsAndNames(station: LocalStation) : List[(String,String)] = {
@@ -90,6 +99,14 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       slist.toList
     }
     retval.toList.flatten
+  }
+  
+  protected def checkToAddServiceIdent : Boolean = {
+    false
+  }
+  
+  protected def getServiceInformation(station: LocalStation) : (String, String, String, String, String, String) = {
+    ("", "", "", "", "", "")
   }
   //////////////////////////////////////////////////////////////////////////////
   
@@ -104,7 +121,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     }
   }
   
-  private def writeStationExtentsAndInfo(xml: scala.xml.Elem, stName: String, stId: String,
+  private def writeIdentificationInfoData(xml: scala.xml.Elem, stName: String, stId: String,
                                          stAbstract: String, geoPos: (Double,Double),
                                          temporalPos: (Calendar,Calendar)) : Seq[scala.xml.Node] = {
     new scala.xml.transform.RewriteRule {
@@ -124,7 +141,24 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     } transform xml
   }
   
-  private def writeKeywordsContent(xml: scala.xml.Node, tandN: List[(String,String)]) : Seq[scala.xml.Node] = {
+  private def writeIdentificationInfoService(xml: scala.xml.Node, serviceTitle: String, orgName: String,
+                                             role: String, sAbstract: String, serviceType: String,
+                                             geoPos: (Double,Double), temporalPos: (Calendar,Calendar),
+                                             url: String, srvName: String, description: String) : Seq[scala.xml.Node] = {
+    new scala.xml.transform.RewriteRule {
+      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
+        case srv: scala.xml.Elem if srv.label.toLowerCase.contains("serviceidentification") => {
+          var elem = addServiceCitation(srv, serviceTitle, orgName, role)
+          elem = addServiceExtent(elem, sAbstract, serviceType, geoPos, temporalPos)
+          addServiceOperations(elem, serviceTitle, url, srvName, description)
+        }
+        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
+        case other => other
+      }
+    } transform xml
+  }
+  
+  private def writeContentInfo(xml: scala.xml.Node, tandN: List[(String,String)]) : Seq[scala.xml.Node] = {
     new scala.xml.transform.RewriteRule {
       override def transform(n: scala.xml.Node): scala.xml.Node = n match {
         case kywrds: scala.xml.Elem if kywrds.label.toLowerCase.equals("md_keywords") => {
@@ -168,6 +202,124 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
   }
   
+  private def addServiceCitation(node: scala.xml.Elem, title: String, orgName: String, role: String) : scala.xml.Elem = {
+    val newChild = <gmd:citation>
+      <gmd:CI_Citation>
+        <gmd:title>
+          <gco:CharacterString>{title}</gco:CharacterString>
+        </gmd:title>
+        <gmd:date gco:nilReason="inapplicable" />
+        <gmd:citedResponsibleParty>
+          <gmd:CI_ResponsibleParty>
+            <gmd:individualName gco:nilReason="missing" />
+            <gmd:organisationName>
+              <gco:CharacterString>{orgName}</gco:CharacterString>
+            </gmd:organisationName>
+            <gmd:contactInfo gco:nilReason="missing" />
+            <gmd:role>
+              <gmd:CI_RoleCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue={role}>{role}</gmd:CI_RoleCode>
+            </gmd:role>
+          </gmd:CI_ResponsibleParty>
+        </gmd:citedResponsibleParty>
+      </gmd:CI_Citation>
+    </gmd:citation>;
+    
+    scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
+  }
+  
+
+  
+  private def addServiceExtent(node: scala.xml.Elem, abst: String, srvType: String,
+                               geoPos: (Double,Double), temporalPos: (Calendar,Calendar)) : scala.xml.Elem = {
+    val newChild = <gmd:abstract>
+          <gco:CharacterString>{abst}</gco:CharacterString>
+        </gmd:abstract>
+        <srv:serviceType>
+          <gco:LocalName>{srvType}</gco:LocalName>
+        </srv:serviceType>
+        <srv:extent>
+          <gmd:EX_Extent>
+            <gmd:geographicElement>
+              <gmd:EX_GeographicBoundingBox>
+                <gmd:extentTypeCode>
+                  <gco:Boolean>1</gco:Boolean>
+                </gmd:extentTypeCode>
+                <gmd:westBoundLongitude>
+                  <gco:Decimal>{geoPos._2}</gco:Decimal>
+                </gmd:westBoundLongitude>
+                <gmd:eastBoundLongitude>
+                  <gco:Decimal>{geoPos._2}</gco:Decimal>
+                </gmd:eastBoundLongitude>
+                <gmd:southBoundLatitude>
+                  <gco:Decimal>{geoPos._1}</gco:Decimal>
+                </gmd:southBoundLatitude>
+                <gmd:northBoundLatitude>
+                  <gco:Decimal>{geoPos._1}</gco:Decimal>
+                </gmd:northBoundLatitude>
+              </gmd:EX_GeographicBoundingBox>
+            </gmd:geographicElement>
+            <gmd:temporalElement>
+              <gmd:EX_TemporalExtent>
+                <gmd:extent>
+                  <gml:TimePeriod>
+                    { if (temporalPos._1 == null) <gml:beginPosition indeterminatePosition="now" />
+                      else <gml:beginPosition>{formatDateTime(temporalPos._1)}</gml:beginPosition> }
+                    { if (temporalPos._2 == null) <gml:endPosition indeterminatePosition="now" />
+                      else <gml:endPosition>{formatDateTime(temporalPos._2)}</gml:endPosition> }
+                  </gml:TimePeriod>
+                </gmd:extent>
+              </gmd:EX_TemporalExtent>
+            </gmd:temporalElement>
+            <gmd:verticalElement>
+              <gmd:EX_VerticalExtent>
+                <gmd:minimumValue>
+                  <gco:Real>0</gco:Real>
+                </gmd:minimumValue>
+                <gmd:maximumValue>
+                  <gco:Real>0</gco:Real>
+                </gmd:maximumValue>
+                <gmd:verticalCRS gco:nilReason="missing" />
+              </gmd:EX_VerticalExtent>
+            </gmd:verticalElement>
+          </gmd:EX_Extent>
+        </srv:extent>;
+    scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
+  }
+
+  private def addServiceOperations(node: scala.xml.Elem, opName: String,
+                                     url: String, name: String, desc: String) : scala.xml.Elem = {
+    val newChild = <srv:couplingType>
+      <srv:SV_CouplingType gco:nilReason="unknown" />
+    </srv:couplingType>
+    <srv:containsOperations>
+      <srv:SV_OperationMetadata>
+        <srv:operationName>
+          <gco:CharacterString>{opName}</gco:CharacterString>
+        </srv:operationName>
+        <srv:DCP gco:nilReason="unknown" />
+        <srv:connectPoint>
+          <gmd:CI_OnlineResource>
+            <gmd:linkage>
+              <gmd:URL>{url}</gmd:URL>
+            </gmd:linkage>
+            <gmd:name>
+              <gco:CharacterString>{name}</gco:CharacterString>
+            </gmd:name>
+            <gmd:description>
+              <gco:CharacterString>{desc}</gco:CharacterString>
+            </gmd:description>
+            <gmd:function>
+              <gmd:CI_OnLineFunctionCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download">download</gmd:CI_OnLineFunctionCode>
+            </gmd:function>
+          </gmd:CI_OnlineResource>
+        </srv:connectPoint>
+      </srv:SV_OperationMetadata>
+      <srv:operatesOn xlink:href="#DataIdentification" />
+    </srv:containsOperations>;
+    
+    scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
+  }
+
   private def writeGCODecimal(elem: scala.xml.Elem, decimal: Double) : scala.xml.Node = {
     new scala.xml.transform.RewriteRule {
       override def transform(n: scala.xml.Node): scala.xml.Node = n match {
@@ -176,7 +328,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
         case other => other
       }
-    } transform elem head
+    }.transform(elem).head
   }
   
   private def writeGMLPositions(elem: scala.xml.Elem, datetimeStart: Calendar, datetimeEnd: Calendar) : scala.xml.Node = {
@@ -189,7 +341,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
         case other => other
       }
-    } transform elem head
+    }.transform(elem).head
   }
   
   private def writeGCODateTime(elem: scala.xml.Elem, datetime: Calendar) : scala.xml.Node = {
@@ -200,7 +352,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
         case other => other
       }
-    } transform elem head
+    }.transform(elem).head
   }
   
   private def writeGCODate(elem: scala.xml.Elem, datetime: Calendar) : scala.xml.Node = {
@@ -211,7 +363,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
         case other => other
       }
-    } transform elem head
+    }.transform(elem).head
   }
   
   private def writeGCOCharacterString(elem: scala.xml.Elem, cstring: String) : scala.xml.Node = {
@@ -222,7 +374,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
         case other => other
       }
-    } transform elem head
+    }.transform(elem).head
   }
   
   private def formatDateTime(datetime: Calendar) : String = datetime.get(Calendar.YEAR) + "-" +
