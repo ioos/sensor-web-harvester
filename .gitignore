@@ -28,3 +28,7 @@ glos_metadata_test.xml
 glos_station/*
 *.gz
 *doc*
+*.out
+waterqualityportal/*
+*.idea
+iso/*
