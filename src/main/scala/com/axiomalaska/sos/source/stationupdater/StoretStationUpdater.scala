@@ -33,135 +33,109 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   // the harvester will cut up the bbox until each segment has a number of stations at or under this value
   private val stationBlockLimit = 300
   
-  private val resultURL = "http://ofmpub.epa.gov/STORETwebservices/StoretResultService/"
-  private val stationURL = "http://ofmpub.epa.gov/STORETwebservices/StationService/"
+  private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
+  private val stationURL = "http://www.waterqualitydata.us/Station/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
   
   private var phenomenaList = stationQuery.getPhenomena
-
-  def update() {
-    val bboxList = divideBBoxIntoChunks(boundingBox, List())
-    
-    for (bbox <- bboxList) {
-      logger.info("Proccessing bbox: " + bbox.toString)
-      val sourceStationSensors = getSourceStations(bbox)
-
-      val databaseStations = stationQuery.getAllStations(source)
-
-      stationUpdater.updateStations(sourceStationSensors, databaseStations)
-    }
-  }
+  
+  var stationResponse: List[String] = null
+  var resultResponse: List[String] = null
   
   val name = "STORET"
+
+  def update() {
+    val sourceStationSensors = getSourceStations(boundingBox)
+
+    val databaseStations = stationQuery.getAllStations(source)
+
+    stationUpdater.updateStations(sourceStationSensors, databaseStations)
+  }
+  
   
   private def getSourceStations(bbox: BoundingBox) : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-      // get lat, lon, name, id, any description, and platform (if that is possible); create database station for each result
-      val xml = getStationsForMap(bbox)
-      val stations = xml match {
-        case Some(xml) => {
-            val slist = for (val row <- xml \\ "Organization") yield {
-             val sublist = for (val srow <- row \\ "MonitoringLocation") yield {
-                val stationId = (srow \\ "MonitoringLocationIdentifier").text
-                val stationName = (srow \\ "MonitoringLocationName").text
-                val lat = (srow \\ "LatitudeMeasure").text
-                val lon = (srow \\ "LongitudeMeasure").text
-                StoretStation(stationId, stationName, lat.toDouble, lon.toDouble, (row \ "OrganizationDescription" \ "OrganizationIdentifier").text)
-              }
-              sublist.toList
-            }
-            slist.toList.flatten
-        }
-        case None => {
-            logger.info("got None for getStationsForMap!")
-            Nil
-        }
-        case _ => {
-            logger.info("unhandled case: " + xml)
-            Nil
-        }
-      }
-      
-    val flatStationList = stations.toList
-   // have list of stations to iterate through
-   if (flatStationList != Nil) {
-     val size = flatStationList.length
-     val stationCollection = for {
-       (station, index) <- flatStationList.zipWithIndex
-       val sourceObservedProperties = getObservedProperties(station.stationId, station.orgId)
-       val dbStation = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.orgId, "Watershed", source.id, station.lat, station.lon)
-       val databaseObservedProperties = stationUpdater.updateObservedProperties(source, sourceObservedProperties)
-       val sensors = stationUpdater.getSourceSensors(dbStation, databaseObservedProperties)
-       if (sensors.nonEmpty)
-    } yield {
-      logger.info("[" + (index+1).toString + " of " + size + "] station: " + station.stationId + "::" + station.orgId)
-      (dbStation, sensors)
-    }
-    stationCollection.toList
-   } else {
-     Nil
-   }
-  }
-  
-  private def getObservedProperties(stationId: String, orgId: String) : List[ObservedProperty] = {
-    // query the characteristics of each org-station
-    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:srs="http://storetresultservice.storet.epa.gov/">
-                <soap:Body>
-                  <srs:getResults>
-                    <OrganizationId>{orgId}</OrganizationId>
-                    <MonitoringLocationId>{stationId}</MonitoringLocationId>
-                    <MonitoringLocationType/><MinimumActivityStartDate/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><CharacteristicName/><ResultType/>
-                  </srs:getResults>
-                </soap:Body>
-              </soap:Envelope>
-    val response = httpSender.sendPostMessage(resultURL, xml.toString)
+    // create the station request url by adding the bounding box
+    val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getLongitude + "," + bbox.southWestCorner.getLatitude + "," + bbox.northEastCorner.getLongitude + "," + bbox.northEastCorner.getLatitude
+    // try downloading the file ... this failed, now just load it into memory
+    val response = httpSender.sendGetMessage(requestURL)
     if (response != null) {
-      logger.debug("processing properties for " + stationId + " - " + orgId)
-      val responseFix = fixResponseString(response.toString)
-      val root = loadXMLFromString(responseFix)
-      root match {
-        case Some(root) => {
-          var charNameList:List[String] = Nil
-          val results = for {
-            node <- (root \\ "ResultDescription")
-            if (node.nonEmpty)
-            if (!((node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "non-detect") || (node \\ "ResultDetectionConditionText").exists(_.text.toLowerCase contains "present")))
-            if ((node \\ "ResultMeasureValue").text.nonEmpty && (node \\ "ResultMeasureValue").text.trim != "")
-            val name = (node \ "CharacteristicName").text
-            if (!charNameList.exists(p => p == name))
-          } yield {
-            charNameList = name :: charNameList
-            (name, node)
-          }
-          results.toList.flatMap(property => readObservedProperty(property._1, property._2))
-        }
-        case None => {
-            Nil
-        }
+      val splitResponse = response.toString split '\n'
+      val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
+      stationResponse = filterCSV(removeFirstRow)
+      // go through the list, compiling all of the stations
+      for {
+        (stationLine, index) <- stationResponse.zipWithIndex
+        station <- createSourceStation(stationLine)
+        val sourceOP = getSourceObservedProperties(station)
+        val databaseObservedProperties =
+          stationUpdater.updateObservedProperties(source, sourceOP)
+        val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
+        if(sensors.nonEmpty)
+      } yield {
+        logger.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
+        (station, sensors)
       }
-      
-    } else
-      Nil
-  }
-  
-  private def readObservedProperty(name: String, result: scala.xml.NodeSeq) : Option[ObservedProperty] = {
-    // condition on name as some of the names are stupidly long and difficult to parse (human readable)
-    // iterate through phenomena list to see if this exists in there
-    var tag = name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
-    // add special cases here
-    var units = (result \ "ResultMeasure" \ "MeasureUnitCode").text
-    units = if (units.nonEmpty) units.trim else "None"
-    units = specialCaseUnits(units)
-    getObservedProperty(matchPhenomenaToName(tag, units), name)
-  }
-  
-  private def specialCaseTags(tag : String) : String = {
-    tag match {
-      case "ph" => {
-          "fresh_water_acidity"
-      }
-      case _ => {
-          tag
-      }
+    } else {
+      logger error "response to " + requestURL + " was null"
     }
+    
+    Nil
+  }
+  
+  private def createSourceStation(line: String) : Option[DatabaseStation] = {
+    if (line != null) {
+      val name = getStationName(line)
+      val foreignTag = getStationTag(line)
+      // internal tag is the name, formatted
+      val tag = nameToTag(name)
+      val description = getStationDescription(line)
+      val platformType = getStationType(line)
+      val sourceId = source.id
+      val lat = getStationLatitude(line)
+      val lon = getStationLongitude(line)
+      val active = true
+      
+      return Some(new DatabaseStation(name,tag,foreignTag,description,platformType,sourceId,lat,lon,active))
+    }
+    None
+  }
+  
+  private def getSourceObservedProperties(station: DatabaseStation) : List[ObservedProperty] = {
+    // get the results from wqp
+    val organization = (station.foreign_tag split "-")
+    val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
+    logger info "Sending request: " + request
+    val response = httpSender.sendGetMessage(request)
+    if (response != null) {
+      val splitResponse = response.toString split '\n'
+      val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
+      resultResponse = filterCSV(removeFirstRow)
+      // get a list of characteristic names (phenomena)
+      val phenomena = getPhenomenaNameAndUnit(resultResponse)
+      // return a list of observedProperties
+      for {
+        phenomenon <- phenomena
+        if (!phenomenon._1.contains("text"))  // don't include phenomenon that are only textual descriptions (not actual measurements)
+        observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1)
+      } yield {
+        observedProp
+      }
+    } else {
+      logger error "Unable to process previous request"
+      Nil
+    }
+  }
+  
+  private def filterCSV(csv: List[String]) : List[String] = {
+      var inQuote: Boolean = false
+      csv map { l => {
+        val newString = for (ch <- l) yield ch match {
+          case '"' if (!inQuote) => { inQuote = true; '\0' }
+          case ',' if (inQuote) => '\0'
+          case '"' if (inQuote) => { inQuote = false; '\0' }
+          case default => default
+        }
+        newString filter ( _ != '\0' )
+      } }
   }
   
   private def fixUnitsString(units: String) : String = {
@@ -170,44 +144,58 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     retval
   }
   
+  private def nameToTag(name: String) : String = {
+    name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
+  }
+  
   private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
-    logger.info("Looking for phenom " + name + " " + units)
-    if (lname equals "ammonium") {
+    logger.info("Looking for phenom " + name + " | " + units)
+    if (lname.equals("ammonium") || lname.equals("ammonium as n")) {
       Phenomena.instance.AMMONIUM
-    } else if (lname equals "chlorophyll") {
-          Phenomena.instance.CHLOROPHYLL
+    } else if (lname.equals("chlorophyll") || lname.equals("chlorophyll a free of pheophytin")) {
+      Phenomena.instance.CHLOROPHYLL
     } else if (lname equals "chlorophyll_flourescence") {
-          Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
-    } else if (lname equals "nitrite+nitrate") {
-        Phenomena.instance.NITRITE_PLUS_NITRATE
+      Phenomena.instance.CHLOROPHYLL_FLOURESCENCE
+    } else if (lname.equals("nitrite+nitrate") || lname.equals("inorganic nitrogen (nitrate and nitrite) as n")) {
+      Phenomena.instance.NITRITE_PLUS_NITRATE
     } else if (lname equals "nitrite") {
-        Phenomena.instance.NITRITE
+      Phenomena.instance.NITRITE
     } else if (lname equals "nitrate") {
       Phenomena.instance.NITRATE
-    } else if (lname equals "temperature, water") {
-        Phenomena.instance.SEA_WATER_TEMPERATURE
-    } else if (lname equals "speed, water") {     // not sure if this is actually a variable name in storet
-        Phenomena.instance.SEA_WATER_SPEED
-    } else if (lname equals "wind, direction") {  // not sure if this is actually a variable name in storet
-        Phenomena.instance.WIND_FROM_DIRECTION
-    } else if (lname equals "wind, gust") {       // not sure if this is actually a variable name in storet
-        Phenomena.instance.WIND_SPEED_OF_GUST
+    } else if (lname.equals("temperature water")) {
+      Phenomena.instance.SEA_WATER_TEMPERATURE
+    } else if (lname equals "speed water") {     // not sure if this is actually a variable name in storet
+      Phenomena.instance.SEA_WATER_SPEED
+    } else if (lname.equals("phosphorus as p")) {
+      Phenomena.instance.PHOSPHORUS
+    } else if (lname.equals("wind direction") || lname.equals("wind direction (direction from expressed 0-360 deg)")) {  // not sure if this is actually a variable name in storet
+      Phenomena.instance.WIND_FROM_DIRECTION
+    } else if (lname equals "wind gust") {       // not sure if this is actually a variable name in storet
+      Phenomena.instance.WIND_SPEED_OF_GUST
+    } else if (lname.equals("temperature air")) {
+      Phenomena.instance.AIR_TEMPERATURE
     } else if (lname equals "dew") {
       Phenomena.instance.DEW_POINT_TEMPERATURE
     } else if (lname equals "ph") {
       Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
-    } else if (lname equals "alkalinity, total (total hydroxide+carbonate+bicarbonate)") {
+    } else if (lname.equals("alkalinity total (total hydroxide+carbonate+bicarbonate)") || lname.equals("alkalinity total as caco3")) {
       Phenomena.instance.ALKALINITY
+    } else if (lname.equals("wave height")) {
+      Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT
+    } else if (lname.equals("water level reference point elevation") || lname.equals("water level in relation to reference point")) {
+      Phenomena.instance.WATER_SURFACE_HEIGHT_ABOVE_REFERENCE_DATUM
+    } else if (lname.equals("specific conductance")) {
+      Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
     } else if (units contains "#/100ml") {
-      Phenomena.instance.createPhenomenonWithPPmL(lname)
+      Phenomena.instance.createPhenomenonWithPPmL(nameToTag(lname))
     } else if (units.toLowerCase contains "ug/l") {
-      Phenomena.instance.createPhenomenonWithugL(lname)
+      Phenomena.instance.createPhenomenonWithugL(nameToTag(lname))
     } else if (units.toLowerCase contains "cfu") {
-      Phenomena.instance.createPhenonmenonWithCFU(lname)
+      Phenomena.instance.createPhenonmenonWithCFU(nameToTag(lname))
     } else {
       // create a homeless parameter
-      Phenomena.instance.createHomelessParameter(lname, units)
+      Phenomena.instance.createHomelessParameter(nameToTag(lname), units)
     }
   }
   
@@ -232,119 +220,62 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     stationQuery.createPhenomenon(dbPhenom)
   }
   
-  private def specialCaseUnits(units : String) : String = {
-    if (units contains "deg") {
-      units.replaceAll("deg", "").trim
-    }
-    else if (units contains "degree") {
-      units.replaceAll("degree", "").trim
-    }
-    else {
-      units
-    }
+  private def getPhenomenaNameAndUnit(station: List[String]) : List[(String,String)] = {
+    // go through the results and get the names of all lines w/o 'Non-detect'
+    val splitLines = station filter { !_.contains("Non-detect") } map { _.split(",") }
+    // 'charactername' is at index 31, 'units' string is index 34
+    val phenomMap = (splitLines map { _.zipWithIndex }) map { s => s.foldRight("",0,"")((n,o) => n._2 match { case 31 => (n._1,o._2,o._3); case 34 => (o._1,o._2,n._1); case _ => (o._1,o._2,o._3) } ) }
+    phenomMap.groupBy( _._1 ).map( sl => (sl._1,sl._2.head._3) ).toList
   }
   
-  private def getStationsForMap(bbox : BoundingBox) : Option[scala.xml.Elem] = {
-    val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ss="http://stationservice.storet.epa.gov/">
-                      <soap:Body>
-                        <ss:getStationsForMap>
-                          <MinimumLatitude>{bbox.southWestCorner.getLatitude()}</MinimumLatitude>
-                          <MaximumLatitude>{bbox.northEastCorner.getLatitude()}</MaximumLatitude>
-                          <MinimumLongitude>{bbox.southWestCorner.getLongitude()}</MinimumLongitude>
-                          <MaximumLongitude>{bbox.northEastCorner.getLongitude()}</MaximumLongitude>
-                        </ss:getStationsForMap>
-                      </soap:Body>
-                     </soap:Envelope>
-   val response = httpSender.sendPostMessage(stationURL, xmlRequest.toString())
-   if (response != null) {
-     val responseFix = fixResponseString(response.toString)
-     loadXMLFromString(responseFix)
-   }
-   else
-     None
+  private def getStationName(station: String) : String = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 3
+      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 3 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
   }
   
-  private def divideBBoxIntoChunks(bbox : BoundingBox, list : List[BoundingBox]) : List[BoundingBox] = {
-    // use the bounding box to create xml for a soap instruction
-    val xml = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:ss="http://stationservice.storet.epa.gov/">
-                <soap:Body>
-                  <ss:getStationCount>
-                    <MinimumLatitude>{bbox.southWestCorner.getLatitude()}</MinimumLatitude>
-                    <MaximumLatitude>{bbox.northEastCorner.getLatitude()}</MaximumLatitude>
-                    <MinimumLongitude>{bbox.southWestCorner.getLongitude()}</MinimumLongitude>
-                    <MaximumLongitude>{bbox.northEastCorner.getLongitude()}</MaximumLongitude>
-                  </ss:getStationCount>
-                </soap:Body>
-              </soap:Envelope>
-    // send xml requesting the station count
-    val response = httpSender.sendPostMessage(stationURL, xml.toString())
-    if (response != null ) {
-      // can we treat response as xml?
-      val responseFix = fixResponseString(response.toString)
-      val responseXML = loadXMLFromString(responseFix)
-      responseXML match {
-        case Some(responseXML) => {
-            val stationCount = responseXML.text.trim
-            logger.info(stationCount + " stations in bbox")
-            if (stationCount.toDouble < stationBlockLimit) {
-              return bbox :: list
-            }
-            else
-              return sliceBoundingBox(bbox, list)
-        }
-        case None => {
-            return list
+  private def getStationTag(station: String) : String = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 2
+      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 2 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+  }
+  
+  private def getStationDescription(station: String) : String = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 5
+      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 5 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+  }
+  
+  private def getStationType(station: String) : String = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 4
+      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 4 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+  }
+  
+  private def getStationLatitude(station: String) : Double = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 11
+      val lat = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 11 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      try {
+        return java.lang.Double.parseDouble(lat)
+      } catch {
+        case ex: Exception => {
+            logger error ex.toString
         }
       }
-    }
-    
-    return List()
+      Double.NaN
   }
   
-  private def loadXMLFromString(stringToLoad : String) : Option[scala.xml.Elem] = {
-    try {
-      Some(scala.xml.XML.loadString(stringToLoad))
-    } catch{
-      case ex: Exception => {
-          logger.error("Unable to load string into xml: " + stringToLoad + "\n" + ex.toString)
-          None
+  private def getStationLongitude(station: String) : Double = {
+      val splitLines = (station split ",")
+      // okay so below allows us to search by index looking for the earliest instance of index 12
+      val lon = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 12 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      try {
+        return java.lang.Double.parseDouble(lon)
+      } catch {
+        case ex: Exception => logger error ex.toString
       }
-    }
-  }
-  
-  private def fixResponseString(responseString : String) : String = {
-    return responseString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
-  }
-  
-  private def sliceBoundingBox(sliceBox : BoundingBox, boundingBoxList : List[BoundingBox]) : List[BoundingBox] = {
-    // cut bounding box in half (along longitude)
-//    logger.debug("slicing bbox: " + sliceBox.toString)
-    // decide to slice bbox along lat/lon based on lists count
-    if (boundingBoxList.length % 2 == 0) {
-      val midLongitude = sliceBox.southWestCorner.getLongitude() + (sliceBox.northEastCorner.getLongitude() - sliceBox.southWestCorner.getLongitude()) / 2
-      val bbox1 = new BoundingBox(
-        new Location(sliceBox.southWestCorner.getLatitude(),sliceBox.southWestCorner.getLongitude()),
-        new Location(sliceBox.northEastCorner.getLatitude(),midLongitude))
-      val bbox2 = new BoundingBox(
-        new Location(sliceBox.southWestCorner.getLatitude(),midLongitude),
-        new Location(sliceBox.northEastCorner.getLatitude(), sliceBox.northEastCorner.getLongitude()))
-      // send request for each bbox to see how many stations are in it
-      val list1 = divideBBoxIntoChunks(bbox1, boundingBoxList)
-      val list2 = divideBBoxIntoChunks(bbox2, boundingBoxList)
-      return list1 ::: list2
-    } else {
-      val midLatitude = sliceBox.southWestCorner.getLatitude + (sliceBox.northEastCorner.getLatitude - sliceBox.southWestCorner.getLatitude) / 2
-      val bbox1 = new BoundingBox(
-        new Location(sliceBox.southWestCorner.getLatitude(),sliceBox.southWestCorner.getLongitude()),
-        new Location(midLatitude,sliceBox.northEastCorner.getLongitude))
-      val bbox2 = new BoundingBox(
-        new Location(midLatitude,sliceBox.southWestCorner.getLongitude()),
-        new Location(sliceBox.northEastCorner.getLatitude(), sliceBox.northEastCorner.getLongitude()))
-      // send request for each bbox to see how many stations are in it
-      val list1 = divideBBoxIntoChunks(bbox1, boundingBoxList)
-      val list2 = divideBBoxIntoChunks(bbox2, boundingBoxList)
-      return list1 ::: list2
-    }
+      Double.NaN
   }
 }
   
