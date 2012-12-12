@@ -7,6 +7,7 @@ import java.io.File
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
 import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
+import com.axiomalaska.sos.data.SosNetworkImp
 
 object Main {
 
@@ -71,34 +72,43 @@ object Main {
   }
   
   private def updateSos(properties:PropertiesConfiguration, logger: Logger){
-      val sosUrl = properties.getString("sos_url")
-      val databaseUrl = properties.getString("database_url")
-      val databaseUsername = properties.getString("database_username")
-      val databasePassword = properties.getString("database_password")
-      val country = properties.getString("publisher_country", "country")
-      val email = properties.getString("publisher_email", "email")
-      val name = properties.getString("publisher_name", "name")
-      val webAddress = properties.getString("publisher_web_address", "web_address")
-      
-      logger.info("SOS URL: " + sosUrl)
-      logger.info("Database URL: " + databaseUrl)
-      logger.info("Database Username: " + databaseUsername)
-      logger.info("Database Password: " + databasePassword)
-      logger.info("country: " + country)
-      logger.info("email: " + email)
-      logger.info("name: " + name)
-      logger.info("webAddress: " + webAddress)
-      
-      val publisherInfo = new PublisherInfoImp()
-      publisherInfo.setCountry(country)
-      publisherInfo.setEmail(email)
-      publisherInfo.setName(name)
-      publisherInfo.setWebAddress(webAddress)
-      
-      val sosManager = new SosSourcesManager(databaseUrl,
-        databaseUsername, databasePassword, sosUrl, publisherInfo, logger);
+    val sosUrl = properties.getString("sos_url")
+    val databaseUrl = properties.getString("database_url")
+    val databaseUsername = properties.getString("database_username")
+    val databasePassword = properties.getString("database_password")
+    val country = properties.getString("publisher_country", "country")
+    val email = properties.getString("publisher_email", "email")
+    val name = properties.getString("publisher_name", "name")
+    val webAddress = properties.getString("publisher_web_address", "web_address")
+    val rootNetworkId = properties.getString("network_root_id")
+    val rootNetworkSourceId = properties.getString("network_root_source_id")
 
-      sosManager.updateSos();
+    logger.info("SOS URL: " + sosUrl)
+    logger.info("Database URL: " + databaseUrl)
+    logger.info("Database Username: " + databaseUsername)
+    logger.info("Database Password: " + databasePassword)
+    logger.info("country: " + country)
+    logger.info("email: " + email)
+    logger.info("name: " + name)
+    logger.info("webAddress: " + webAddress)
+    logger.info("Root Network Id: " + rootNetworkId)
+    logger.info("Root Network Source Id: " + rootNetworkSourceId)
+
+    val publisherInfo = new PublisherInfoImp()
+    publisherInfo.setCountry(country)
+    publisherInfo.setEmail(email)
+    publisherInfo.setName(name)
+    publisherInfo.setWebAddress(webAddress)
+
+    val rootNetwork = new SosNetworkImp();
+    rootNetwork.setId(rootNetworkId);
+    rootNetwork.setSourceId(rootNetworkSourceId);
+
+    val sosManager = new SosSourcesManager(databaseUrl,
+      databaseUsername, databasePassword, sosUrl, publisherInfo, 
+      rootNetwork, logger);
+
+    sosManager.updateSos();
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

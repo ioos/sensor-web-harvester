@@ -7,8 +7,9 @@ import com.axiomalaska.sos.source.StationQuery
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.sos.data.SosSource
+import scala.collection.mutable
 
-class LocalStation(val source:SosSource, 
+class LocalStation(val localSource:LocalSource, 
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery) extends SosStation {
 
@@ -34,7 +35,7 @@ class LocalStation(val source:SosSource,
    * If characters are over 100 they will be truncated to 80
    */
   def getFeatureOfInterestName() =
-    "station: " + databaseStation.name + " of source: " + source.getName
+    "station: " + databaseStation.name + " of source: " + localSource.getName
 
   /**
    * The location of the station
@@ -47,12 +48,24 @@ class LocalStation(val source:SosSource,
    * @return
    */
   def getNetworks(): java.util.List[SosNetwork] = {
-    Nil
+    val sourceNetworks = stationQuery.getNetworks(localSource.source).map(
+        network => new LocalNetwork(network))
+    val stationNetworks = stationQuery.getNetworks(databaseStation).map(
+        network => new LocalNetwork(network))
+    val set = new mutable.HashSet[String]
+    for {
+      network <- sourceNetworks ::: stationNetworks
+      val networkId = network.getSourceId + network.getId
+      if (!set.contains(networkId))
+    } yield {
+      set += networkId
+      network
+    }
   }
 
   def isMoving = false
   
-  def getSource() = source
+  def getSource() = localSource
   
   def getName() = databaseStation.name
   

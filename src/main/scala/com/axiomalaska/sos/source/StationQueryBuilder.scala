@@ -10,6 +10,7 @@ import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.StationDatabase
+import com.axiomalaska.sos.source.data.Network
 
 /**
  * The StationQueryBuilder builds the StationQuery object that is used to 
@@ -66,6 +67,10 @@ trait StationQuery{
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
   def getObservedProperty(source: Source): List[ObservedProperty]
+  
+  def getNetworks(source:Source):List[Network]
+  
+  def getNetworks(station:DatabaseStation):List[Network]
 }
 
 private class StationQueryImp(url:String, 
@@ -164,6 +169,18 @@ private class StationQueryImp(url:String,
   def getSource(station:DatabaseStation):Source ={
     using(session) {
       return station.source.head
+    }
+  }
+  
+  def getNetworks(source:Source):List[Network] ={
+    using(session){
+      return source.networks.toList
+    }
+  }
+  
+  def getNetworks(station:DatabaseStation):List[Network] ={
+    using(session){
+      return station.networks.toList
     }
   }
   

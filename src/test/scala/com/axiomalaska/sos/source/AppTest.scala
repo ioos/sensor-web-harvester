@@ -39,6 +39,7 @@ import org.apache.log4j.BasicConfigurator
 import com.axiomalaska.sos.ObservationSubmitter
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.stationupdater.NdbcSosStationUpdater
+import com.axiomalaska.sos.data.SosNetworkImp
 
 @Test
 class AppTest {
@@ -79,20 +80,25 @@ class AppTest {
 //  def updateSos() {
 //    val factory = new ObservationUpdaterFactory()
 //    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
+//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
+//      "postgres", "postgres")
 //
 //    val publisherInfo = new PublisherInfoImp()
 //
-//    publisherInfo.setCountry("")
-//    publisherInfo.setEmail("")
-//    publisherInfo.setName("")
-//    publisherInfo.setWebAddress("")
+//    publisherInfo.setCountry("USA")
+//    publisherInfo.setEmail("lance@axiomalaska.com")
+//    publisherInfo.setName("AOOS")
+//    publisherInfo.setWebAddress("http://www.aoos.org")
 //
+//    val rootNetwork = new SosNetworkImp()
+//    rootNetwork.setId("all")
+//    rootNetwork.setSourceId("aoos")
+//    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildNdbcSosObservationUpdater(
+//      val observationUpdater = factory.buildNoaaNosCoOpsObservationUpdater(
 //        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo)
 //
-//      observationUpdater.update()
+//      observationUpdater.update(rootNetwork)
 //    })
 //  }
 
@@ -173,7 +179,7 @@ class AppTest {
 //        "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new NdbcSosStationUpdater(stationQuery, worldBoundingBox)
+//      val stationUpdater = new NoaaNosCoOpsStationUpdater(stationQuery, worldBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }

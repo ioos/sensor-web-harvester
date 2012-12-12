@@ -4,6 +4,8 @@ import com.axiomalaska.sos.data.SosSource
 
 class LocalSource(val source:Source) extends SosSource {
 
+    def getId() = source.tag
+    
 	def getName() = source.name
 
 	def getCountry() = source.country
