@@ -1,9 +1,6 @@
-#sensor-web-harvester# (### New Custom Network/Offerings.### read more at the bottom)
+#sensor-web-harvester#
 ====================
-<<<<<<< HEAD
-=======
 ###New Custom Network/Offerings read more at the bottom###
->>>>>>> 6815d9e6ceeeff5c0a69b99f3124dd932df640f8
 
 sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
