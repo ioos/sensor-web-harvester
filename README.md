@@ -1,5 +1,7 @@
 #sensor-web-harvester#
 ====================
+#New# Custom Network/Offerings read more at the bottom
+
 sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
 sensor-web-harvester is used to fill an SOS with observations from many well-known sensor sources (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations. It then formats the data to be placed into the user’s SOS by using the sos-injector. The source stations used are filtered by a chosen bounding box area. 
@@ -132,7 +134,8 @@ This is example code demonstrating how to update the metadata database and the S
     	databaseUsername, databasePassword, boundingBox)
     
     // Updates the local metadata database with station information
-    // This call should be made conservatively (approx. 3 times a week) since the sources’ stations do not change often and this call is taxing on the sources’ servers.
+    // This call should be made conservatively (approx. 3 times a week) since the 
+    // sources’ stations do not change often and this call is taxing on the sources’ servers.
     metadataManager.update();
     
     // Information about the group publishing this data on the SOS. 
@@ -151,7 +154,19 @@ This is example code demonstrating how to update the metadata database and the S
     	
     // Updates the SOS with data pulled from the source sites. 
     // This uses the metadata database
-    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) since the observations do not change often and this action is taxing on the sources’ servers.
+    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) 
+    // since the observations do not change often and this action is taxing on the sources’ servers.
     sosManager.updateSos();
     
+Create Custom Networks for Sources or Stations
+-----------
+To create custom networks/offerings one must adjust three tables (network, network_source, network_station) in the metadata database. All new networks need to be created and associated to source or stations before they are submitted to the SOS. Meaning that if a station is already created on the SOS it cannot later be associated to a network. 
+
+First step, each custom network needs be added to the network table. The tag and source_tag columns are the main columns that need filled in for a new network. The tag and source_tag are combined (urn:ioos:network:[source_tag]:[tag]) to create the id of the network in the SOS. 
+
+These custom networks can be assoicated to all stations of a source with the use of the network_source table. To associate a network with a source, place the source's database id and the network's database id in a row. 
+
+These custom networks can be associated to specific stations from the network_station table. A row needs to be created for each station that a network is assoicated to. In each of these rows add the network id and the station id to be associated. 
+
+
 
