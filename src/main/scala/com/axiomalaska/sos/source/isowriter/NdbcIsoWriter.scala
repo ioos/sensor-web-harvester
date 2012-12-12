@@ -13,8 +13,9 @@ import java.util.Calendar
 import org.apache.log4j.Logger
 
 class NdbcIsoWriter(private val stationQuery:StationQuery, 
+    private val templateFile: String,
     private val isoDirectory: String,
-    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoDirectory, logger) {
+    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, templateFile, isoDirectory, logger) {
 
   private val httpSender = new HttpSender()
   private val dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
@@ -23,7 +24,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   private val ndbcGetCapsFile = isoDirectory + "/ndbc_getcaps_section.xml"
   private val ndbcServiceType = "National Data Buoy Center SOS"
   private val ndbcOrgName = "National Data Buoy Center"
-  private val ndbcSOSUrl = "http://sdf.ndbc.noaa.gov/sos"
+  private val ndbcSOSUrl = "http://sdf.ndbc.noaa.gov/sos/"
   private val ndbcRole = "originator"
   
   
@@ -104,7 +105,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   /**
    * @return string - service title, string - organisation name, string - role, string - service type, string - service url, string - service description
    */
-  override def getServiceInformation(station: LocalStation) : (String, String, String, String, String, String) = {
+  override def getServiceInformation(station: LocalStation) : List[ServiceIdentification] = {
     (ndbcServiceType, ndbcOrgName, ndbcRole, ndbcServiceType, ndbcSOSUrl, ndbcServiceType)
   }
   

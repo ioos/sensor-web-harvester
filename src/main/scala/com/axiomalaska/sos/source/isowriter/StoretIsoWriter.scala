@@ -13,8 +13,9 @@ import java.util.Calendar
 import org.apache.log4j.Logger
 
 class StoretIsoWriter(private val stationQuery:StationQuery, 
-    private val isoDirectory: String,
-    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoDirectory, logger) {
+    private val isoTemplateLocation: String,
+    private val isoWriteDirectory: String,
+    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoTemplateLocation, isoWriteDirectory, logger) {
 
     private val httpSender = new HttpSender()
     private val dateParser = new SimpleDateFormat("yyyy-MM-ddHH:mm:ssz")
@@ -28,8 +29,8 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
     
     override def initialSetup(station: LocalStation) : Boolean = {
       // get org id and site id
-      val org = station.getDescription
-      val site = station.getDescription + "-" + station.getId
+      val site = station.databaseStation.foreign_tag
+      val org = site.split("-").head
       // request the station info
       try {
         val sResponse = httpSender.sendGetMessage(surl + "&organization=" + org + "&siteid=" + site)

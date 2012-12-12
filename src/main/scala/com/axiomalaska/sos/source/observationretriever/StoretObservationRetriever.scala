@@ -5,6 +5,7 @@
 
 package com.axiomalaska.sos.source.observationretriever
 
+import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.tools.HttpSender
 import java.util.Calendar
@@ -15,10 +16,8 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
 import java.text.SimpleDateFormat
 
-case class StoretResponse (stationId: String, requestDate: Calendar, obsList: List[(String, List[(Calendar, Double)])])
-
 object StoretObservationRetriever {
-  private var storedStationRequests: List[StoretResponse] = Nil
+  private var storedStationResponse: (String,List[String]) = ("",Nil)
 }
 
 class StoretObservationRetriever(private val stationQuery:StationQuery, 
@@ -26,68 +25,181 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
 	extends ObservationValuesCollectionRetriever {
     import StoretObservationRetriever._
           
-    private val resultURL = "http://ofmpub.epa.gov/STORETwebservices/StoretResultService/"
+    private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&mimeType=csv"
     private val httpSender = new HttpSender()
-    private val dateParser = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+    private val dateParser = new SimpleDateFormat("MM/dd/yyyyHH:mm:ssz")
     
-    def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
-
-      logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " - observation - " + phenomenon.databasePhenomenon.tag)
+  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
+    phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+ 
+    logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " - observation - " + phenomenon.databasePhenomenon.tag)
       
-      // check to see if the desired station is already in the list
-      var stationItems: List[StoretResponse] = storedStationRequests.filter(p => p.stationId.equalsIgnoreCase(station.databaseStation.foreign_tag))
-      if (stationItems.nonEmpty) {
-        // there is at least 1 item
-        val timeConstrainedList = stationItems.filter(p => ( p.requestDate.before(startDate) || p.requestDate.equals(startDate) ) )
-        if (timeConstrainedList.nonEmpty) {
-          // we have a stored station response with a time constraint at least equal to the start date
-          stationItems = timeConstrainedList
-        } else {
-          // stored station item that is later than the start date, remove it and do a request
-          storedStationRequests = storedStationRequests diff stationItems
-          stationItems = Nil
-        }
-      }
-      
-      val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
-      
-      if (stationItems.isEmpty) {
-        // make a request with the given params
-        // request the result for each station using its foreign_tag, description (which is the organization id)        
-        var stItem: Option[StoretResponse] = tryGetResultsForStation(station.databaseStation.foreign_tag, station.databaseStation.description, startDate)
-        stItem match {
-          case Some(stItem) => {
-            // add it in to singleton list
-            storedStationRequests = stItem :: storedStationRequests
-            // set it to list
-            stationItems = List(stItem)
-          }
-          case None => {
-              stationItems = Nil
-          }
-        }
-      }
-      
-      // do we not have any phenomenon at this point?
-      if (stationItems.isEmpty) {
-        return Nil
-      }
-      
-     // get list of observed values matching the phenomenon name, then iterate and add the values and dates for the observation (phenomenon)
-      for (observationValue <- observationValuesCollection) {
-        try {
-          val observationList = stationItems.flatMap(itm => matchObsTags(phenomenon.databasePhenomenon.name, itm.obsList))
-          for (obs <- observationList; if !observationValue.containsDate(obs._1)) {
-            observationValue.addValue(obs._2, obs._1)
-          }
-        } catch {
-          case ex: Exception => { logger.error(ex.toString + "\n\t" + ex.getStackTraceString) }
-        }
-      }
-      
-      observationValuesCollection.filter(_.getValues.size > 0)
+    // request info for the station
+    getStationResponse(station, startDate)
+    
+    if (storedStationResponse._2.isEmpty) {
+      logger error "No result for " + station.databaseStation.foreign_tag
+      return Nil
     }
+      
+    val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
+      
+    // iterate through observation values, getting values for each phenomenon
+    for (observationValue <- observationValuesCollection) {
+      val timeandvalues = getValuesDateDepths(observationValue.phenomenon.getName)
+      for {
+        addto <- timeandvalues
+        if (sensor.databaseSensor.depth == addto._3 && !observationValue.containsDate(addto._1))
+      } {
+        observationValue.addValue(addto._2, addto._1)
+      }
+    }
+    // remove any empty values from the collection
+    observationValuesCollection.filter(_.getValues.size > 0)
+  }
+    
+  private def getStationResponse(station: LocalStation, startDate: Calendar) = {
+    // check to see if it is in our stored station retriever
+    if (!storedStationResponse._1.equals(station.getId)) {
+      // make request
+      val siteid = station.databaseStation.foreign_tag
+      val org = siteid.split("-").head
+      // get date for latest mm-dd-yyyy (month is 0 index, so increment by 1, day is incremented to prevent repeat data
+      val date = (startDate.get(Calendar.MONTH) + 1) + "-" + (startDate.get(Calendar.DAY_OF_MONTH) + 1) + "-" + startDate.get(Calendar.YEAR)
+      // add in above to formulate request
+      val request = resultURL + "&organization=" + org + "&siteid=" + siteid + "&startDateLo=" + date
+      try {
+        val response = httpSender.sendGetMessage(request)
+        // TEST File below
+  //      val response = scala.io.Source.fromFile("../Result.csv", "UTF-8").mkString
+        if (response != null) {
+          // add the filtered response to our stored request
+          val splitResponse = response.toString split '\n'
+          val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier")).filter(p => p.contains(station.databaseStation.foreign_tag))
+          storedStationResponse = (station.getId,filterCSV(removeFirstRow))
+        } else {
+          logger warn "Response in getting station info was null"
+          storedStationResponse = ("",Nil)
+        }
+      }
+      catch {
+        case ex: Exception => {
+            logger error ex.toString
+            storedStationResponse = ("",Nil)
+        }
+      }
+    }
+  }
+  
+  private def filterCSV(csv: List[String]) : List[String] = {
+    var inQuote: Boolean = false
+    csv map { l => {
+      val newString = for (ch <- l) yield ch match {
+        case '"' if (!inQuote) => { inQuote = true; '\0' }
+        case ',' if (inQuote) => '\0'
+        case '"' if (inQuote) => { inQuote = false; '\0' }
+        case default => default
+      }
+      newString filter ( _ != '\0' )
+    } }
+  }
+  
+  private def getValuesDateDepths(phenom: String) : List[(Calendar, Double, Double)] = {
+    // get a grouping of the characteristic names (index 31)
+    val indexedLines = storedStationResponse._2.filter(!_.contains("Non-detect")).map(_.split(",")).map(_.zipWithIndex)
+    // uggh, so i need like 6 indices from the info (3 of which are combined into one);
+    // index 1: date-time, index 2: name, index 3: value, index 4: depth
+    val valMap = indexedLines.map( s => s.foldLeft("","","","")((storedTuple,nextIndex) => nextIndex._2 match {
+          case 6|7 => (storedTuple._1+nextIndex._1,storedTuple._2,storedTuple._3,storedTuple._4)
+          case 8 => if (nextIndex._1 == null || nextIndex._1.equals("")) (storedTuple._1+"UTC",storedTuple._2,storedTuple._3,storedTuple._4) else (storedTuple._1+nextIndex._1,storedTuple._2,storedTuple._3,storedTuple._4)
+          case 31 => (storedTuple._1,nextIndex._1,storedTuple._3,storedTuple._4)
+          case 33 => (storedTuple._1,storedTuple._2,nextIndex._1,storedTuple._4)
+          case 12 => (storedTuple._1,storedTuple._2,storedTuple._3,nextIndex._1)
+          case _ => storedTuple
+        }))
+    // group-by on the name; first have to convert the name to how it would look on the server
+    val grouped = valMap.groupBy( n => getDBNameForPhenomenon(n._2) )
+    // ok now just match and return the dates/values
+    // okay so step by step
+    // 1. filter out names that do not match what we want
+    // 2. flatmap over the results of 1. to get the list of the tuples (from above)
+    // 3. map over each list of tuple to convert the datetime string into Calenar and parse each value, depth into double
+    // 4. group by the datetime (Calendar) as we don't want to add in multiple values for each phenomenon/datetime pair
+    // 5. map over the group in 4. to get a new tuple of explicit datetime/values and return it as a list
+    // 6. filter out any null calendar objects
+    grouped.filter(g => g._1.equalsIgnoreCase(phenom)).flatMap(_._2.map(tuple => {
+        logger.info("Processing:  " + tuple._1 + ", " + tuple._2 + ", " + tuple._3 + ", " + tuple._4)
+        var datetime: Calendar = null
+        var value: Double = 0.0
+        var depth: Double = 0.0
+        try {
+          depth = java.lang.Double.parseDouble(tuple._4)
+        } catch {
+          case ex: Exception => {}
+        }
+        try {
+          datetime = parseDateString(tuple._1)
+          value = java.lang.Double.parseDouble(tuple._3)
+        } catch {
+          case ex: Exception => {
+              logger error ex.toString
+              value = Double.NaN
+          }
+        }
+        (datetime,value,depth)
+      })).toList
+  }
+  
+  /**
+   * copied just about wholesale from the updater; exception: removed reference to units string
+   */
+  private def getDBNameForPhenomenon(name: String) : String = {
+    val lname = name.toLowerCase
+    if (lname.equals("ammonium") || lname.equals("ammonium as n")) {
+      Phenomena.instance.AMMONIUM.getName
+    } else if (lname.equals("chlorophyll") || lname.equals("chlorophyll a free of pheophytin")) {
+      Phenomena.instance.CHLOROPHYLL.getName
+    } else if (lname equals "chlorophyll_flourescence") {
+      Phenomena.instance.CHLOROPHYLL_FLOURESCENCE.getName
+    } else if (lname.equals("nitrite+nitrate") || lname.equals("inorganic nitrogen (nitrate and nitrite) as n")) {
+      Phenomena.instance.NITRITE_PLUS_NITRATE.getName
+    } else if (lname equals "nitrite") {
+      Phenomena.instance.NITRITE.getName
+    } else if (lname equals "nitrate") {
+      Phenomena.instance.NITRATE.getName
+    } else if (lname.equals("temperature water")) {
+      Phenomena.instance.SEA_WATER_TEMPERATURE.getName
+    } else if (lname equals "speed water") {     // not sure if this is actually a variable name in storet
+      Phenomena.instance.SEA_WATER_SPEED.getName
+    } else if (lname.equals("phosphorus as p")) {
+      Phenomena.instance.PHOSPHORUS.getName
+    } else if (lname.equals("wind direction") || lname.equals("wind direction (direction from expressed 0-360 deg)")) {  // not sure if this is actually a variable name in storet
+      Phenomena.instance.WIND_FROM_DIRECTION.getName
+    } else if (lname equals "wind gust") {       // not sure if this is actually a variable name in storet
+      Phenomena.instance.WIND_SPEED_OF_GUST.getName
+    } else if (lname.equals("temperature air")) {
+      Phenomena.instance.AIR_TEMPERATURE.getName
+    } else if (lname equals "dew") {
+      Phenomena.instance.DEW_POINT_TEMPERATURE.getName
+    } else if (lname equals "ph") {
+      Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE.getName
+    } else if (lname.equals("alkalinity total (total hydroxide+carbonate+bicarbonate)") || lname.equals("alkalinity total as caco3")) {
+      Phenomena.instance.ALKALINITY.getName
+    } else if (lname.equals("wave height")) {
+      Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT.getName
+    } else if (lname.equals("water level reference point elevation") || lname.equals("water level in relation to reference point")) {
+      Phenomena.instance.WATER_SURFACE_HEIGHT_ABOVE_REFERENCE_DATUM.getName
+    } else if (lname.equals("specific conductance")) {
+      Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY.getName
+    } else {
+      // create a homeless parameter
+      Phenomena.instance.createHomelessParameter(nameToTag(lname), "").getName
+    }
+  }
+  
+  private def nameToTag(name: String) : String = {
+    name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
+  }
     
   /**
    * attempts to match the names for phenomenon in the database to those provided by storet
@@ -95,128 +207,9 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     private def matchObsTags(phenomName: String, observations: List[(String, List[(Calendar, Double)])]) : List[(Calendar, Double)] = {
       // need to compare the string value of observations to the phenomenon tag, unfortunately a direct comparison will not work here
       var retval: List[(Calendar, Double)] = Nil
-      val lphenomName = phenomName.toLowerCase
-      var primaryTagToSearch: String = "nothing"
-      var secondaryTagToSearch: String = "nothing"
-      if (lphenomName.contains("temperature")) {
-        if (lphenomName.contains("water")) {
-          secondaryTagToSearch = "water"
-        }
-        primaryTagToSearch = "temperature"
-      } else if (lphenomName contains "acidity") {
-        primaryTagToSearch = "ph"
-      } else if (lphenomName.contains("_")) {
-        primaryTagToSearch = lphenomName.split("_").head
-        secondaryTagToSearch = (lphenomName.split("_").toList diff primaryTagToSearch).head
-      } else if (lphenomName.contains("\\s+")) {
-        primaryTagToSearch = lphenomName.split("\\s+").head
-        secondaryTagToSearch = (lphenomName.split("\\s+").toList diff primaryTagToSearch).head
-      } else {
-        primaryTagToSearch = lphenomName
-      }
-      
-      if (secondaryTagToSearch != "nothing") {
-        retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch) && p._1.toLowerCase.contains(secondaryTagToSearch)).flatMap(p => p._2)
-      } else {
-        retval = observations.filter(p => p._1.toLowerCase.contains(primaryTagToSearch)).flatMap(p => p._2)
-      }
       
       return retval
     }
-    
-    private def tryGetResultsForStation(stationId: String, orgId: String, startDate: Calendar) : Option[StoretResponse] = {
-      // get date as a string for the request
-      // use the startDate as min activity date (incrementing day of month by 1 to make sure we don't get repeat results)
-      val startDateString = (startDate.get(Calendar.MONTH)+1) + "/" + (startDate.get(Calendar.DAY_OF_MONTH)+1) + "/" + startDate.get(Calendar.YEAR)
-      val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:srs="http://storetresultservice.storet.epa.gov/">
-                <soap:Body>
-                  <srs:getResults>
-                    <OrganizationId>{orgId}</OrganizationId>
-                    <MonitoringLocationId>{stationId}</MonitoringLocationId>
-                    <MinimumActivityStartDate>{startDateString}</MinimumActivityStartDate>
-                    <CharacteristicName/><MonitoringLocationType/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><ResultType/>
-                  </srs:getResults>
-                </soap:Body>
-              </soap:Envelope>
-      val response = httpSender.sendPostMessage(resultURL, xmlRequest.toString)
-      if (response != null) {
-        val responseFix = response.toString.trim.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
-        val xml = loadXMLFromString(responseFix)
-        xml match {
-          case Some(xml) => {
-            // create a response object from the xml
-            createObjFromResponse(xml, stationId, startDate)
-          } case None => {
-            None
-          }
-        }
-      }
-      else
-        None
-    }
-    
-    private def createObjFromResponse(xml: scala.xml.Elem, stationId: String, requestDate: Calendar) : Option[StoretResponse] = {
-      var valuesList: List[(String, List[(Calendar,Double)])] = Nil
-      // iterate through each activity and add the phenomenon name and its associated measured value for the date
-      for (activity <- xml \\ "Activity") {
-        val rawDate = (activity \\ "ActivityStartDate").text.trim
-        val rawTime = (activity \\ "ActivityStartTime").text.trim
-        val calendarDate = parseDateString(rawDate + " " + rawTime)
-        // add a list of observations for each activity with its date
-        val obsList = for (result <- activity \\ "Result") yield {
-          val phenName = (result \\ "CharacteristicName").text.trim
-          try {
-            val measuredValue = (result \\ "ResultMeasureValue").text.trim.toDouble
-            val obsTuple = (calendarDate, measuredValue)
-            val storedPhen = valuesList.filter(p => p._1.equalsIgnoreCase(phenName))
-            if (storedPhen.nonEmpty) {
-              // disect the valuesList entry to expand its observation tuple list
-              var (name, pObsList) = storedPhen.head
-              // remove the item from list
-              valuesList = valuesList diff List((name, pObsList))
-              pObsList = obsTuple :: pObsList
-              // add it back in
-              valuesList = (name, pObsList) :: valuesList
-            } else {
-              // add it in
-              valuesList = (phenName, List(obsTuple)) :: valuesList
-            }
-          } catch {
-            case ex: Exception => {
-                // don't add it to the list
-                logger.error("Unable to add a measured value for " + phenName + "\n\t" + ex.toString)
-            }
-          }
-        }
-      }
-      
-      if (valuesList.nonEmpty) {
-        Some(new StoretResponse(stationId, requestDate, valuesList))
-      } else {
-        None
-      }
-    }
-    
-    private def getResults(stationId : String, orgId : String, phenomenonName : String, startDate : String) : Option[scala.xml.Elem] = {
-      val xmlRequest = <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:srs="http://storetresultservice.storet.epa.gov/">
-                <soap:Body>
-                  <srs:getResults>
-                    <OrganizationId>{orgId}</OrganizationId>
-                    <MonitoringLocationId>{stationId}</MonitoringLocationId>
-                    <CharacteristicName>{phenomenonName}</CharacteristicName>
-                    <MinimumActivityStartDate>{startDate}</MinimumActivityStartDate>
-                    <MonitoringLocationType/><MaximumActivityStartDate/><MinimumLatitude/><MaximumLatitude/><MinimumLongitude/><MaximumLongitude/><CharacteristicType/><ResultType/>
-                  </srs:getResults>
-                </soap:Body>
-              </soap:Envelope>
-      val response = httpSender.sendPostMessage(resultURL, xmlRequest.toString)
-      if (response != null) {
-        val responseFix = response.toString.replaceAll("""(&lt;)""", """<""").replaceAll("""(&gt;)""", """>""").replaceAll("""<\?xml version=[\"]1.0[\"] encoding=[\"]UTF-8[\"]\?>""", "").replaceAll("\n", "")
-        loadXMLFromString(responseFix)
-      }
-      else
-        None
-  }
     
   private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -236,16 +229,5 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     calendar.getTime()
     
     return calendar
-  }
-  
-  private def loadXMLFromString(stringToLoad : String) : Option[scala.xml.Elem] = {
-    try {
-      Some(scala.xml.XML.loadString(stringToLoad))
-    } catch{
-      case ex: Exception => {
-          logger.error("Unable to load string into xml: " + stringToLoad + "\n" + ex.toString)
-          None
-      }
-    }
   }
 }

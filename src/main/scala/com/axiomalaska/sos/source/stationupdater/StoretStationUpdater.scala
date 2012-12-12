@@ -7,7 +7,6 @@ package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.BoundingBox
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
@@ -53,29 +52,35 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   
   private def getSourceStations(bbox: BoundingBox) : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-    // create the station request url by adding the bounding box
-    val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getLongitude + "," + bbox.southWestCorner.getLatitude + "," + bbox.northEastCorner.getLongitude + "," + bbox.northEastCorner.getLatitude
-    // try downloading the file ... this failed, now just load it into memory
-    val response = httpSender.sendGetMessage(requestURL)
-    if (response != null) {
-      val splitResponse = response.toString split '\n'
-      val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
-      stationResponse = filterCSV(removeFirstRow)
-      // go through the list, compiling all of the stations
-      for {
-        (stationLine, index) <- stationResponse.zipWithIndex
-        station <- createSourceStation(stationLine)
-        val sourceOP = getSourceObservedProperties(station)
-        val databaseObservedProperties =
-          stationUpdater.updateObservedProperties(source, sourceOP)
-        val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
-        if(sensors.nonEmpty)
-      } yield {
-        logger.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
-        (station, sensors)
+    try {
+      // create the station request url by adding the bounding box
+      val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getLongitude + "," + bbox.southWestCorner.getLatitude + "," + bbox.northEastCorner.getLongitude + "," + bbox.northEastCorner.getLatitude
+      // try downloading the file ... this failed, now just load it into memory
+      val response = httpSender.sendGetMessage(requestURL)
+      if (response != null) {
+        val splitResponse = response.toString split '\n'
+        val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
+        stationResponse = filterCSV(removeFirstRow)
+        // go through the list, compiling all of the stations
+        val retval = for {
+          (stationLine, index) <- stationResponse.zipWithIndex
+          station <- createSourceStation(stationLine)
+          if (!stationQuery.getStation(station.foreign_tag).isDefined)
+          val sourceOP = getSourceObservedProperties(station)
+          val databaseObservedProperties =
+            stationUpdater.updateObservedProperties(source, sourceOP)
+          val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
+          if(sensors.nonEmpty)
+        } yield {
+          logger.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
+          (station, sensors)
+        }
+        return retval
+      } else {
+        logger error "response to " + requestURL + " was null"
       }
-    } else {
-      logger error "response to " + requestURL + " was null"
+    } catch {
+      case ex: Exception => logger error ex.toString
     }
     
     Nil
@@ -83,16 +88,18 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private def createSourceStation(line: String) : Option[DatabaseStation] = {
     if (line != null) {
-      val name = getStationName(line)
-      val foreignTag = getStationTag(line)
+      // make sure that each string input is less than 255!!
+      val name = reduceLargeStrings(getStationName(line))
+      val foreignTag = reduceLargeStrings(getStationTag(line))
       // internal tag is the name, formatted
       val tag = nameToTag(name)
-      val description = getStationDescription(line)
-      val platformType = getStationType(line)
+      val description = reduceLargeStrings(getStationDescription(line))
+      val platformType = reduceLargeStrings(getStationType(line))
       val sourceId = source.id
       val lat = getStationLatitude(line)
       val lon = getStationLongitude(line)
       val active = true
+      
       
       return Some(new DatabaseStation(name,tag,foreignTag,description,platformType,sourceId,lat,lon,active))
     }
@@ -102,27 +109,40 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private def getSourceObservedProperties(station: DatabaseStation) : List[ObservedProperty] = {
     // get the results from wqp
     val organization = (station.foreign_tag split "-")
-    val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
-    logger info "Sending request: " + request
-    val response = httpSender.sendGetMessage(request)
-    if (response != null) {
-      val splitResponse = response.toString split '\n'
-      val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
-      resultResponse = filterCSV(removeFirstRow)
-      // get a list of characteristic names (phenomena)
-      val phenomena = getPhenomenaNameAndUnit(resultResponse)
-      // return a list of observedProperties
-      for {
-        phenomenon <- phenomena
-        if (!phenomenon._1.contains("text"))  // don't include phenomenon that are only textual descriptions (not actual measurements)
-        observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1)
-      } yield {
-        observedProp
+    // skip this organization since it has several hundred stations, all empty
+    if (organization.head.equalsIgnoreCase("1117MBR"))
+      return Nil
+    
+    try {
+      val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
+      logger info "Sending request: " + request
+      val response = httpSender.sendGetMessage(request)
+      if (response != null) {
+        val splitResponse = response.toString split '\n'
+        val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
+        resultResponse = filterCSV(removeFirstRow)
+        // get a list of characteristic names (phenomena)
+        val phenomena = getPhenomenaNameUnitDepths(resultResponse)
+        // return a list of observedProperties
+        val propertylistlist = for {
+          phenomenon <- phenomena
+          if (!phenomenon._1.contains("text"))  // don't include phenomenon that are only textual descriptions (not actual measurements)
+        } yield {
+          for {
+            depth <- phenomenon._3
+            observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1, depth)
+          } yield {
+            observedProp
+          }
+        }
+        return propertylistlist.flatten
+      } else {
+        logger error "Unable to process previous request"
       }
-    } else {
-      logger error "Unable to process previous request"
-      Nil
+    } catch {
+      case ex: Exception => logger error ex.toString
     }
+    Nil
   }
   
   private def filterCSV(csv: List[String]) : List[String] = {
@@ -136,6 +156,13 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         }
         newString filter ( _ != '\0' )
       } }
+  }
+  
+  private def reduceLargeStrings(str: String) : String = {
+    if (str.length > 254)
+      str.substring(0, 255)
+    else
+      str
   }
   
   private def fixUnitsString(units: String) : String = {
@@ -199,14 +226,21 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
   }
   
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, depth: String) : Option[ObservedProperty] = {
     try {
       var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
       var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      var ddepth: Double = 0
+      try {
+        ddepth = java.lang.Double.parseDouble(depth)
+      } catch {
+        case ex: Exception => logger warn ex.toString
+      }
+      
       if (localPhenom.databasePhenomenon.id < 0) {
         localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
       }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id,ddepth))
     } catch {
       case ex: Exception => {}
     }
@@ -220,12 +254,21 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     stationQuery.createPhenomenon(dbPhenom)
   }
   
-  private def getPhenomenaNameAndUnit(station: List[String]) : List[(String,String)] = {
+  private def getPhenomenaNameUnitDepths(station: List[String]) : List[(String,String,List[String])] = {
     // go through the results and get the names of all lines w/o 'Non-detect'
     val splitLines = station filter { !_.contains("Non-detect") } map { _.split(",") }
     // 'charactername' is at index 31, 'units' string is index 34
-    val phenomMap = (splitLines map { _.zipWithIndex }) map { s => s.foldRight("",0,"")((n,o) => n._2 match { case 31 => (n._1,o._2,o._3); case 34 => (o._1,o._2,n._1); case _ => (o._1,o._2,o._3) } ) }
-    phenomMap.groupBy( _._1 ).map( sl => (sl._1,sl._2.head._3) ).toList
+    val phenomMap = (splitLines map { _.zipWithIndex }) map { s => s.foldRight("","","")((nindex,retval) => nindex._2 match {
+          case 31 => (nindex._1,retval._2,retval._3)
+          case 34 => (retval._1,nindex._1,retval._3)
+          case 12 => (retval._1,retval._2,nindex._1)
+          case _ => retval
+        } ) }
+    phenomMap.groupBy( _._1 ).map( sl => {
+        val depths = sl._2.map(m => m._3)
+        val unitcode = sl._2.head._2
+        (sl._1,unitcode,depths)
+      } ).toList
   }
   
   private def getStationName(station: String) : String = {

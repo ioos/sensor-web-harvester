@@ -8,6 +8,22 @@ import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
 
+case class Properties(val sosUrl: String,
+      val country: String,
+      val email: String,
+      val name: String,
+      val webAddress: String,
+      val databaseUrl: String,
+      val databaseUsername: String,
+      val databasePassword: String,
+      val northLat: Double,
+      val southLat: Double,
+      val westLon: Double,
+      val eastLon: Double,
+      val sources: String,
+      val isoTemplate: String,
+      val isoLocation: String)
+
 object Main {
 
   def main(args: Array[String]) {
@@ -30,14 +46,18 @@ object Main {
         updateMetadata(properties, logger)
       } else if (tag == "-updatesos") {
         updateSos(properties, logger)
+      } else if (tag == "-writeiso") {
+        writeISOFiles(properties, logger)
       } else{
     	logger.info("Must be a -metadata [properties file] \n" + 
-          "or -updatesos [properties file]")
+          "or -updatesos [properties file]\n" + 
+          "or -writeiso [properties file]")
       }
     }
     else{
     	logger.info("Must be a -metadata [properties file] \n" + 
-          "or -updatesos [properties file]")
+          "or -updatesos [properties file]\n" + 
+          "or -writeiso [properties file]")
     }
     
     if (timerBegin != null) {
@@ -46,83 +66,117 @@ object Main {
    }
   }
   
-//  def main(args: Array[String]) {
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
-//    
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new HadsStationUpdater(stationQuery, BoundingBox(new Location(39.0, -80.0), 
-//        new Location(40.0, -74.0)))
-//      stationUpdater.update()
-//    })
-//  }
-  
   private def updateMetadata(properties:PropertiesConfiguration, logger: Logger){
-      val databaseUrl = properties.getString("database_url")
-      val databaseUsername = properties.getString("database_username")
-      val databasePassword = properties.getString("database_password")
-      val northLat = properties.getDouble("north_lat")
-      val southLat = properties.getDouble("south_lat")
-      val westLon = properties.getDouble("west_lon")
-      val eastLon = properties.getDouble("east_lon")
-      var sources = "all"
+//      val databaseUrl = properties.getString("database_url")
+//      val databaseUsername = properties.getString("database_username")
+//      val databasePassword = properties.getString("database_password")
+//      val northLat = properties.getDouble("north_lat")
+//      val southLat = properties.getDouble("south_lat")
+//      val westLon = properties.getDouble("west_lon")
+//      val eastLon = properties.getDouble("east_lon")
+//      var sources = "all"
+//      
+//      if (properties.containsKey("sources"))
+//        sources = properties.getString("sources")
+//        
+    val propertiesRead = readProperties(properties)
       
-      if (properties.containsKey("sources"))
-        sources = properties.getString("sources")
-      
-      logger.info("Database URL: " + databaseUrl)
-      logger.info("Database Username: " + databaseUsername)
-      logger.info("Database Password: " + databasePassword)
-      
-      logger.info("North Lat: " + northLat)
-      logger.info("South Lat: " + southLat)
-      logger.info("West Lon: " + westLon)
-      logger.info("East Lon: " + eastLon)
-      
-      logger.info("Sources Used: " + sources)
-      
-      val southWestCorner = new Location(southLat, westLon)
-      val northEastCorner = new Location(northLat, eastLon)
-      val boundingBox = BoundingBox(southWestCorner, northEastCorner)
-      val metadataDatabaseManager = new MetadataDatabaseManager(
-        databaseUrl, databaseUsername, databasePassword, boundingBox, sources.toLowerCase, logger)
-      
-      metadataDatabaseManager.update()
+    logger.info("Database URL: " + propertiesRead.databaseUrl)
+    logger.info("Database Username: " + propertiesRead.databaseUsername)
+    logger.info("Database Password: " + propertiesRead.databasePassword)
+
+    logger.info("North Lat: " + propertiesRead.northLat)
+    logger.info("South Lat: " + propertiesRead.southLat)
+    logger.info("West Lon: " + propertiesRead.westLon)
+    logger.info("East Lon: " + propertiesRead.eastLon)
+
+    logger.info("Sources Used: " + propertiesRead.sources)
+
+    val southWestCorner = new Location(propertiesRead.southLat, propertiesRead.westLon)
+    val northEastCorner = new Location(propertiesRead.northLat, propertiesRead.eastLon)
+    val boundingBox = BoundingBox(southWestCorner, northEastCorner)
+    val metadataDatabaseManager = new MetadataDatabaseManager(
+      propertiesRead.databaseUrl, propertiesRead.databaseUsername, propertiesRead.databasePassword,
+      boundingBox, propertiesRead.sources.toLowerCase, logger)
+
+    metadataDatabaseManager.update()
   }
   
   private def updateSos(properties:PropertiesConfiguration, logger: Logger){
-      val sosUrl = properties.getString("sos_url")
-      val databaseUrl = properties.getString("database_url")
-      val databaseUsername = properties.getString("database_username")
-      val databasePassword = properties.getString("database_password")
-      val country = properties.getString("publisher_country", "country")
-      val email = properties.getString("publisher_email", "email")
-      val name = properties.getString("publisher_name", "name")
-      val webAddress = properties.getString("publisher_web_address", "web_address")
-      var sources: String = "all"
+//      val sosUrl = properties.getString("sos_url")
+//      val databaseUrl = properties.getString("database_url")
+//      val databaseUsername = properties.getString("database_username")
+//      val databasePassword = properties.getString("database_password")
+//      val country = properties.getString("publisher_country", "country")
+//      val email = properties.getString("publisher_email", "email")
+//      val name = properties.getString("publisher_name", "name")
+//      val webAddress = properties.getString("publisher_web_address", "web_address")
+//      var sources: String = "all"
+//      
+//      if (properties.containsKey("sources"))
+//        sources = properties.getString("sources")
       
-      if (properties.containsKey("sources"))
-        sources = properties.getString("sources")
+    val propertiesRead = readProperties(properties)
       
-      logger.info("SOS URL: " + sosUrl)
-      logger.info("Database URL: " + databaseUrl)
-      logger.info("Database Username: " + databaseUsername)
-      logger.info("Database Password: " + databasePassword)
-      logger.info("country: " + country)
-      logger.info("email: " + email)
-      logger.info("name: " + name)
-      logger.info("webAddress: " + webAddress)
+    logger.info("SOS URL: " + propertiesRead.sosUrl)
+    logger.info("Database URL: " + propertiesRead.databaseUrl)
+    logger.info("Database Username: " + propertiesRead.databaseUsername)
+    logger.info("Database Password: " + propertiesRead.databasePassword)
+    logger.info("country: " + propertiesRead.country)
+    logger.info("email: " + propertiesRead.email)
+    logger.info("name: " + propertiesRead.name)
+    logger.info("webAddress: " + propertiesRead.webAddress)
       
-      val publisherInfo = new PublisherInfoImp()
-      publisherInfo.setCountry(country)
-      publisherInfo.setEmail(email)
-      publisherInfo.setName(name)
-      publisherInfo.setWebAddress(webAddress)
+    val publisherInfo = new PublisherInfoImp()
+    publisherInfo.setCountry(propertiesRead.country)
+    publisherInfo.setEmail(propertiesRead.email)
+    publisherInfo.setName(propertiesRead.name)
+    publisherInfo.setWebAddress(propertiesRead.webAddress)
       
-      val sosManager = new SosSourcesManager(databaseUrl,
-        databaseUsername, databasePassword, sosUrl, publisherInfo, sources, logger);
+    val sosManager = new SosSourcesManager(propertiesRead.databaseUrl, propertiesRead.databaseUsername,
+                                           propertiesRead.databasePassword, propertiesRead.sosUrl,
+                                           publisherInfo, propertiesRead.sources, logger)
 
-      sosManager.updateSos();
+    sosManager.updateSos()
+  }
+  
+  private def writeISOFiles(properties: PropertiesConfiguration, logger: Logger) = {
+    val propertiesRead = readProperties(properties)
+    
+    logger.info("Sources used: " + propertiesRead.sources)
+    logger.info("ISO Template: " + propertiesRead.isoTemplate)
+    logger.info("ISO Write Location: " + propertiesRead.isoLocation)
+    logger.info("Database URL: " + propertiesRead.databaseUrl)
+    logger.info("Database Username: " + propertiesRead.databaseUsername)
+    logger.info("Database Password: " + propertiesRead.databasePassword)
+    
+    val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
+                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, logger)
+    
+    isoManager.writeISOs()
+  }
+  
+  private def readProperties(properties: PropertiesConfiguration) : Properties = {
+    val sosUrl = properties.getString("sos_url")
+    val databaseUrl = properties.getString("database_url")
+    val databaseUsername = properties.getString("database_username")
+    val databasePassword = properties.getString("database_password")
+    val country = properties.getString("publisher_country", "country")
+    val email = properties.getString("publisher_email", "email")
+    val name = properties.getString("publisher_name", "name")
+    val webAddress = properties.getString("publisher_web_address", "web_address")
+    var sources: String = "all"
+    val northLat = properties.getDouble("north_lat")
+    val southLat = properties.getDouble("south_lat")
+    val westLon = properties.getDouble("west_lon")
+    val eastLon = properties.getDouble("east_lon")
+    val isoTemplate = properties.getString("iso_template")
+    val isoLocation = properties.getString("iso_write_location")
+
+    if (properties.containsKey("sources"))
+      sources = properties.getString("sources")
+      
+    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation)
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

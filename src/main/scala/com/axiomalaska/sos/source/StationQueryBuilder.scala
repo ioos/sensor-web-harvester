@@ -48,6 +48,7 @@ trait StationQuery{
   def createSource(name: String, tag:String): Source
   def getSource(id:Long):Source
   def getStation(id:Long): DatabaseStation
+  def getStation(foreign_tag:String): Option[DatabaseStation]
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
   def getAllPhenomena():List[DatabasePhenomenon]
@@ -188,6 +189,12 @@ private class StationQueryImp(url:String,
   def getStation(id:Long): DatabaseStation = {
     using(session) {
       return StationDatabase.stations.lookup(id).get
+    }
+  }
+  
+  def getStation(foreign_tag: String): Option[DatabaseStation] = {
+    using(session) {
+      return StationDatabase.stations.where(station => station.foreign_tag === foreign_tag).headOption
     }
   }
   

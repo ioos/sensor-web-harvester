@@ -41,13 +41,6 @@ class SosSourcesManager(
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, publisherInfo, sources.toLowerCase, logger)
-      
-        // stupidly hacky approach here only temporary
-//      val isoWriter = new NdbcIsoWriter(stationQuery, "./iso", logger)
-//      val isoAdapter = new ISOWriterAdapter(isoWriter)
-//      val stationRetv = new SourceStationRetriever(stationQuery, 4, logger)
-//      stationRetv.getStations.foreach(s => isoAdapter.writeISOFileForStation(s))
-      //////////////////////////////////////////////////////////////////////////////////
 
       // load phenomenon
       val phenomena = stationQuery.getPhenomena
