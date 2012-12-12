@@ -33,7 +33,7 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads.
 
 Then restore the backup to a PostgreSQL database.
 
@@ -59,9 +59,9 @@ jdbc:postgresql://localhost:5432/sensor-metadata
 Running the SOS Injector
 -----------
 The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
-[Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads) on Github. 
+[Downloads folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads) on Github. 
 
-The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
+The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The network root is the default network in the SOS that contains all the stations. This network is different for each SOS. For example for AOOS the defaut network is urn:ioos:network:aoos:all. The properties file requires the following variables:
 * database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor-metadata
 * database_username - the username used to access the metadata database
 * database_password - the password associated to the database_username
@@ -74,6 +74,8 @@ The command line takes in a properties file which contains all of the needed var
 * south_lat - the southernmost latitude of the bounding box
 * west_lon - the westernmost longitude of the bounding box
 * east_lon - the easternmost longitude of the bounding box
+* network_root_id - For this root network urn:ioos:network:aoos:all "all" is the root_id
+* network_root_source_id - For this root network urn:ioos:network:aoos:all "aoos" is the source_id
 
 **Note that running these processes can take a long time (hours) as information is downloaded and extracted from many sources.**
 
@@ -107,12 +109,14 @@ Example of a properties file:
     south_lat = 39.0
     west_lon = -80.0
     east_lon = -74.0
+    network_root_id = all
+    network_root_source_id = aoos
 
-An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads).
+An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads Folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads).
 
 Writing Custom Java Code
 -----------
-This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.  
+This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.
 
     // Southern California Bounding Box
     Location southWestCorner = new Location(32.0, -123.0);
@@ -132,14 +136,18 @@ This is example code demonstrating how to update the metadata database and the S
     metadataManager.update();
     
     // Information about the group publishing this data on the SOS. 
-    PublisherInfo publisherInfo = new PublisherInfoImp();
+    PublisherInfoImp publisherInfo = new PublisherInfoImp();
     publisherInfo.setCountry("USA");
     publisherInfo.setEmail("publisher@domain.com");
     publisherInfo.setName("IOOS");
     publisherInfo.setWebAddress("http://www.ioos.gov/");
+
+    SosNetworkImp rootNetwork = new SosNetworkImp()
+    rootNetwork.setId("all")
+    rootNetwork.setSourceId("aoos")
     
     SosSourcesManager sosManager = new SosSourceManager(databaseUrl, 
-    	databaseUsername, databasePassword, sosUrl, publisherInfo);
+    	databaseUsername, databasePassword, sosUrl, publisherInfo, rootNetwork);
     	
     // Updates the SOS with data pulled from the source sites. 
     // This uses the metadata database

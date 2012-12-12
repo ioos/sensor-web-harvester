@@ -3,7 +3,6 @@
 # Package Files #
 *.war
 *.ear
-*.jar
 *.tar
 *.log
 .cache
@@ -11,4 +10,3 @@
 .project
 .settings
 target
-*sos.properties
