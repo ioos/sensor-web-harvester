@@ -36,6 +36,33 @@ case class ServiceIdentificationOperations(val opName: String,
                                            val cpDesc: String,
                                            val cpFunction: String = "download")
 
+case class DataIdentification(val idAbstract: String,
+                              val citation: DataIdentificationCitation,
+                              val keywords: List[String],
+                              val aggregate: DataIdentificationAggregate,
+                              val extent: ServiceIdentificationExtent)
+                              
+case class DataIdentificationCitation(val title: String)
+
+case class DataIdentificationAggregate(val title: String,
+                                       val code: String)
+
+
+case class Contact(val indivName: String,
+                   val orgName: String,
+                   val phone: String,
+                   val address: String,
+                   val city: String,
+                   val state: String,
+                   val postal: String,
+                   val email: String,
+                   val webId: String,
+                   val webAddress: String,
+                   val role: String = "pointOfContact")
+
+case class Dimension(val name: String,
+                     val descript: String)
+
 class ISOWriterImpl(private val stationQuery: StationQuery,
     private val templateFile: String,
     private val isoWriteDirectory: String,
@@ -44,85 +71,53 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   private val currentDate = Calendar.getInstance
   
   private var lstation: LocalStation = null
+  private var serviceIdentification: List[ServiceIdentification] = Nil
+  private var contacts: List[Contact] = Nil
+  private var fileIdentifier: String = ""
+  private var dataIdentification: DataIdentification = null
+  private var dimensions: List[Dimension] = Nil
   
   def writeISOFile(station: LocalStation) {
     lstation = station
     val file = new java.io.File(templateFile)
-    logger info file.getPath
-    logger info file.getAbsolutePath
-    // do any initial info gathering, also can return T/F on whether or not
-    // setup was successful
-    if (initialSetup(station)) {
-      // read in template
-      val isoTemplate = readInTemplate
-      isoTemplate match {
-        case Some(isoTemplate) => {
-            // collect necessary information...
-            val stationName = getStationName(station)
-            val stationID = getStationID(station)
-            val geoPosition = getStationGeographicExtents(station)
-            val tempPosition = getStationTemporalExtents(station)
-            val stationAbstract = getStationAbstract(station)
-            val sensorTagAndNames = getSensorTagsAndNames(station)
-            // write the to the xml
-            // write the extents
-            var finishedXML = writeIdentificationInfoData(isoTemplate, stationName, stationID, stationAbstract, geoPosition, tempPosition)
-            // write the service identification
-            if (checkToAddServiceIdent) {
-              val (serviceTitle, orgName, role, serviceType, url, serviceDescription) = getServiceInformation(station)
-              finishedXML = writeIdentificationInfoService(finishedXML.head, serviceTitle, orgName, role, stationAbstract, serviceType, geoPosition, tempPosition, url, serviceTitle, serviceDescription)
-            }
-            // write the keywords and contentinfo
-            finishedXML = writeContentInfo(finishedXML.head, sensorTagAndNames)
-            // write the xml to file
-            val source = station.getSource
-            // check to see if a directory with the source name exists
-            val sourceDir = new File(isoWriteDirectory + "/" + source.getName)
-            if (!sourceDir.exists) {
-              if (!sourceDir.mkdir)
-                if (!sourceDir.mkdirs)
-                  logger error "Could not make directory " + sourceDir.getAbsolutePath + " !!!"
-            }
-            val fileName = sourceDir.getPath + "/" + station.getId + ".xml"
-            try {
-              scala.xml.XML.save(fileName, finishedXML.head)
-              logger info "wrote iso file to " + fileName
-            } catch {
-              case ex: Exception => logger error ex.toString
-            }
-        }
-        case None => {
-            // unable to load template
-            logger error "Unable to load the template for station " + station.getId
-        }
+    
+    if (!initialSetup(station)) {
+      logger error "Could not setup for iso writer"
+      return
+    }
+    
+    val source = station.getSource
+    // check to see if a directory with the source name exists
+    val sourceDir = new File(isoWriteDirectory + "/" + source.getName)
+    if (!sourceDir.exists) {
+      if (!sourceDir.mkdir)
+        if (!sourceDir.mkdirs)
+          logger error "Could not make directory " + sourceDir.getAbsolutePath + " !!!"
+    }
+    val fileName = sourceDir.getPath + "/" + station.getId + ".xml"    
+    serviceIdentification = getServiceInformation(station)
+    contacts = getContacts(station)
+    fileIdentifier = getFileIdentifier(station)
+    dataIdentification = getDataIdentification(station)
+    dimensions = getSensorTagsAndNames(station).map(d => new Dimension(d._2,d._1))
+    val outNode = writeISOOutput
+    try {
+      val doc = new ElemExtras(outNode, logger).toJdkDoc
+      val file = new java.io.File(fileName)
+      file.createNewFile
+      val writer = new java.io.FileWriter(file)
+      XmlHelpers.writeXMLPrettyPrint(doc, writer)
+      logger info "wrote iso file to " + fileName
+    } catch {
+      case ex: Exception => {
+          logger error ex.toString
+          ex.printStackTrace()
       }
-    } else {
-      logger error "Iso writing was aborted during initial setup"
     }
   }
   
   // The below should be overwritten in the subclasses /////////////////////////
   protected def initialSetup(station: LocalStation) : Boolean = { true }
-  
-  protected def getStationName(station: LocalStation) : String = {
-    station.getName()
-  }
-  
-  protected def getStationID(station: LocalStation) : String = {
-    station.getId()
-  }
-
-  protected def getStationGeographicExtents(station: LocalStation) : (Double,Double) = {
-    (station.getLocation.getLatitude(), station.getLocation.getLongitude())
-  }
-  
-  protected def getStationTemporalExtents(station: LocalStation) : (Calendar,Calendar) = {
-    (currentDate, currentDate)
-  }
-  
-  protected def getStationAbstract(station: LocalStation) : String = {
-    station.getDescription()
-  }
   
   protected def getSensorTagsAndNames(station: LocalStation) : List[(String,String)] = {
     val retval = for (i <- 0 until station.getSensors.size) yield {
@@ -136,11 +131,13 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     retval.toList.flatten
   }
   
-  protected def checkToAddServiceIdent : Boolean = {
-    false
-  }
-  
   protected def getServiceInformation(station: LocalStation) : List[ServiceIdentification] = {Nil}
+  
+  protected def getContacts(station: LocalStation) : List[Contact] = Nil
+  
+  protected def getFileIdentifier(station: LocalStation) : String = {null}
+  
+  protected def getDataIdentification(station: LocalStation) : DataIdentification = {new DataIdentification(null,null,Nil,null,null)}
   
   //////////////////////////////////////////////////////////////////////////////
   
@@ -153,70 +150,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           None
       }
     }
-  }
-  
-  private def writeIdentificationInfoData(xml: scala.xml.Elem, stName: String, stId: String,
-                                         stAbstract: String, geoPos: (Double,Double),
-                                         temporalPos: (Calendar,Calendar)) : Seq[scala.xml.Node] = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case lon: scala.xml.Elem if lon.label.toLowerCase.contains("longitude") => writeGCODecimal(lon, geoPos._2)
-        case lat: scala.xml.Elem if lat.label.toLowerCase.contains("latitude") => writeGCODecimal(lat, geoPos._1)
-        case pos: scala.xml.Elem if pos.label.toLowerCase.equals("ex_temporalextent") => writeGMLPositions(pos, temporalPos._1, temporalPos._2)
-        case dt: scala.xml.Elem if dt.label.toLowerCase.equals("ci_date") => writeGCODateTime(dt, currentDate)
-        case d: scala.xml.Elem if d.label.toLowerCase.equals("datestamp") => writeGCODate(d, currentDate)
-        case fi: scala.xml.Elem if fi.label.toLowerCase.equals("fileidentifier") => writeGCOCharacterString(fi, stId)
-        case title: scala.xml.Elem if title.label.toLowerCase.equals("title") => writeGCOCharacterString(title, stName)
-        case abst: scala.xml.Elem if abst.label.toLowerCase.equals("abstract") => writeGCOCharacterString(abst, stAbstract)
-        case auth: scala.xml.Elem if auth.label.toLowerCase.equals("authority") => auth   // authority shares a named node that we don't want to write to, skip it
-        case resp: scala.xml.Elem if resp.label.toLowerCase.equals("citedResponsibleParty") => addSourceCitedResponsibleParty(resp)
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    } transform xml
-  }
-  
-  private def writeIdentificationInfoService(xml: scala.xml.Node, serviceTitle: String, orgName: String,
-                                             role: String, sAbstract: String, serviceType: String,
-                                             geoPos: (Double,Double), temporalPos: (Calendar,Calendar),
-                                             url: String, srvName: String, description: String) : Seq[scala.xml.Node] = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case srv: scala.xml.Elem if srv.label.toLowerCase.contains("serviceidentification") => {
-          var elem = addServiceCitation(srv, serviceTitle, orgName, role)
-          elem = addServiceExtent(elem, sAbstract, serviceType, geoPos, temporalPos)
-          addServiceOperations(elem, serviceTitle, url, srvName, description)
-        }
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    } transform xml
-  }
-  
-  private def writeContentInfo(xml: scala.xml.Node, tandN: List[(String,String)]) : Seq[scala.xml.Node] = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case kywrds: scala.xml.Elem if kywrds.label.toLowerCase.equals("md_keywords") => {
-            var elem = kywrds
-            tandN foreach (t => elem = addKeyword(elem, t._2))
-            elem
-        }
-        case cvrg: scala.xml.Elem if cvrg.label.toLowerCase.equals("mi_coveragedescription") => {
-            var elem = cvrg
-            tandN foreach (tn => elem = addDimension(elem, tn._1, tn._2))
-            elem
-        }
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      } 
-    } transform xml
-  }
-  
-  private def addKeyword(node: scala.xml.Elem, sKeyword: String) : scala.xml.Elem = {
-    val newChild = <gmd:keyword>
-        <gco:CharacterString>{sKeyword}</gco:CharacterString>
-      </gmd:keyword>
-    scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
   }
   
   private def addDimension(node:scala.xml.Elem, tag: String, desc: String) : scala.xml.Elem = {
@@ -237,103 +170,60 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
   }
   
-  private def addSourceCitedResponsibleParty(node: scala.xml.Elem) : scala.xml.Elem = {
-    val source = lstation.getSource
+  private def addGLOSResponsibleParty() : scala.xml.Elem = {
     val newChild = <gmd:CI_ResponsibleParty>
-              <gmd:individualName gco:nilReason="unknown"/>
+              <gmd:individualName>
+                <gco:CharacterString>GLOS DMAC</gco:CharacterString>
+              </gmd:individualName>
               <gmd:organisationName>
-                <gco:CharacterString>{source.getName}</gco:CharacterString>
+                <gco:CharacterString>Great Lakes Observing System</gco:CharacterString>
               </gmd:organisationName>
               <gmd:contactInfo>
                 <gmd:CI_Contact>
-                  <gmd:phone gco:nilReason="unknown"/>
+                  <gmd:phone>
+                    <gmd:CI_Telephone>
+                      <gmd:voice>
+                        <gco:CharacterString>(734) 332-6113</gco:CharacterString>
+                      </gmd:voice>
+                    </gmd:CI_Telephone>
+                  </gmd:phone>
                   <gmd:address>
                     <gmd:CI_Address>
                       <gmd:deliveryPoint>
-                        <gco:CharacterString>{source.getAddress}</gco:CharacterString>
+                        <gco:CharacterString>229 Nickels Arcade</gco:CharacterString>
                       </gmd:deliveryPoint>
                       <gmd:city>
-                        <gco:CharacterString>{source.getCity}</gco:CharacterString>
+                        <gco:CharacterString>Ann Arbor</gco:CharacterString>
                       </gmd:city>
                       <gmd:administrativeArea>
-                        <gco:CharacterString>{source.getState}</gco:CharacterString>
+                        <gco:CharacterString>Michigan</gco:CharacterString>
                       </gmd:administrativeArea>
                       <gmd:postalCode>
-                        <gco:CharacterString>{source.getZipcode}</gco:CharacterString>
+                        <gco:CharacterString>48104</gco:CharacterString>
                       </gmd:postalCode>
                       <gmd:electronicMailAddress>
-                        <gco:CharacterString>{source.getEmail}</gco:CharacterString>
+                        <gco:CharacterString>dmac@glos.us</gco:CharacterString>
                       </gmd:electronicMailAddress>
                     </gmd:CI_Address>
                   </gmd:address>
+                  <gmd:onlineResource>
+                    <gmd:CI_OnlineResource id={"glos_url"}>
+                    <gmd:linkage>
+                      <gmd:URL>http://glos.us</gmd:URL>
+                    </gmd:linkage>
+                  </gmd:CI_OnlineResource>
+                </gmd:onlineResource>
                 </gmd:CI_Contact>
               </gmd:contactInfo>
               <gmd:role>
-                <gmd:CI_RoleCode>pointOfContact</gmd:CI_RoleCode>
+                <gmd:CI_RoleCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/CodeList/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
               </gmd:role>
             </gmd:CI_ResponsibleParty>
 
-    scala.xml.Elem(node.prefix, node.label, node.attributes, node.scope, node.child ++ newChild : _*)
-  }
-
-  private def writeGCODecimal(elem: scala.xml.Elem, decimal: Double) : scala.xml.Node = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case dec: scala.xml.Node if dec.label.toLowerCase.equals("decimal") =>
-          <gco:Decimal>{decimal.toString}</gco:Decimal>
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    }.transform(elem).head
+    newChild
   }
   
-  private def writeGMLPositions(elem: scala.xml.Elem, datetimeStart: Calendar, datetimeEnd: Calendar) : scala.xml.Node = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case start: scala.xml.Node if start.label.toLowerCase.equals("beginposition") && datetimeStart != null =>
-          <gml:beginPosition>{formatDateTime(datetimeStart)}</gml:beginPosition>
-        case end: scala.xml.Node if end.label.toLowerCase.equals("endposition") && datetimeEnd != null =>
-          <gml:endPosition>{formatDateTime(datetimeEnd)}</gml:endPosition>
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    }.transform(elem).head
-  }
-  
-  private def writeGCODateTime(elem: scala.xml.Elem, datetime: Calendar) : scala.xml.Node = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case dec: scala.xml.Node if dec.label.toLowerCase.equals("datetime") =>
-          <gco:DateTime>{formatDateTime(datetime)}</gco:DateTime>
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    }.transform(elem).head
-  }
-  
-  private def writeGCODate(elem: scala.xml.Elem, datetime: Calendar) : scala.xml.Node = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case dec: scala.xml.Node if dec.label.toLowerCase.equals("date") =>
-          <gco:Date>{formatDate(datetime)}</gco:Date>
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    }.transform(elem).head
-  }
-  
-  private def writeGCOCharacterString(elem: scala.xml.Elem, cstring: String) : scala.xml.Node = {
-    new scala.xml.transform.RewriteRule {
-      override def transform(n: scala.xml.Node): scala.xml.Node = n match {
-        case dec: scala.xml.Node if dec.label.toLowerCase.equals("characterstring") =>
-          <gco:CharacterString>{cstring}</gco:CharacterString>
-        case elem: scala.xml.Elem => elem copy(child = elem.child flatMap (this transform))
-        case other => other
-      }
-    }.transform(elem).head
-  }
-  
-  private def formatDateTime(datetime: Calendar) : String = datetime.get(Calendar.YEAR) + "-" +
+  protected def formatDateTime(datetime: Calendar) : String = datetime.get(Calendar.YEAR) + "-" +
     (if(datetime.get(Calendar.MONTH)+1 < 10) "0" else "") + (datetime.get(Calendar.MONTH)+1) + "-" +
       (if(datetime.get(Calendar.DAY_OF_MONTH) < 10) "0" else "") + datetime.get(Calendar.DAY_OF_MONTH) + "T" +
       (if(datetime.get(Calendar.HOUR_OF_DAY) < 10) "0" else "") +datetime.get(Calendar.HOUR_OF_DAY) + ":" +
@@ -342,10 +232,208 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       (if(datetime.get(Calendar.MILLISECOND) < 100) (if(datetime.get(Calendar.MILLISECOND) < 10) "00" else "0") else "") +
       datetime.get(Calendar.MILLISECOND) + "Z"
   
-  private def formatDate(date: Calendar) : String = date.get(Calendar.YEAR) + "-" +
+  protected def formatDate(date: Calendar) : String = date.get(Calendar.YEAR) + "-" +
     (if(date.get(Calendar.MONTH)+1 < 10) "0" else "") + (date.get(Calendar.MONTH) + 1) + "-" +
     (if(date.get(Calendar.DAY_OF_MONTH) < 10) "0" else "") + date.get(Calendar.DAY_OF_MONTH)
 
+  private def writeISOOutput() : scala.xml.Elem = {
+    val retval = 
+      <gmi:MI_Metadata xmlns:gmi="http://www.isotc211.org/2005/gmi" xmlns:srv="http://www.isotc211.org/2005/srv"
+        xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gsr="http://www.isotc211.org/2005/gsr"
+        xmlns:gss="http://www.isotc211.org/2005/gss" xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns:gts="http://www.isotc211.org/2005/gts" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xmlns:gml="http://www.opengis.net/gml/3.2" xmlns:xlink="http://www.w3.org/1999/xlink"
+        xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd"
+        xsi:schemaLocation="http://www.isotc211.org/2005/gmi http://www.ngdc.noaa.gov/metadata/published/xsd/schema.xsd">
+        <gmd:fileIdentifier>{addFileIdentifier(fileIdentifier)}</gmd:fileIdentifier>
+        <gmd:contact>{addGLOSResponsibleParty}</gmd:contact>
+        {
+          for (ct <- contacts) yield {
+            <gmd:contact>{addResponsibleParty(ct)}</gmd:contact>
+          }
+        }
+        <gmd:dateStamp>{addDateStamp}</gmd:dateStamp>
+        <gmd:metadataStandardName>{addMetadataStandardName}</gmd:metadataStandardName>
+        <gmd:metadataStandardVersion>{addMetadataStandardVersion}</gmd:metadataStandardVersion>
+        {
+          if (dataIdentification != null)
+            addDataIdentification(dataIdentification)
+        }
+        { for(srv <- serviceIdentification) yield {
+            addServiceIdentificationInfo(srv)
+          } }
+        <gmd:contentInfo>{addContentInfo}</gmd:contentInfo>
+      </gmi:MI_Metadata>
+    
+    return retval
+  }
+  
+  private def addFileIdentifier(fileIdent: String) : scala.xml.Elem = {
+    <gco:CharacterString>{fileIdent}</gco:CharacterString>
+  }
+  
+  private def addDateStamp() : scala.xml.Elem = {
+    <gco:Date>{formatDate(Calendar.getInstance)}</gco:Date>
+  }
+  
+  private def addMetadataStandardName() : scala.xml.Elem = {
+    <gco:CharacterString>ISO 19115-2 Geographic Information - Metadata Part 2 Extensions for imagery and gridded data</gco:CharacterString>
+  }
+  
+  private def addMetadataStandardVersion() : scala.xml.Elem = {
+    <gco:CharacterString>ISO 19115-2:2009(E)</gco:CharacterString>
+  }
+  
+  private def addDataIdentification(dI: DataIdentification) : scala.xml.Elem = {
+    <gmd:identificationInfo>
+      <gmd:MD_DataIdentification>
+        { addDataCitation(dI.citation) }
+        {
+          if (dI.idAbstract != null && dI.idAbstract != "")
+            <gmd:abstract>
+              <gco:CharacterString>{dI.idAbstract}</gco:CharacterString>
+            </gmd:abstract>
+          else
+            <gmd:abstract gco:nilReason="missing" />
+        }
+        {
+          if (dI.keywords.nonEmpty)
+            <gmd:descriptiveKeywords>
+              <gmd:MD_Keywords>
+                {dI.keywords.map(addKeyword(_))}
+              </gmd:MD_Keywords>
+            </gmd:descriptiveKeywords>
+        }
+        <gmd:language>
+          <gco:CharacterString>eng</gco:CharacterString>
+        </gmd:language>
+        <gmd:topicCategory>
+          <gmd:MD_TopicCategoryCode>inlandWaters</gmd:MD_TopicCategoryCode>
+        </gmd:topicCategory>
+        <gmd:extent>{addServiceExtent(dI.extent)}</gmd:extent>
+      </gmd:MD_DataIdentification>
+    </gmd:identificationInfo>
+  }
+  
+  private def addKeyword(kywrd: String) : scala.xml.Elem = {
+    <gmd:keyword>
+      <gco:CharacterString>{kywrd}</gco:CharacterString>
+    </gmd:keyword>
+  }
+  
+  private def addDataCitation(citation: DataIdentificationCitation) = {
+    if (citation != null) {
+      <gmd:citation>
+        <gmd:CI_Citation>
+          <gmd:title>
+            <gco:CharacterString>{citation.title}</gco:CharacterString>
+          </gmd:title>
+          <gmd:date>
+            <gmd:CI_Date>
+              <gmd:date>
+                <gco:DateTime>{formatDateTime(Calendar.getInstance)}</gco:DateTime>
+              </gmd:date>
+              <gmd:dateType gco:nilReason="unknown" />
+            </gmd:CI_Date>
+          </gmd:date>
+        </gmd:CI_Citation>
+      </gmd:citation>
+    } else {
+      <gmd:citation gco:nilReason="missing" />
+    }
+  }
+  
+  private def addResponsibleParty(contact: Contact) : scala.xml.Elem = {
+    <gmd:CI_ResponsibleParty>
+      { if (contact.indivName != null && contact.indivName != "")
+          <gmd:individualName>
+            <gco:CharacterString>{contact.indivName}</gco:CharacterString>
+          </gmd:individualName>
+         else
+           <gmd:individualName gco:nilReason="missing" />
+      }
+      { if (contact.orgName != null && contact.orgName != "")
+          <gmd:organisationName>
+            <gco:CharacterString>{contact.orgName}</gco:CharacterString>
+          </gmd:organisationName>
+         else
+           <gmd:organisationName gco:nilReason="missing" />
+      }
+      <gmd:contactInfo>
+        <gmd:CI_Contact>
+          { if (contact.phone != null && contact.phone != "")
+              <gmd:phone>
+                  <gmd:CI_Telephone>
+                    <gmd:voice>
+                      <gco:CharacterString>{contact.phone}</gco:CharacterString>
+                    </gmd:voice>
+                  </gmd:CI_Telephone>
+              </gmd:phone>
+            else
+              <gmd:phone gco:nilReason="missing" />
+          }
+          <gmd:address>
+            <gmd:CI_Address>
+            { if (contact.address != null && contact.address != "")
+                <gmd:deliveryPoint>
+                    <gco:CharacterString>{contact.address}</gco:CharacterString>
+                </gmd:deliveryPoint>
+              else
+                <gmd:deliveryPoint gco:nilReason="missing" />
+            }
+            { if (contact.city != null && contact.city != "")
+                <gmd:city>
+                  <gco:CharacterString>{contact.city}</gco:CharacterString>
+                </gmd:city>
+              else
+                <gmd:city gco:nilReason="missing" />
+            }
+            { if (contact.state != null && contact.state != "")
+                <gmd:administrativeArea>
+                  <gco:CharacterString>{contact.state}</gco:CharacterString>
+                </gmd:administrativeArea>
+              else
+                <gmd:administrativeArea gco:nilReason="missing" />
+            }
+            { if (contact.postal != null && contact.postal != "")
+                <gmd:postalCode>
+                  <gco:CharacterString>{contact.postal}</gco:CharacterString>
+                </gmd:postalCode>
+              else
+                <gmd:postalCode gco:nilReason="missing" />
+            }
+            { if (contact.email != null && contact.email != "")
+                <gmd:electronicMailAddress>
+                  <gco:CharacterString>{contact.email}</gco:CharacterString>
+                </gmd:electronicMailAddress>
+              else
+                <gmd:electronicMailAddress gco:nilReason="missing" />
+            }
+            </gmd:CI_Address>
+          </gmd:address>
+          {
+            if (contact.webAddress != null && contact.webId != null && contact.webAddress != "")
+              <gmd:onlineResource>
+                <gmd:CI_OnlineResource id={contact.webId + "_url"}>
+                  <gmd:linkage>
+                    <gmd:URL>{contact.webAddress}</gmd:URL>
+                  </gmd:linkage>
+                </gmd:CI_OnlineResource>
+              </gmd:onlineResource>
+            else
+              <gmd:onlineResource gco:nilReason="missing" />
+          }
+        </gmd:CI_Contact>
+      </gmd:contactInfo>
+      { if (contact.role != null && contact.role != "")
+          <gmd:role>
+            <gmd:CI_RoleCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue={contact.role}>{contact.role}</gmd:CI_RoleCode>
+          </gmd:role>
+         else
+           <gmd:role gco:nilReason="missing" />
+      }
+    </gmd:CI_ResponsibleParty>
+  }
   
   private def addServiceIdentificationInfo(info: ServiceIdentification) : scala.xml.Elem = {
     val II = <gmd:identificationInfo>
@@ -353,13 +441,20 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         <gmd:citation>
           { addServiceCitation(info.citation) }
         </gmd:citation>
-        <gmd:abstract>{ info.srvAbstract }</gmd:abstract>
-        <srv:serviceType>{ info.serviceType }</srv:serviceType>
+        <gmd:abstract>
+          <gco:CharacterString>{ info.srvAbstract }</gco:CharacterString>
+        </gmd:abstract>
+        <srv:serviceType>
+            <gco:LocalName>{ info.serviceType }</gco:LocalName>
+        </srv:serviceType>
         <srv:extent>
           { addServiceExtent(info.extent) }
         </srv:extent>
+        <srv:couplingType>
+          <srv:SV_CouplingType codeList="http://www.tc211.org/ISO19139/resources/codeList.xml#SV_CouplingType" codeListValue="tight">tight</srv:SV_CouplingType>
+        </srv:couplingType>
         {for (op <- info.ops) yield {
-            addServiceOperations(op)
+            <srv:containsOperations>{addServiceOperations(op)}</srv:containsOperations>
           }}
       </srv:SV_ServiceIdentification>
     </gmd:identificationInfo>
@@ -374,17 +469,22 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           <gco:CharacterString>{citation.title}</gco:CharacterString>
         </gmd:title>
         <gmd:date>
-          <gmd:CI_Date gco:nilReason="unknown" />
+          <gmd:CI_Date>
+             <gmd:date gco:nilReason="unknown" />
+             <gmd:dateType gco:nilReason="unknown" />
+          </gmd:CI_Date>
         </gmd:date>
         <gmd:citedResponsibleParty>
-          <gmd:individualName gco:nilReason="missing"/>
-          <gmd:organisationName>
-            <gco:CharacterString>{citation.organizationName}</gco:CharacterString>
-          </gmd:organisationName>
-          <gmd:contactInfo gco:nilReason="missing"/>
-          <gmd:role>
-            <gmd:CI_RoleCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/CodeList/gmxCodelists.xml#CI_RoleCode" codeListValue={citation.role}>{citation.role}</gmd:CI_RoleCode>
-          </gmd:role>
+          <gmd:CI_ResponsibleParty>
+            <gmd:individualName gco:nilReason="missing"/>
+            <gmd:organisationName>
+              <gco:CharacterString>{citation.organizationName}</gco:CharacterString>
+            </gmd:organisationName>
+            <gmd:contactInfo gco:nilReason="missing"/>
+            <gmd:role>
+              <gmd:CI_RoleCode codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/CodeList/gmxCodelists.xml#CI_RoleCode" codeListValue={citation.role}>{citation.role}</gmd:CI_RoleCode>
+            </gmd:role>
+          </gmd:CI_ResponsibleParty>
         </gmd:citedResponsibleParty>
       </gmd:CI_Citation>
     
@@ -392,6 +492,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   }
 
   private def addServiceExtent(extent: ServiceIdentificationExtent) : scala.xml.Elem = {
+    val tpid = scala.util.Random.nextInt.toString
     val retval = <gmd:EX_Extent>
         <gmd:geographicElement>
           <gmd:EX_GeographicBoundingBox>
@@ -415,7 +516,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         <gmd:temporalElement>
           <gmd:EX_TemporalExtent>
             <gmd:extent>
-              <gml:TimePeriod>
+              <gml:TimePeriod id={tpid}>
                 { if (extent.timeBegin != null && extent.timeBegin != "") <gml:beginPosition>{extent.timeBegin}</gml:beginPosition>
                   else <gml:beginPosition indeterminatePosition="now"/> }
                 { if (extent.timeEnd != null && extent.timeEnd != "") <gml:endPosition>{extent.timeEnd}</gml:endPosition>
@@ -432,6 +533,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
             <gmd:maximumValue>
               <gco:Real>{ extent.vertMax }</gco:Real>
             </gmd:maximumValue>
+            <gmd:verticalCRS gco:nilReason="missing" />
           </gmd:EX_VerticalExtent>
         </gmd:verticalElement>
       </gmd:EX_Extent>
@@ -465,5 +567,31 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       </srv:SV_OperationMetadata>
       
     return retval
+  }
+  
+  private def addContentInfo() : scala.xml.Elem = {
+    <gmi:MI_CoverageDescription>
+      <gmd:attributeDescription gco:nilReason="unknown"></gmd:attributeDescription>
+      <gmd:contentType gco:nilReason="unknown"></gmd:contentType>
+      {
+        for (dim <- dimensions) yield {
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>{dim.name}</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown" />
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>{dim.descript}</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+        }
+      }
+    </gmi:MI_CoverageDescription>
   }
 }

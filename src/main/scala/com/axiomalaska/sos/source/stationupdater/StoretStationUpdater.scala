@@ -38,7 +38,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private var phenomenaList = stationQuery.getPhenomena
   
   var stationResponse: List[String] = null
-  var resultResponse: List[String] = null
+  var resultResponse: (String,List[String]) = ("",Nil)
   
   val name = "STORET"
 
@@ -59,8 +59,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val response = httpSender.sendGetMessage(requestURL)
       if (response != null) {
         val splitResponse = response.toString split '\n'
-        val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
-        stationResponse = filterCSV(removeFirstRow)
+        val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
+        stationResponse = filterCSV(meh)
+        logger.info("Collected " + stationResponse.size + " lines of metadata")
         // go through the list, compiling all of the stations
         val retval = for {
           (stationLine, index) <- stationResponse.zipWithIndex
@@ -75,12 +76,13 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
           logger.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
           (station, sensors)
         }
-        return retval
+        // filter out duplicate stations
+        return retval.groupBy(_._1).map(_._2.head).toList
       } else {
         logger error "response to " + requestURL + " was null"
       }
     } catch {
-      case ex: Exception => logger error ex.toString
+      case ex: Exception => logger error ex.toString; ex.printStackTrace()
     }
     
     Nil
@@ -99,8 +101,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val lat = getStationLatitude(line)
       val lon = getStationLongitude(line)
       val active = true
-      
-      
       return Some(new DatabaseStation(name,tag,foreignTag,description,platformType,sourceId,lat,lon,active))
     }
     None
@@ -112,50 +112,59 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     // skip this organization since it has several hundred stations, all empty
     if (organization.head.equalsIgnoreCase("1117MBR"))
       return Nil
-    
-    try {
-      val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
-      logger info "Sending request: " + request
-      val response = httpSender.sendGetMessage(request)
-      if (response != null) {
-        val splitResponse = response.toString split '\n'
-        val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier"))
-        resultResponse = filterCSV(removeFirstRow)
-        // get a list of characteristic names (phenomena)
-        val phenomena = getPhenomenaNameUnitDepths(resultResponse)
-        // return a list of observedProperties
-        val propertylistlist = for {
-          phenomenon <- phenomena
-          if (!phenomenon._1.contains("text"))  // don't include phenomenon that are only textual descriptions (not actual measurements)
-        } yield {
-          for {
-            depth <- phenomenon._3
-            observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1, depth)
-          } yield {
-            observedProp
-          }
+
+    if (!resultResponse._1.equalsIgnoreCase(station.foreign_tag)) {
+      try {
+        val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
+        logger debug "Sending request: " + request
+        val response = httpSender.sendGetMessage(request)
+        if (response != null) {
+          val splitResponse = response.mkString.split('\n')
+          val removeFirstRow = splitResponse.filter(!_.contains("OrganizationIdentifier")).toList
+          resultResponse = (station.foreign_tag,filterCSV(removeFirstRow))
         }
-        return propertylistlist.flatten
-      } else {
-        logger error "Unable to process previous request"
+      } catch {
+        case ex: Exception => {
+            logger error ex.toString
+            ex.printStackTrace()
+            resultResponse = ("",Nil)
+        }
       }
-    } catch {
-      case ex: Exception => logger error ex.toString
     }
-    Nil
+    
+    if (resultResponse._2 == Nil)
+      return Nil
+    
+    val phenomena = getPhenomenaNameUnitDepths(resultResponse._2)
+    val proplistlist = for {
+      phenomenon <- phenomena
+      if (!phenomenon._1.contains("text"))
+    } yield {
+      for {
+        depth <- phenomenon._3
+        observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1, depth)
+      } yield {
+        observedProp
+      }
+    }
+  
+    proplistlist.flatten
   }
   
   private def filterCSV(csv: List[String]) : List[String] = {
       var inQuote: Boolean = false
-      csv map { l => {
+      csv.map( l => {
+//        logger.info("Line before filter:\n" + l)
         val newString = for (ch <- l) yield ch match {
-          case '"' if (!inQuote) => { inQuote = true; '\0' }
+          case '"' if (!inQuote) => { inQuote = true; '\1' }
           case ',' if (inQuote) => '\0'
-          case '"' if (inQuote) => { inQuote = false; '\0' }
+          case '"' if (inQuote) => { inQuote = false; '\1' }
           case default => default
         }
-        newString filter ( _ != '\0' )
-      } }
+        val ns = newString.filter(_ != '\1')
+//        logger.info("line after filter:\n" + ns)
+        ns
+      } )
   }
   
   private def reduceLargeStrings(str: String) : String = {
@@ -177,7 +186,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
-    logger.info("Looking for phenom " + name + " | " + units)
     if (lname.equals("ammonium") || lname.equals("ammonium as n")) {
       Phenomena.instance.AMMONIUM
     } else if (lname.equals("chlorophyll") || lname.equals("chlorophyll a free of pheophytin")) {
@@ -234,7 +242,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       try {
         ddepth = java.lang.Double.parseDouble(depth)
       } catch {
-        case ex: Exception => logger warn ex.toString
+        case ex: Exception => logger debug ex.toString
       }
       
       if (localPhenom.databasePhenomenon.id < 0) {
@@ -257,8 +265,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private def getPhenomenaNameUnitDepths(station: List[String]) : List[(String,String,List[String])] = {
     // go through the results and get the names of all lines w/o 'Non-detect'
     val splitLines = station filter { !_.contains("Non-detect") } map { _.split(",") }
+    val fixed = splitLines.map(_.map(_.replaceAll("\0", "")))
     // 'charactername' is at index 31, 'units' string is index 34
-    val phenomMap = (splitLines map { _.zipWithIndex }) map { s => s.foldRight("","","")((nindex,retval) => nindex._2 match {
+    val phenomMap = (fixed map { _.zipWithIndex }) map { s => s.foldRight("","","")((nindex,retval) => nindex._2 match {
           case 31 => (nindex._1,retval._2,retval._3)
           case 34 => (retval._1,nindex._1,retval._3)
           case 12 => (retval._1,retval._2,nindex._1)
@@ -274,25 +283,29 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private def getStationName(station: String) : String = {
       val splitLines = (station split ",")
       // okay so below allows us to search by index looking for the earliest instance of index 3
-      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 3 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 3 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      retval.replaceAll("\0", ",")
   }
   
   private def getStationTag(station: String) : String = {
       val splitLines = (station split ",")
       // okay so below allows us to search by index looking for the earliest instance of index 2
-      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 2 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 2 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      retval.replaceAll("\0", ",")
   }
   
   private def getStationDescription(station: String) : String = {
       val splitLines = (station split ",")
       // okay so below allows us to search by index looking for the earliest instance of index 5
-      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 5 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 5 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      retval.replaceAll("\0",",")
   }
   
   private def getStationType(station: String) : String = {
       val splitLines = (station split ",")
       // okay so below allows us to search by index looking for the earliest instance of index 4
-      (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 4 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 4 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+      retval.replaceAll("\0", ",")
   }
   
   private def getStationLatitude(station: String) : Double = {

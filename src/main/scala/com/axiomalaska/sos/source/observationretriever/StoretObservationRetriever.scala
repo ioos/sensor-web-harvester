@@ -38,7 +38,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     getStationResponse(station, startDate)
     
     if (storedStationResponse._2.isEmpty) {
-      logger error "No result for " + station.databaseStation.foreign_tag
+      logger info "No result for " + station.databaseStation.foreign_tag
       return Nil
     }
       
@@ -61,6 +61,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
   private def getStationResponse(station: LocalStation, startDate: Calendar) = {
     // check to see if it is in our stored station retriever
     if (!storedStationResponse._1.equals(station.getId)) {
+      logger info "Sending request for station " + station.databaseStation.foreign_tag
       // make request
       val siteid = station.databaseStation.foreign_tag
       val org = siteid.split("-").head
@@ -74,9 +75,9 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
   //      val response = scala.io.Source.fromFile("../Result.csv", "UTF-8").mkString
         if (response != null) {
           // add the filtered response to our stored request
-          val splitResponse = response.toString split '\n'
+          val splitResponse = response.mkString.split('\n')
           val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier")).filter(p => p.contains(station.databaseStation.foreign_tag))
-          storedStationResponse = (station.getId,filterCSV(removeFirstRow))
+          storedStationResponse = (station.getId,removeFirstRow)
         } else {
           logger warn "Response in getting station info was null"
           storedStationResponse = ("",Nil)
@@ -96,7 +97,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     csv map { l => {
       val newString = for (ch <- l) yield ch match {
         case '"' if (!inQuote) => { inQuote = true; '\0' }
-        case ',' if (inQuote) => '\0'
+        case '\t' if (inQuote) => '\0'
         case '"' if (inQuote) => { inQuote = false; '\0' }
         case default => default
       }
@@ -106,7 +107,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
   
   private def getValuesDateDepths(phenom: String) : List[(Calendar, Double, Double)] = {
     // get a grouping of the characteristic names (index 31)
-    val indexedLines = storedStationResponse._2.filter(!_.contains("Non-detect")).map(_.split(",")).map(_.zipWithIndex)
+    val indexedLines = storedStationResponse._2.filter(!_.contains("Non-detect")).map(_.split("\t")).map(_.zipWithIndex)
     // uggh, so i need like 6 indices from the info (3 of which are combined into one);
     // index 1: date-time, index 2: name, index 3: value, index 4: depth
     val valMap = indexedLines.map( s => s.foldLeft("","","","")((storedTuple,nextIndex) => nextIndex._2 match {
