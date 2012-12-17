@@ -15,6 +15,7 @@ import com.axiomalaska.sos.data.SosNetworkImp
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.observationretriever.NerrsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.NdbcSosObservationRetriever
 
 class ObservationUpdaterFactory {
 
@@ -142,7 +143,7 @@ class ObservationUpdaterFactory {
   /**
    * Build a NDBC ObservationUpdater
    */
-  def buildNdbcObservationUpdater(sosUrl: String, 
+  def buildNdbcFlatFileObservationUpdater(sosUrl: String, 
       stationQuery:StationQuery, publisherInfo:PublisherInfo, 
       logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
 
@@ -153,6 +154,23 @@ class ObservationUpdaterFactory {
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     
+    val observationUpdater = new ObservationUpdater(sosUrl,
+      logger, stationRetriever, publisherInfo, retrieverAdapter)
+    
+    return observationUpdater
+  }
+  
+  /**
+   * Build a NDBC SOS ObservationUpdater
+   */
+  def buildNdbcSosObservationUpdater(sosUrl: String, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
+
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.NDBC, logger)
+    val observationRetriever = new NdbcSosObservationRetriever(stationQuery, logger)
+                                   
+    val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
       logger, stationRetriever, publisherInfo, retrieverAdapter)
     

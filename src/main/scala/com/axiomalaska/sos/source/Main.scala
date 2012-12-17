@@ -7,6 +7,8 @@ import java.io.File
 import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
+import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
+import com.axiomalaska.sos.data.SosNetworkImp
 
 case class Properties(val sosUrl: String,
       val country: String,
@@ -22,7 +24,9 @@ case class Properties(val sosUrl: String,
       val eastLon: Double,
       val sources: String,
       val isoTemplate: String,
-      val isoLocation: String)
+      val isoLocation: String,
+      val rootNetworkId: String,
+      val rootNetworkSourceId: String)
 
 object Main {
 
@@ -126,18 +130,24 @@ object Main {
     logger.info("email: " + propertiesRead.email)
     logger.info("name: " + propertiesRead.name)
     logger.info("webAddress: " + propertiesRead.webAddress)
-      
+    logger.info("Root Network Id: " + propertiesRead.rootNetworkId)
+    logger.info("Root Network Source Id: " + propertiesRead.rootNetworkSourceId)
+
     val publisherInfo = new PublisherInfoImp()
     publisherInfo.setCountry(propertiesRead.country)
     publisherInfo.setEmail(propertiesRead.email)
     publisherInfo.setName(propertiesRead.name)
     publisherInfo.setWebAddress(propertiesRead.webAddress)
-      
-    val sosManager = new SosSourcesManager(propertiesRead.databaseUrl, propertiesRead.databaseUsername,
-                                           propertiesRead.databasePassword, propertiesRead.sosUrl,
-                                           publisherInfo, propertiesRead.sources, logger)
 
-    sosManager.updateSos()
+    val rootNetwork = new SosNetworkImp();
+    rootNetwork.setId(propertiesRead.rootNetworkId);
+    rootNetwork.setSourceId(propertiesRead.rootNetworkSourceId);
+
+    val sosManager = new SosSourcesManager(propertiesRead.databaseUrl,
+      propertiesRead.databaseUsername, propertiesRead.databasePassword, propertiesRead.sosUrl, publisherInfo, propertiesRead.sources,
+      rootNetwork, logger);
+
+    sosManager.updateSos();
   }
   
   private def writeISOFiles(properties: PropertiesConfiguration, logger: Logger) = {
@@ -172,11 +182,14 @@ object Main {
     val eastLon = properties.getDouble("east_lon")
     val isoTemplate = properties.getString("iso_template")
     val isoLocation = properties.getString("iso_write_location")
+    val rootNetworkId = properties.getString("root_network")
+    val rootNetworkSourceId = properties.getString("root_network_source")
 
     if (properties.containsKey("sources"))
       sources = properties.getString("sources")
       
-    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation)
+    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation,rootNetworkId,rootNetworkSourceId)
+
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

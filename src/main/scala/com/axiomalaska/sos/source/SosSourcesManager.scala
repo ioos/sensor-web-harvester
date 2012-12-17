@@ -9,6 +9,7 @@ import scala.util.Random
 import java.util.Calendar
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
+import com.axiomalaska.sos.data.SosNetwork
 
 import collection.JavaConversions._
 
@@ -28,6 +29,7 @@ class SosSourcesManager(
 	private val sosUrl:String, 
 	private val publisherInfo:PublisherInfo, 
         private val sources: String,
+	private val rootNetwork:SosNetwork,
 	private val logger: Logger = Logger.getRootLogger()) {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
@@ -57,7 +59,7 @@ class SosSourcesManager(
         
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
         logger.info("Running updater: " + observationUpdater.toString)
-        observationUpdater.update()
+        observationUpdater.update(rootNetwork)
       }
     })
   }

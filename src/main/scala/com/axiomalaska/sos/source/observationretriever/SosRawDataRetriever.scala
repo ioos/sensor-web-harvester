@@ -17,8 +17,8 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
   private val httpSender = new HttpSender()
   
-  def getRawData(serviceUrl:String, offeringTag:String, observedPropertyTag:String, 
-      stationForeignId:String, observedProperty:String, 
+  def getRawData(serviceUrl:String, 
+      stationPostFixName:String, observedProperty:String, 
       startDate: Calendar, endDate: Calendar): String = {
 
     logger.info("SNO-RAW: Collecting for station - " + stationForeignId)
@@ -29,8 +29,8 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     val beginPosition = formatDate.format(copyStartDate);
     val endPosition = formatDate.format(copyEndDate);
 
-    val offering = offeringTag + stationForeignId;
-    val observedPropertyFullName = observedPropertyTag + observedProperty
+    val offering = "urn:ioos:station:" + stationPostFixName;
+    
     val responseFormat = "text/xml;schema=\"ioos/0.6.1\"";
 
     val xb_getObsDoc = GetObservationDocument.Factory.newInstance();
@@ -58,7 +58,7 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     xb_getObs.setResponseFormat(responseFormat);
 
     val observedPropertyFullNames = new Array[String](1)
-    observedPropertyFullNames(0) = observedPropertyFullName
+    observedPropertyFullNames(0) = observedProperty
     xb_getObs.setObservedPropertyArray(observedPropertyFullNames);
 
     val xb_binTempOp = BinaryTemporalOpType.Factory.newInstance();
@@ -101,11 +101,11 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     return results;
   }
   
-  def getRawDataLatest(serviceUrl:String, offeringTag:String, observedPropertyTag:String, 
-      stationForeignId:String, observedProperty:String): String = {
+  def getRawDataLatest(serviceUrl:String, 
+      stationPostFixName:String, 
+      observedProperty:String): String = {
 
-    val offering = offeringTag + stationForeignId;
-    val observedPropertyFullName = observedPropertyTag + observedProperty
+    val offering = "urn:ioos:station:" + stationPostFixName;
     val responseFormat = "text/xml;schema=\"ioos/0.6.1\"";
 
     val xb_getObsDoc = GetObservationDocument.Factory.newInstance();
@@ -133,7 +133,7 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     xb_getObs.setResponseFormat(responseFormat);
 
     val observedPropertyFullNames = new Array[String](1)
-    observedPropertyFullNames(0) = observedPropertyFullName
+    observedPropertyFullNames(0) = observedProperty
     xb_getObs.setObservedPropertyArray(observedPropertyFullNames);
 
     xb_getObs.setResultModel((new QName("http://www.opengis.net/gml",

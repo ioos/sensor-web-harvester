@@ -50,7 +50,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
   private val foreignIdParser = """.*<a href="http://www\.wcc\.nrcs\.usda\.gov/nwcc/site\?sitenum=(\d+)">Site Info</a>.*""".r
   private val labelParser = """.*<font size="\+2">.*: (.*)</font>.*""".r
   private val geoTools = new GeoTools()
-
+      
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -179,7 +179,8 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
     val foreignIdParser(foreignId) = descriptionText
     val labelParser(label) = descriptionText
 
-    return new DatabaseStation(label, foreignId, foreignId, "", "FIXED MET STATION", source.id, lat, lon)
+    return new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, 
+        "", "FIXED MET STATION", source.id, lat, lon)
   }
   
   private def createStations(): List[DatabaseStation] = {

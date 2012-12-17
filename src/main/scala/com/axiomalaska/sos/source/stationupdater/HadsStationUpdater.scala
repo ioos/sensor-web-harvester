@@ -135,8 +135,9 @@ class HadsStationUpdater(
     logger.info("Collected Metadata for station: " + label)
     
     return getLatLon(foreignId) match {
-      case Some((lat, lon)) => Some(new DatabaseStation(label, foreignId, 
-          foreignId, "", "FIXED MET STATION", source.id, lat, lon))
+      case Some((lat, lon)) => Some(new DatabaseStation(label, 
+          source.tag + ":" + foreignId, foreignId, "", 
+          "FIXED MET STATION", source.id, lat, lon))
       case _ => None
     }
   }

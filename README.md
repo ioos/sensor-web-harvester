@@ -1,9 +1,8 @@
 #sensor-web-harvester#
 ====================
-sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an
-SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a
-project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The
-sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
+###New Custom Network/Offerings read more at the bottom###
+
+sensor-web-harvester is a Scala project that harvests sensor data from web sources. The data is then pushed to an SOS using the [sos-injection module](https://github.com/axiomalaska/sos-injection) project. SosInjector is a project that wraps an [Sensor Observation Service (SOS)](http://52north.org/communities/sensorweb/sos/). The sos-injection module provides Java classes to enter stations, sensors, and observations into an SOS.
 
 sensor-web-harvester is used to fill an SOS with observations from many well-known sensor sources
 (such as NOAA and NERRS). This project pulls sensor observation values from the source’s stations.
@@ -43,7 +42,7 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads.
 
 Then restore the backup to a PostgreSQL database.
 
@@ -76,8 +75,9 @@ jdbc:postgresql://localhost:5432/sensor-metadata
 Running the SOS Injector
 -----------
 The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
-[Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads) on Github. 
-The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The properties file requires the following variables:
+[Downloads folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads) on Github. 
+
+The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The network root is the default network in the SOS that contains all the stations. This network is different for each SOS. For example for AOOS the defaut network is urn:ioos:network:aoos:all. The properties file requires the following variables:
 * database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor-metadata
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update.
 The properties file requires the following variables:
@@ -94,6 +94,8 @@ The properties file requires the following variables:
 * south_lat - the southernmost latitude of the bounding box
 * west_lon - the westernmost longitude of the bounding box
 * east_lon - the easternmost longitude of the bounding box
+* network_root_id - For this root network urn:ioos:network:aoos:all "all" is the root_id
+* network_root_source_id - For this root network urn:ioos:network:aoos:all "aoos" is the source_id
 
 **Note that running these processes can take a long time (hours) as information is downloaded and extracted from many sources.**
 
@@ -130,12 +132,14 @@ Example of a properties file:
     south_lat = 39.0
     west_lon = -80.0
     east_lon = -74.0
+    network_root_id = all
+    network_root_source_id = aoos
 
-An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads section](https://github.com/axiomalaska/sensor-web-harvester/downloads).
+An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads Folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads).
 
 Writing Custom Java Code
 -----------
-This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.  
+This is example code demonstrating how to update the metadata database and the SOS from within custom Java code.
 
     // Southern California Bounding Box
     Location southWestCorner = new Location(32.0, -123.0);
@@ -151,24 +155,39 @@ This is example code demonstrating how to update the metadata database and the S
     	databaseUsername, databasePassword, boundingBox)
     
     // Updates the local metadata database with station information
-    // This call should be made conservatively (approx. 3 times a week) since the sources’ stations do not change
-    // often and this call is taxing on the sources’ servers.
+    // This call should be made conservatively (approx. 3 times a week) since the 
+    // sources’ stations do not change often and this call is taxing on the sources’ servers.
     metadataManager.update();
     
     // Information about the group publishing this data on the SOS. 
-    PublisherInfo publisherInfo = new PublisherInfoImp();
+    PublisherInfoImp publisherInfo = new PublisherInfoImp();
     publisherInfo.setCountry("USA");
     publisherInfo.setEmail("publisher@domain.com");
     publisherInfo.setName("IOOS");
     publisherInfo.setWebAddress("http://www.ioos.gov/");
+
+    SosNetworkImp rootNetwork = new SosNetworkImp()
+    rootNetwork.setId("all")
+    rootNetwork.setSourceId("aoos")
     
     SosSourcesManager sosManager = new SosSourceManager(databaseUrl, 
-    	databaseUsername, databasePassword, sosUrl, publisherInfo);
+    	databaseUsername, databasePassword, sosUrl, publisherInfo, rootNetwork);
     	
     // Updates the SOS with data pulled from the source sites. 
     // This uses the metadata database
-    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) since the observations
-    // do not change often and this action is taxing on the sources’ servers.
+    // Most of the data is hourly. The data should be pulled conservatively (approx. hourly) 
+    // since the observations do not change often and this action is taxing on the sources’ servers.
     sosManager.updateSos();
     
+Create Custom Networks for Sources or Stations
+-----------
+To create custom networks/offerings one must adjust three tables (network, network_source, network_station) in the metadata database. All new networks need to be created and associated to source or stations before they are submitted to the SOS. Meaning that if a station is already created on the SOS it cannot later be associated to a network. 
+
+First step, each custom network needs be added to the network table. The tag and source_tag columns are the main columns that need filled in for a new network. The tag and source_tag are combined (urn:ioos:network:[source_tag]:[tag]) to create the id of the network in the SOS. 
+
+These custom networks can be assoicated to all stations of a source with the use of the network_source table. To associate a network with a source, place the source's database id and the network's database id in a row. 
+
+These custom networks can be associated to specific stations from the network_station table. A row needs to be created for each station that a network is assoicated to. In each of these rows add the network id and the station id to be associated. 
+
+
 

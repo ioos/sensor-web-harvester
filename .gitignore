@@ -7,7 +7,6 @@
 *.gz
 *.war
 *.ear
-*.jar
 *.tar
 .cache
 .classpath

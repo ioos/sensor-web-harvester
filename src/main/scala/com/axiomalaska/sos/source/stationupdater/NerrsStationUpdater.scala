@@ -207,9 +207,10 @@ class NerrsStationUpdater(
     val stationLocation = new Location(station.latitude, station.longitude)
     return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
-
+  
   private def createStation(nerrsStation: NerrsStation): DatabaseStation = {
-    new DatabaseStation(nerrsStation.stationName, nerrsStation.stationCode,
+    new DatabaseStation(nerrsStation.stationName, 
+        source.tag + ":" + nerrsStation.stationCode,
       nerrsStation.stationCode, nerrsStation.reserveName,
       "FIXED MET STATION", source.id, nerrsStation.latitude,
       nerrsStation.longitude)

@@ -34,7 +34,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
-  
+    
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -100,7 +100,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     val longitude = parseLongitude(longitudeRaw)
     
     logger.info("Processing station: " + label)
-    new DatabaseStation(label, foreignId, foreignId, "",
+    new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, "",
       "FIXED MET STATION", source.id, latitude, longitude)
   }
 

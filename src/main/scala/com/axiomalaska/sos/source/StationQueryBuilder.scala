@@ -10,6 +10,7 @@ import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.StationDatabase
+import com.axiomalaska.sos.source.data.Network
 
 /**
  * The StationQueryBuilder builds the StationQuery object that is used to 
@@ -58,7 +59,8 @@ trait StationQuery{
     sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
   def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation)
   def associateSensorToStation(station: DatabaseStation, sensor: DatabaseSensor)
-  def getObservedProperty(foreignTag: String, depth:Double, source: Source): Option[ObservedProperty]
+  def getObservedProperty(foreignTag: String, depth:Double, phenomenon_id:Long, 
+      source: Source): Option[ObservedProperty]
   def updateObservedProperty(databaseObservedProperty: ObservedProperty,
     newObservedProperty: ObservedProperty)
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
@@ -67,6 +69,10 @@ trait StationQuery{
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
   def getObservedProperty(source: Source): List[ObservedProperty]
+  
+  def getNetworks(source:Source):List[Network]
+  
+  def getNetworks(station:DatabaseStation):List[Network]
 }
 
 private class StationQueryImp(url:String, 
@@ -125,17 +131,18 @@ private class StationQueryImp(url:String,
       update(StationDatabase.observedProperties)(s =>
         where(s.foreign_tag === databaseObservedProperty.foreign_tag and
             s.source_id === databaseObservedProperty.source_id and 
-            s.depth === databaseObservedProperty.depth)
-          set (s.foreign_units := foreign_units,
-            s.phenomenon_id := newObservedProperty.phenomenon_id))
+            s.depth === databaseObservedProperty.depth and 
+            s.phenomenon_id === newObservedProperty.phenomenon_id)
+          set (s.foreign_units := newObservedProperty.foreign_units))
     }
   }
 
-  def getObservedProperty(foreignTag: String, depth:Double, source: Source): 
+  def getObservedProperty(foreignTag: String, depth:Double, phenomenon_id:Long, source: Source): 
 	  Option[ObservedProperty] ={
     using(session) {
       val observedProperties = source.observedProperties.where(observedProperty =>
-        observedProperty.foreign_tag === foreignTag and observedProperty.depth === depth)
+        observedProperty.foreign_tag === foreignTag and observedProperty.depth === depth and 
+        observedProperty.phenomenon_id === phenomenon_id)
 
       return observedProperties.headOption
     }
@@ -171,6 +178,18 @@ private class StationQueryImp(url:String,
   def getSource(station:DatabaseStation):Source ={
     using(session) {
       return station.source.head
+    }
+  }
+  
+  def getNetworks(source:Source):List[Network] ={
+    using(session){
+      return source.networks.toList
+    }
+  }
+  
+  def getNetworks(station:DatabaseStation):List[Network] ={
+    using(session){
+      return station.networks.toList
     }
   }
   
