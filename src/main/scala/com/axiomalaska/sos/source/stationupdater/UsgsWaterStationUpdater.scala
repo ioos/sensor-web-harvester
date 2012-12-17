@@ -14,7 +14,6 @@ import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
 import scala.collection.JavaConversions._
 import scala.collection.mutable
@@ -205,10 +204,10 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
 //            SensorPhenomenonIds.SpecificConductanceofWater"))
       }
       case "00060" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CUBIC_FOOT_PER_SECOUND, 
-            SensorPhenomenonIds.STREAM_FLOW))
+//        return new Some[ObservedProperty](
+//          stationUpdater.createObservedProperty(id,
+//            source, Units.CUBIC_FOOT_PER_SECOUND, 
+//            SensorPhenomenonIds.STREAM_FLOW))
             getObservedProperty(Phenomena.instance.createHomelessParameter("stream_flow", Units.CUBIC_FOOT_PER_SECOUND), id)
       }
       case "00065" => {

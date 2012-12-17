@@ -15,8 +15,6 @@ import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 
 case class NerrsStation(siteId:String, stationCode:String, stationName:String, 
     latitude:Double, longitude:Double, isActive:Boolean, state:String, 
@@ -151,10 +149,6 @@ class NerrsStationUpdater(
             getObservedProperty(Phenomena.instance.NITRITE_PLUS_NITRATE, param)
       }
       case "CHLA_N" => {
-        new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(param,
-            source, Units.MICROGRAMS_PER_LITER, 
-            SensorPhenomenonIds.CHLOROPHYLL))
             getObservedProperty(Phenomena.instance.CHLOROPHYLL, param)
       }
       case "Depth" => None

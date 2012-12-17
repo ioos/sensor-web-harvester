@@ -26,7 +26,6 @@ import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
@@ -315,10 +314,6 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_AVERAGE, id)
       }
       case "AirTemperature" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE))
         getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id)
       }
       case "AIRTEMP.1FOOT" => {

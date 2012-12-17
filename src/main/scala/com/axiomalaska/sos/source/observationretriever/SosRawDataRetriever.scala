@@ -21,7 +21,7 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
       stationPostFixName:String, observedProperty:String, 
       startDate: Calendar, endDate: Calendar): String = {
 
-    logger.info("SNO-RAW: Collecting for station - " + stationForeignId)
+    logger.info("SNO-RAW: Collecting for station - " + stationPostFixName)
     
     val copyStartDate = getDateObjectInGMTTime(startDate)
     val copyEndDate = getDateObjectInGMTTime(endDate)

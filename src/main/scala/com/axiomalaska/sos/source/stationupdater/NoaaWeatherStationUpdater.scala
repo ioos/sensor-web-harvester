@@ -3,7 +3,6 @@ package com.axiomalaska.sos.source.stationupdater
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
-import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
@@ -12,13 +11,8 @@ import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
-import java.util.Calendar
-import java.util.TimeZone
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 

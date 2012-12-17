@@ -33,7 +33,7 @@ class ObservationUpdaterFactory {
       retval = buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("ndbc")) {
-      retval = buildNdbcObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildNdbcFlatFileObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("nerrs")) {
       retval = buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
