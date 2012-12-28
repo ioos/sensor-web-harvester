@@ -172,12 +172,13 @@ List of Sources URLs
 -----------
 
 ### [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
-#### Pull stations
+#### Pull stations Information
 * http://amazon.nws.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
 * http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
 
 #### Observation Retrieval
 * http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - POST request with needed values pairs of
+
 state = nil
 hsa = nil
 of = 3
