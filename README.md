@@ -177,26 +177,147 @@ List of Sources URLs
 * http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
 
 #### Observation Retrieval
-* http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - this is a POST request with the needed values pairs of:
+* http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - pull observations for a station. A POST request with the needed values pairs of:
 
 1. state = nil
 1. hsa = nil
-1. of = 3
+1. of = 1
 1. nesdis_ids = [station id]
 1. sinceday = [number of days of observations requested]
 
 ### [NDBC](http://www.ndbc.noaa.gov/)
+This source has an SOS service that is used to pull station information and observation data.
+
+http://opendap.co-ops.nos.noaa.gov/ioos-dif-sos/SOS
 
 ### [NOAA NOS CO-OPS](http://tidesonline.nos.noaa.gov/)
+This source has an SOS service that is used to pull station information and observation data.
+
+http://opendap.co-ops.nos.noaa.gov/ioos-dif-sos/SOS
 
 ### [NOAA Weather](http://www.nws.noaa.gov/)
+#### Pull stations Information
+* http://weather.noaa.gov/data/nsd_cccc.txt
+
+#### Observation Retrieval
+* http://www.nws.noaa.gov/data/obhistory/[station id].html
 
 ### [RAWS](http://www.raws.dri.edu/)
+#### Pull stations Information
+* http://www.raws.dri.edu/cgi-bin/wea_info.pl?[station id] - get station information 
+* List of URLs for each state used to find stations 
+
+1. http://www.raws.dri.edu/aklst.html  
+1. http://www.raws.dri.edu/azlst.html 
+1. http://www.raws.dri.edu/ncalst.html 
+1. http://www.raws.dri.edu/ccalst.html  
+1. http://www.raws.dri.edu/scalst.html  
+1. http://www.raws.dri.edu/colst.html  
+1. http://www.raws.dri.edu/hilst.html  
+1. http://www.raws.dri.edu/nidwmtlst.html  
+1. http://www.raws.dri.edu/sidlst.html  
+1. http://www.raws.dri.edu/emtlst.html 
+1. http://www.raws.dri.edu/nidwmtlst.html  
+1. http://www.raws.dri.edu/nvlst.html  
+1. http://www.raws.dri.edu/nmlst.html  
+1. http://www.raws.dri.edu/orlst.html  
+1. http://www.raws.dri.edu/utlst.html  
+1. http://www.raws.dri.edu/walst.html  
+1. http://www.raws.dri.edu/wylst.html  
+1. http://www.raws.dri.edu/illst.html  
+1. http://www.raws.dri.edu/inlst.html 
+1. http://www.raws.dri.edu/ialst.html  
+1. http://www.raws.dri.edu/kslst.html  
+1. http://www.raws.dri.edu/ky_tnlst.html  
+1. http://www.raws.dri.edu/mi_wilst.html  
+1. http://www.raws.dri.edu/mnlst.html  
+1. http://www.raws.dri.edu/molst.html  
+1. http://www.raws.dri.edu/nelst.html  
+1. http://www.raws.dri.edu/ndlst.html  
+1. http://www.raws.dri.edu/ohlst.html  
+1. http://www.raws.dri.edu/sdlst.html  
+1. http://www.raws.dri.edu/mi_wilst.html  
+1. http://www.raws.dri.edu/al_mslst.html  
+1. http://www.raws.dri.edu/arlst.html  
+1. http://www.raws.dri.edu/fllst.html  
+1. http://www.raws.dri.edu/ga_sclst.html  
+1. http://www.raws.dri.edu/lalst.html  
+1. http://www.raws.dri.edu/nclst.html  
+1. http://www.raws.dri.edu/oklst.html  
+1. http://www.raws.dri.edu/txlst.html  
+1. http://www.raws.dri.edu/prlst.html  
+1. http://www.raws.dri.edu/ct_ma_rilst.html  
+1. http://www.raws.dri.edu/de_mdlst.html  
+1. http://www.raws.dri.edu/me_nh_vtlst.html  
+1. http://www.raws.dri.edu/nj_palst.html  
+1. http://www.raws.dri.edu/nylst.html  
+1. http://www.raws.dri.edu/va_wvlst.html
+
+#### Observation Retrieval
+* http://www.raws.dri.edu/cgi-bin/wea_list2.pl - pull observations for a station. A POST request with the needed values pairs of:
+
+1. stn = [station id]
+1. smon = [start month - two digit Integer]
+1. sday = [start day of month - two digit Integer]
+1. syea = [start year - two digit Integer]
+1. emon = [end month - two digit Integer]
+1. eday = [end day of month - two digit Integer]
+1. eyea = [end year - two digit Integer]
+1. dfor = 02
+1. srce = W
+1. miss = 03
+1. flag = N
+1. Dfmt = 02
+1. Tfmt = 01
+1. Head = 02
+1. Deli = 01
+1. unit = M
+1. WsMon = 01
+1. WsDay = 01
+1. WeMon = 12
+1. WeDay = 31
+1. WsHou = 00
+1. WeHou = 24
 
 ### [SnoTel](http://www.wcc.nrcs.usda.gov/)
+#### Pull stations Information
+* http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz - contains a list of all the stations 
+* http://www.wcc.nrcs.usda.gov/nwcc/sensors - list the sensor of a station. A POST request with the needed values pairs of:
+
+1. sitenum = [station id]
+
+#### Observation Retrieval
+* http://www.wcc.nrcs.usda.gov/nwcc/view - pull observations for a station. A POST request with the needed values pairs of:
+
+1. time_zone = PST
+1. sitenum = [station id]
+1. timeseries = Hourly
+1. interval = WEEK
+1. format = copy
+1. report = ALL
 
 ### [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
+#### Pull stations Information
+* http://waterservices.usgs.gov/nwis/iv?stateCd=[state tag]&period=PT4H
+* state tags = "al", "ak", "aq", "az", "ar", "ca", "co", "ct", "de", "dc", "fl", "ga", "gu", "hi", "id", "il", "in", "ia", "ks", "ky", "la", "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", "nv", "nh", "nj", "nm", "ny", "nc", "nd", "mp", "oh", "ok", "or", "pa", "pr", "ri", "sc", "sd", "tn", "tx", "ut", "vt", "vi", "va", "wa", "wv", "wi", "wy"
+
+#### Observation Retrieval
+* http://waterservices.usgs.gov/nwis/iv?sites=[station id]&parameterCd=[sensor ids]&startDT=[start date formated as yyyy-MM-dd'T'HH:mm:ss'Z']&endDT=[end date formated as yyyy-MM-dd'T'HH:mm:ss'Z']
 
 ### [NERRS](http://www.nerrs.noaa.gov/)
+This source has a webservice end point at http://cdmo.baruch.sc.edu/webservices2/requests.cfc?wsdl that is used to pull the station information and the observations for each station. 
 
+A java jar was create to work with this webservice in java. Below shows references needed to use this jar in Maven or it can be downloaded at http://nexus.axiomalaska.com/nexus/content/repositories/public/com/axiomalaska/nerrs_webservice/1.0.0/nerrs_webservice-1.0.0.jar
+
+#### Maven Dependency
+    <repository>
+      <id>axiom_public_releases</id>
+      <name>Axiom Releases</name>
+      <url>http://nexus.axiomalaska.com/nexus/content/repositories/public/</url>
+    </repository>
+    <dependency>
+      <groupId>com.axiomalaska</groupId>
+      <artifactId>nerrs_webservice</artifactId>
+      <version>1.0.0</version>
+    </dependency>
 
