@@ -177,13 +177,13 @@ List of Sources URLs
 * http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
 
 #### Observation Retrieval
-* http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - POST request with needed values pairs of
+* http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - this is a POST request with the needed values pairs of:
 
-state = nil
-hsa = nil
-of = 3
-nesdis_ids = [station id]
-sinceday = [number of days of observations requested]
+1. state = nil
+1. hsa = nil
+1. of = 3
+1. nesdis_ids = [station id]
+1. sinceday = [number of days of observations requested]
 
 ### [NDBC](http://www.ndbc.noaa.gov/)
 
