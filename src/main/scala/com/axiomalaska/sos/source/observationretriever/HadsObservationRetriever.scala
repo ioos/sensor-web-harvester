@@ -6,22 +6,19 @@ import com.axiomalaska.sos.data.ObservationCollection
 import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
-
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.ObservationValues
-
 import scala.collection.JavaConversions._
 import scala.util.matching.Regex
-
 import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
-
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class HadsObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger()) 
@@ -33,7 +30,7 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
   
   private val httpSender = new HttpSender()
   private val parseDate = new SimpleDateFormat("yyyy-MM-dd HH:mm")
-
+  
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
@@ -50,8 +47,7 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
       new HttpPart("sinceday", calculatedSinceDay(startDate)))
 
     val result =
-      httpSender.sendPostMessage(
-        "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", parts);
+      httpSender.sendPostMessage(SourceUrls.HADS_OBSERVATION_RETRIEVAL, parts);
 
     if (result != null) {
       val observationValuesCollections =

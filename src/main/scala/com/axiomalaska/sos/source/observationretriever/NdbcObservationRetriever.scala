@@ -20,6 +20,9 @@ import scala.collection.JavaConversions._
 
 import org.apache.log4j.Logger
 
+/***
+ * Currently not used. Has been replace with the NDBC SOS retriever
+ */
 class NdbcObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
 	extends ObservationValuesCollectionRetriever {

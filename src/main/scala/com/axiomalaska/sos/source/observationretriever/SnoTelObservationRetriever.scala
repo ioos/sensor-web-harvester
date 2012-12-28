@@ -19,8 +19,8 @@ import java.text.SimpleDateFormat
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
-
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class SnoTelObservationRetriever(private val stationQuery: StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -105,8 +105,7 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
       new HttpPart("format", "copy"),
       new HttpPart("report", "ALL"))
 
-    return httpSender.sendPostMessage(
-      "http://www.wcc.nrcs.usda.gov/nwcc/view", parts)
+    return httpSender.sendPostMessage(SourceUrls.SNOTEL_OBSERVATION_RETRIEVAL, parts)
   }
 
   private def parseDouble(text: String, headerName: (String, Double)): Option[java.lang.Double] = {

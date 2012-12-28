@@ -1,7 +1,6 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import org.apache.log4j.Logger
-
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
@@ -15,17 +14,16 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.data.Location
-
 import net.opengis.sos.x10.ObservationOfferingType
 import net.opengis.sos.x10.CapabilitiesDocument
 import net.opengis.sos.x10.GetCapabilitiesDocument
 import net.opengis.om.x10.CompositeObservationDocument
 import net.opengis.gml.x32.ValueArrayPropertyType
-
 import gov.noaa.ioos.x061.NamedQuantityType
 import gov.noaa.ioos.x061.CompositePropertyType
 import gov.noaa.ioos.x061.CompositeValueType
 import gov.noaa.ioos.x061.ValueArrayType
+import com.axiomalaska.sos.source.SourceUrls
 
 class NdbcSosStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -42,7 +40,7 @@ class NdbcSosStationUpdater(private val stationQuery: StationQuery,
   // SosStationUpdater Members
   // ---------------------------------------------------------------------------
   
-  protected val serviceUrl = "http://sdf.ndbc.noaa.gov/sos/server.php"
+  protected val serviceUrl = SourceUrls.NDBC_SOS
   protected val source = stationQuery.getSource(SourceId.NDBC)
 
   protected override def getCapabilitiesDocument():Option[CapabilitiesDocument] ={

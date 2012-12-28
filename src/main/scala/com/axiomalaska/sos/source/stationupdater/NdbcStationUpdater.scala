@@ -23,6 +23,9 @@ import org.apache.log4j.Logger
 import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
 
+/**
+ * Currently not being used. It was replaced by the NdbcSosStationUpdater
+ */
 class NdbcStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
   private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {

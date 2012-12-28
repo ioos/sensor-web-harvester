@@ -13,22 +13,19 @@ import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.ObservedProperty
-
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 import org.apache.log4j.Logger
-
 import java.util.zip.ZipFile
-
 import scala.collection.JavaConversions._
 import scala.xml.Node
 import scala.xml.Elem
 import scala.collection.mutable
 import scala.xml.XML
-
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
+import com.axiomalaska.sos.source.SourceUrls
 
 case class SnotelSensor(observedpropertylabel: String,
   observedpropertylongcode: String, observedpropertyshortcode: String,
@@ -49,7 +46,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
   private val foreignIdParser = """.*<a href="http://www\.wcc\.nrcs\.usda\.gov/nwcc/site\?sitenum=(\d+)">Site Info</a>.*""".r
   private val labelParser = """.*<font size="\+2">.*: (.*)</font>.*""".r
   private val geoTools = new GeoTools()
-      
+    
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -92,18 +89,18 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def getSourceObservedProperties(station: DatabaseStation): List[ObservedProperty] = {
-    val snotelSensors = createSnotelSensors(station)
+    val snotelSensors = createSnotelSensors(station.foreign_tag)
     
     logger.info("Processing station: " + station.name)
 
     return snotelSensors.flatMap(snotelSensor => getObservedProperty(snotelSensor))
   }
 
-  private def createSnotelSensors(station: DatabaseStation): List[SnotelSensor] = {
+  private def createSnotelSensors(foreignTag: String): List[SnotelSensor] = {
     try {
       val results = httpSender.sendPostMessage(
-        "http://www.wcc.nrcs.usda.gov/nwcc/sensors",
-        List[HttpPart](new HttpPart("sitenum", station.foreign_tag)))
+        SourceUrls.SNOTEL_COLLECTION_SENSOR_INFO_FOR_STATION,
+        List[HttpPart](new HttpPart("sitenum", foreignTag)))
 
       if (results == null) {
         return Nil
@@ -184,8 +181,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
   
   private def createStations(): List[DatabaseStation] = {
     val filename =
-      httpSender.downloadFile(
-        "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz")
+      httpSender.downloadFile(SourceUrls.SNOTEL_COLLECTION_OF_STATIONS)
 
     if (filename != null) {
       val rootzip = new ZipFile(filename);

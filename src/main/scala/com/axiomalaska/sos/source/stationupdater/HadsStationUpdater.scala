@@ -13,18 +13,15 @@ import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpPart
-
 import java.text.SimpleDateFormat
 import java.util.Date
-
 import org.apache.log4j.Logger
-
 import org.jsoup.nodes.Element
 import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
-
 import scala.collection.mutable
 import scala.collection.JavaConversions._
+import com.axiomalaska.sos.source.SourceUrls
 
 class HadsStationUpdater(
   private val stationQuery: StationQuery,
@@ -38,7 +35,7 @@ class HadsStationUpdater(
   private val parseDate = new SimpleDateFormat("yyyy")
   private val sensorParser = """\n\s([A-Z]{2}[A-Z0-9]{0,1})\(\w+\)""".r
   private val geoTools = new GeoTools()
-  
+    
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -98,8 +95,7 @@ class HadsStationUpdater(
       new HttpPart("nesdis_ids", station.foreign_tag),
       new HttpPart("sinceday", "-1"))
 
-    val results = httpSender.sendPostMessage(
-      "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData", httpParts)
+    val results = httpSender.sendPostMessage(SourceUrls.HADS_OBSERVATION_RETRIEVAL, httpParts)
 
     if (results != null && results.contains(parseDate.format(new Date()))) {
       val sensorNames = for (sensorMatch <- sensorParser.findAllIn(results)) yield{
@@ -141,8 +137,7 @@ class HadsStationUpdater(
   }
   
   private def getLatLon(foreignId:String): Option[(Double, Double)] = {
-    val latLonResults = httpSender.sendGetMessage(
-      "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id=" + foreignId)
+    val latLonResults = httpSender.sendGetMessage(SourceUrls.HADS_STATION_INFORMATION + foreignId)
 
     if (latLonResults != null) {
       val doc = Jsoup.parse(latLonResults)
@@ -202,8 +197,7 @@ class HadsStationUpdater(
   }
   
   private def getAllStateUrls():List[String] ={
-    val results = httpSender.sendGetMessage(
-        "http://amazon.nws.noaa.gov/hads/goog_earth/")
+    val results = httpSender.sendGetMessage(SourceUrls.HADS_COLLECTION_STATE_URLS)
 
     if (results != null) {
       val doc = Jsoup.parse(results)

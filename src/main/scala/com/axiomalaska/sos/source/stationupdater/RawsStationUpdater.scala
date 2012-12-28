@@ -3,14 +3,10 @@ package com.axiomalaska.sos.source.stationupdater
 import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
-
 import org.apache.log4j.Logger
-
 import org.jsoup.Jsoup
 import org.jsoup.nodes.Document
-
 import scala.collection.JavaConversions._
-
 import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
@@ -25,6 +21,7 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
+import com.axiomalaska.sos.source.SourceUrls
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -173,7 +170,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
   private def createStation(foreignId: String): Option[DatabaseStation] = {
     val response = httpSender.sendGetMessage(
-      "http://www.raws.dri.edu/cgi-bin/wea_info.pl?" + foreignId)
+        SourceUrls.RAWS_STATION_INFORMATION + foreignId)
 
     if (response != null) {
       val siteDoc = Jsoup.parse(response)
@@ -257,7 +254,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       new HttpPart("WeHou", "24"))
 
     val results = httpSender.sendPostMessage(
-      "http://www.raws.dri.edu/cgi-bin/wea_list2.pl", parts);
+        SourceUrls.RAWS_OBSERVATION_RETRIEVAL, parts);
 
     if (results != null) {
       val doc = Jsoup.parse(results);
