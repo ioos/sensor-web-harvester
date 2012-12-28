@@ -171,6 +171,7 @@ These custom networks can be associated to specific stations from the network_st
 List of Sources URLs 
 -----------
 
+<<<<<<< HEAD
 ### [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
 #### Pull stations
 * http://amazon.nws.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
@@ -189,4 +190,24 @@ sinceday = [number of days of observations requested]
 ### [SnoTel](http://www.wcc.nrcs.usda.gov/)
 ### [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
 ### [NERRS](http://www.nerrs.noaa.gov/)
+=======
+* [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
+** Pull stations
+*** http://amazon.nws.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
+*** http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
+** Observation Retrieval
+*** http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - POST request with needed values pairs of
+**** state = nil
+**** hsa = nil
+**** of = 3
+**** nesdis_ids = [station id]
+**** sinceday = [number of days of observations requested]
+* [NDBC](http://www.ndbc.noaa.gov/)
+* [NOAA NOS CO-OPS](http://tidesonline.nos.noaa.gov/)
+* [NOAA Weather](http://www.nws.noaa.gov/)
+* [RAWS](http://www.raws.dri.edu/)
+* [SnoTel](http://www.wcc.nrcs.usda.gov/)
+* [USGS Water](http://waterdata.usgs.gov/ak/nwis/uv)
+* [NERRS](http://www.nerrs.noaa.gov/)
+>>>>>>> 2407ecf402a1582d6728b14ddc777f09fd16f8ca
 
