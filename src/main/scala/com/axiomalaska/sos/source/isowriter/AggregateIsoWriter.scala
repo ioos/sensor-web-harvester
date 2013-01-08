@@ -15,6 +15,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
                          private val templateFile: String,
                          private val isoDirectory: String,
                          private val sources: String,
+                         private val overwrite: Boolean = true,
                          private val logger: Logger = Logger.getRootLogger()) {
 
   def writeISOs() {
@@ -37,11 +38,11 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     val writers = for (src <- sourceSplit) yield src match {
       case "ndbc" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("ndbc") ).head
-          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, isoDirectory, logger)))
+          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, isoDirectory, overwrite, logger)))
       }
       case "storet" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("storet") ).head
-          new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, isoDirectory, logger)))
+          new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, isoDirectory, overwrite, logger)))
       }
       case _ => None
     }

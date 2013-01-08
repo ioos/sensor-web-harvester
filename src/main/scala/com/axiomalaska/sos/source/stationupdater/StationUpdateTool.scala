@@ -90,6 +90,12 @@ class StationUpdateTool(private val stationQuery:StationQuery,
     return sensors
   }
   
+    /*
+     * This is a very slow process for large number of inserts, needs to be rewritten
+     * for instances of large number of insertions. Probably would be best to write
+     * output to a file and then use postgres's COPY method to write file into db.
+     * Also, might want to consider an index on foreign_tag or something.
+     */
   def updateObservedProperties(source: Source,
     sourceObservedProperies: List[ObservedProperty]): List[ObservedProperty] = {
 
@@ -97,14 +103,15 @@ class StationUpdateTool(private val stationQuery:StationQuery,
       stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
           observedProperty.phenomenon_id, source) match {
         case Some(databaseObservedProperty) => {
-          stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
-          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
-              observedProperty.phenomenon_id, source).get
+            // the only thing that changes, is the units string and that really shouldn't change anyways, so just skip the update
+//          stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
+//          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
+//              observedProperty.phenomenon_id, source).get
+            databaseObservedProperty
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)
           logger.info("creating new observedProperties " + observedProperty.foreign_tag)
-          
           newObservedProperties
         }
       }

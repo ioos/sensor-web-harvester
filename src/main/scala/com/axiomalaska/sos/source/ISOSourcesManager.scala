@@ -14,12 +14,13 @@ class ISOSourcesManager(private val isoTemplate: String,
                         private val databaseUrl: String,
                         private val databaseUsername: String,
                         private val databasePassword: String,
+                        private val overwrite: Boolean,
                         private val logger: Logger = Logger.getRootLogger()) {
   
   def writeISOs() {
     val queryBuilder = new StationQueryBuilder(databaseUrl, databaseUsername, databasePassword)
     queryBuilder.withStationQuery(stationQuery => {
-        val isoWriters = new AggregateIsoWriter(stationQuery, isoTemplate, isoDirectory, sources, logger)
+        val isoWriters = new AggregateIsoWriter(stationQuery, isoTemplate, isoDirectory, sources, overwrite, logger)
         isoWriters.writeISOs()
       })
   }

@@ -28,9 +28,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
   private val httpSender = new HttpSender()
-  // value that determines the maximum number of stations that will be made in a single getStation request
-  // the harvester will cut up the bbox until each segment has a number of stations at or under this value
-  private val stationBlockLimit = 300
   
   private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
   private val stationURL = "http://www.waterqualitydata.us/Station/search?countrycode=US&command.avoid=NWIS&mimeType=csv"

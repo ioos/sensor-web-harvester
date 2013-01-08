@@ -66,6 +66,7 @@ case class Dimension(val name: String,
 class ISOWriterImpl(private val stationQuery: StationQuery,
     private val templateFile: String,
     private val isoWriteDirectory: String,
+    private val overwrite: Boolean,
     private val logger: Logger = Logger.getRootLogger()) extends ISOWriter {
 
   private val currentDate = Calendar.getInstance
@@ -81,11 +82,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     lstation = station
     val file = new java.io.File(templateFile)
     
-    if (!initialSetup(station)) {
-      logger error "Could not setup for iso writer"
-      return
-    }
-    
     val source = station.getSource
     // check to see if a directory with the source name exists
     val sourceDir = new File(isoWriteDirectory + "/" + source.getName)
@@ -94,7 +90,24 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         if (!sourceDir.mkdirs)
           logger error "Could not make directory " + sourceDir.getAbsolutePath + " !!!"
     }
-    val fileName = sourceDir.getPath + "/" + station.getId + ".xml"    
+    
+    if (!overwrite) {
+      // get a file list and see if the current station already exists; skip if it does
+      val files = sourceDir.listFiles
+      for (tfile <- files) {
+        if (tfile.getName.toLowerCase.contains(station.databaseStation.foreign_tag.toLowerCase)) {
+          logger info "Skipping: " + station.databaseStation.foreign_tag
+          return
+        }
+      }
+    }
+    
+    if (!initialSetup(station)) {
+      logger error "Could not setup for iso writer"
+      return
+    }
+    
+    val fileName = sourceDir.getPath + "/" + station.databaseStation.foreign_tag + ".xml"    
     serviceIdentification = getServiceInformation(station)
     contacts = getContacts(station)
     fileIdentifier = getFileIdentifier(station)

@@ -7,7 +7,6 @@ import java.io.File
 import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
-import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
 import com.axiomalaska.sos.data.SosNetworkImp
 
 case class Properties(val sosUrl: String,
@@ -30,15 +29,24 @@ case class Properties(val sosUrl: String,
 
 object Main {
 
+  private var overWrite: Boolean = true
+  
   def main(args: Array[String]) {
     val logger = Logger.getRootLogger()
     var timerBegin: Calendar = null
-    if (args.size == 3) {
-      val timer = args(2)
-      if (timer == "-timer" || timer == "-timer=true") {
-        // set a timer to report the time it takes to run the harverster
-        logger.info("USING: Starting Timer")
-        timerBegin = Calendar.getInstance
+    if (args.size > 2) {
+      for {
+        (arg,index) <- args.zipWithIndex
+        if (index > 1)
+      } {
+        if (arg.equalsIgnoreCase("-timer")) {
+          logger info "USING: Timer"
+          timerBegin = Calendar.getInstance
+        } else if (arg.equalsIgnoreCase("-nooverwrite")) {
+          // set a flag to not overwrite (when writing isos)
+          logger info "USING: Will not overwrite existing files"
+          overWrite = false
+        }
       }
     }
     if (args.size >= 2) {
@@ -161,7 +169,7 @@ object Main {
     logger.info("Database Password: " + propertiesRead.databasePassword)
     
     val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
-                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, logger)
+                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, overWrite, logger)
     
     isoManager.writeISOs()
   }
@@ -188,7 +196,9 @@ object Main {
     if (properties.containsKey("sources"))
       sources = properties.getString("sources")
       
-    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation,rootNetworkId,rootNetworkSourceId)
+    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
+                          databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,
+                          isoLocation,rootNetworkId,rootNetworkSourceId)
 
   }
   

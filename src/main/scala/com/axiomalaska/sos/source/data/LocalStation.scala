@@ -6,7 +6,6 @@ import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.StationQuery
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.data.SosSource
 import scala.collection.mutable
 
 class LocalStation(val localSource:LocalSource, 
@@ -63,6 +62,10 @@ class LocalStation(val localSource:LocalSource,
       set += networkId
       network
     }
+  }
+  
+  def addNetwork(network: SosNetwork) = {
+    networks.add(network)
   }
 
   def isMoving = false

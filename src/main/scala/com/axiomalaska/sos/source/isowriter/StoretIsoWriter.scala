@@ -50,7 +50,8 @@ object StoretIsoWriter {
 class StoretIsoWriter(private val stationQuery:StationQuery, 
   private val isoTemplateLocation: String,
   private val isoWriteDirectory: String,
-  private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoTemplateLocation, isoWriteDirectory, logger) {
+  private val overwrite: Boolean,
+  private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, isoTemplateLocation, isoWriteDirectory, overwrite, logger) {
 
   import StoretIsoWriter._
   
@@ -61,11 +62,11 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
   var resultResponse: List[String] = null
 
   override def initialSetup(station: LocalStation) : Boolean = {
-    // get org id and site id
-    val site = station.databaseStation.foreign_tag
-    val org = site.split("-").head
     // request the station info
     try {
+      // get org id and site id
+      val site = java.net.URLEncoder.encode(station.databaseStation.foreign_tag, "UTF-8")
+      val org = java.net.URLEncoder.encode(site.split("-").head, "UTF-8")
       val sResponse = httpSender.sendGetMessage(surl + "&organization=" + org + "&siteid=" + site)
       if (sResponse != null) {
         val splitResponse = sResponse.toString split '\n'
@@ -118,7 +119,18 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
     val id = "SOS"
     val citation = new ServiceIdentificationCitation("WQP SOS","WQP SOS","distributor")
     val extent = getExtent(station)
-    val getObsUrl = wqpGetObsUrl + java.net.URLEncoder.encode(station.databaseStation.foreign_tag, "UTF-8") + "&observedProperty=" + java.net.URLEncoder.encode(getSensorTagsAndNames(station).map(_._1).head, "UTF-8")
+    var getObsUrl: String = ""
+    try {
+      getObsUrl = wqpGetObsUrl + java.net.URLEncoder.encode(station.databaseStation.foreign_tag, "UTF-8") + "&observedProperty=" + java.net.URLEncoder.encode(getSensorTagsAndNames(station).map(_._1).head, "UTF-8")
+    }
+    catch {
+      case ex: Exception => {
+          logger error "Could not get an observed property for set, using 'Air Temperature' as default string (reason below)..."
+          logger error ex.toString
+          ex.printStackTrace()
+          getObsUrl = wqpGetObsUrl + java.net.URLEncoder.encode(station.databaseStation.foreign_tag, "UTF-8") + "&observedProperty=Air+Temperature"
+      }
+    }
     val descSenUrl = wqpDescSenUrl + java.net.URLEncoder.encode(station.databaseStation.foreign_tag, "UTF-8")
     val ops = List(
       new ServiceIdentificationOperations(wqpGetCaps, wqpGetCapsUrl, wqpGetCapsName, wqpGetCapsDesc),

@@ -15,7 +15,8 @@ import org.apache.log4j.Logger
 class NdbcIsoWriter(private val stationQuery:StationQuery, 
     private val templateFile: String,
     private val isoDirectory: String,
-    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, templateFile, isoDirectory, logger) {
+    private val overwrite: Boolean,
+    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, templateFile, isoDirectory, overwrite, logger) {
 
   private val httpSender = new HttpSender()
   private val dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
