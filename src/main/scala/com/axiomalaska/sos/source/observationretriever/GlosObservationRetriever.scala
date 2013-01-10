@@ -40,15 +40,15 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private var filesToRemove: List[String] = List()
     
   //ftp info - below is the glos server
-//  private val ftp_host = "glos.us"
-//  private val ftp_port = 21
-//  private val ftp_user = "asa"
-//  private val ftp_pass = "AGSLaos001"
-  // below is a temp server used for testing
-  private val ftp_host = "ftp.oilmap.com"
+  private val ftp_host = "glos.us"
   private val ftp_port = 21
-  private val ftp_user = "scowan"
-  private val ftp_pass = "KQ6T6m1B"
+  private val ftp_user = "asa"
+  private val ftp_pass = "AGSLaos001"
+  // below is a temp server used for testing
+//  private val ftp_host = "ftp.oilmap.com"
+//  private val ftp_port = 21
+//  private val ftp_user = "scowan"
+//  private val ftp_pass = "KQ6T6m1B"
   private val glos_ftp: FTPClient = new FTPClient()  
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
@@ -56,9 +56,13 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
 
     logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
+    logger.info("Files In Memory - " + filesInMemory)
+    
     // retrieve files if needed
     if (filesInMemory.size < 1)
-      readInFtpFilesIntoMemory
+      readInFtpFilesIntoMemory(station.getId)
+    
+    return Nil
     
     val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
     
@@ -89,7 +93,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     observationValuesCollection.filter(_.getValues.size > 0)
   }
   
-  private def readInFtpFilesIntoMemory() = {
+  private def readInFtpFilesIntoMemory(stationId: String) = {
     // connect to the ftp
     try {
       if (!glos_ftp.isConnected) {
@@ -122,6 +126,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       var fileCount = 0
       val files = for {
         file <- fileList
+        if (file.getName.toLowerCase.contains(stationId.toLowerCase))
       } yield {
         fileCount += 1
         logger.info("\nReading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
@@ -134,14 +139,14 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     // remove files from ftp
-    try {
-      logger.info("removing files that have been read into memory")
-      for (file <- filesToRemove) {
-        removeFileOnServer(file)
-      }
-    } catch {
-      case ex: Exception => logger.error("Exception removing files from ftp")
-    }
+//    try {
+//      logger.info("removing files that have been read into memory")
+//      for (file <- filesToRemove) {
+//        removeFileOnServer(file)
+//      }
+//    } catch {
+//      case ex: Exception => logger.error("Exception removing files from ftp")
+//    }
     
     try {
       logger.info("disconnecting gftp")

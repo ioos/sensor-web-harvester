@@ -151,21 +151,28 @@
                     <gmd:keyword>
                         <gco:CharacterString>air_pressure_at_sea_level</gco:CharacterString>
                     </gmd:keyword>
-                    <gmd:keyword>
-                      <gco:CharacterString>waves</gco:CharacterString>
-                    </gmd:keyword>
-                    <gmd:keyword>
-                      <gco:CharacterString>winds</gco:CharacterString>
-                    </gmd:keyword>
+                  <gmd:keyword>
+                    <gco:CharacterString>sea_surface_wave_significant_height</gco:CharacterString>
+                  </gmd:keyword>
+                  <gmd:keyword>
+                    <gco:CharacterString>sea_surface_wind_wave_period</gco:CharacterString>
+                  </gmd:keyword>
+                  <gmd:keyword>
+                    <gco:CharacterString>wind_speed</gco:CharacterString>
+                  </gmd:keyword>
+                  <gmd:keyword>
+                    <gco:CharacterString>wind_from_direction</gco:CharacterString>
+                  </gmd:keyword>
+                  <gmd:keyword>
+                    <gco:CharacterString>wind_speed_of_gust</gco:CharacterString>
+                  </gmd:keyword>
                     <gmd:keyword>
                         <gco:CharacterString>dew_point_temperature</gco:CharacterString>
                     </gmd:keyword>
                     <gmd:keyword>
                       <gco:CharacterString>sea_water_temperature</gco:CharacterString>
                     </gmd:keyword>
-                    <gmd:keyword>
-                      <gco:CharacterString>sea_water_temperature_in_depths</gco:CharacterString>
-                    </gmd:keyword>
+                    
                 </gmd:MD_Keywords>
             </gmd:descriptiveKeywords>
             <gmd:language>
@@ -208,10 +215,10 @@
                     <gmd:verticalElement>
                         <gmd:EX_VerticalExtent>
                             <gmd:minimumValue>
-                                <gco:Real>0</gco:Real>
+                                <gco:Real>0.0</gco:Real>
                             </gmd:minimumValue>
                             <gmd:maximumValue>
-                                <gco:Real>0</gco:Real>
+                                <gco:Real>19.0</gco:Real>
                             </gmd:maximumValue>
                             <gmd:verticalCRS gco:nilReason="missing"/>
                         </gmd:EX_VerticalExtent>
@@ -288,10 +295,10 @@
                     <gmd:verticalElement>
                         <gmd:EX_VerticalExtent>
                             <gmd:minimumValue>
-                                <gco:Real>0</gco:Real>
+                                <gco:Real>0.0</gco:Real>
                             </gmd:minimumValue>
                             <gmd:maximumValue>
-                                <gco:Real>0</gco:Real>
+                                <gco:Real>19.0</gco:Real>
                             </gmd:maximumValue>
                             <gmd:verticalCRS gco:nilReason="missing"/>
                         </gmd:EX_VerticalExtent>
@@ -413,27 +420,12 @@
                     </gmd:descriptor>
                 </gmd:MD_Band>
             </gmd:dimension>
-            <gmd:dimension>
-                <gmd:MD_Band>
-                    <gmd:sequenceIdentifier>
-                        <gco:MemberName>
-                            <gco:aName>
-                                <gco:CharacterString>winds</gco:CharacterString>
-                            </gco:aName>
-                            <gco:attributeType gco:nilReason="unknown"/>
-                        </gco:MemberName>
-                    </gmd:sequenceIdentifier>
-                    <gmd:descriptor>
-                        <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
-                    </gmd:descriptor>
-                </gmd:MD_Band>
-            </gmd:dimension>
           <gmd:dimension>
             <gmd:MD_Band>
               <gmd:sequenceIdentifier>
                 <gco:MemberName>
                   <gco:aName>
-                    <gco:CharacterString>waves</gco:CharacterString>
+                    <gco:CharacterString>wind_speed</gco:CharacterString>
                   </gco:aName>
                   <gco:attributeType gco:nilReason="unknown"/>
                 </gco:MemberName>
@@ -443,6 +435,66 @@
               </gmd:descriptor>
             </gmd:MD_Band>
           </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>wind_from_direction</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>wind_speed_of_gust</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_surface_wave_significant_height</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_surface_wind_wave_period</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension> 
           <gmd:dimension>
             <gmd:MD_Band>
               <gmd:sequenceIdentifier>
@@ -473,21 +525,7 @@
               </gmd:descriptor>
             </gmd:MD_Band>
           </gmd:dimension>
-          <gmd:dimension>
-            <gmd:MD_Band>
-              <gmd:sequenceIdentifier>
-                <gco:MemberName>
-                  <gco:aName>
-                    <gco:CharacterString>sea_water_temperature_in_depths</gco:CharacterString>
-                  </gco:aName>
-                  <gco:attributeType gco:nilReason="unknown"/>
-                </gco:MemberName>
-              </gmd:sequenceIdentifier>
-              <gmd:descriptor>
-                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/sea_water_temperature</gco:CharacterString>
-              </gmd:descriptor>
-            </gmd:MD_Band>
-          </gmd:dimension>
+          
         </gmi:MI_CoverageDescription>
     </gmd:contentInfo>
 </gmi:MI_Metadata>

@@ -1,5 +1,6 @@
 package com.axiomalaska.sos.source
 
+import org.apache.log4j.Logger
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.SessionFactory
 import org.squeryl.Session
@@ -65,6 +66,7 @@ trait StationQuery{
     newObservedProperty: ObservedProperty)
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
   def getPhenomenon(id:Long):DatabasePhenomenon 
+  def getPhenomenon(tag:String):DatabasePhenomenon
   def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
@@ -80,6 +82,8 @@ private class StationQueryImp(url:String,
   Class.forName("org.postgresql.Driver")
   
   private val session = createSession()
+  
+  private val logger = Logger.getRootLogger()
 
   SessionFactory.concreteFactory = Some(() => session)
   
@@ -112,8 +116,12 @@ private class StationQueryImp(url:String,
   }
   
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon) {
-    using(session) {
-      sensor.phenomena.associate(phenonomen)
+    try {
+      using(session) {
+        sensor.phenomena.associate(phenonomen)
+      }
+    } catch {
+      case ex: Exception => { logger.warn(ex.toString) }
     }
   }
   
@@ -263,6 +271,13 @@ private class StationQueryImp(url:String,
   def getPhenomenon(id:Long):DatabasePhenomenon ={
     using(session) {
       StationDatabase.phenomena.lookup(id).get
+    }
+  }
+  
+  def getPhenomenon(tag:String):DatabasePhenomenon = {
+    using (session) {
+      val headOpt = StationDatabase.phenomena.where(phen => phen.tag === tag).head
+      headOpt
     }
   }
   

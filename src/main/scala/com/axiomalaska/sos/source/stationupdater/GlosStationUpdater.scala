@@ -16,7 +16,10 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpSender
+import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
+import java.io.ByteArrayOutputStream
+import java.io.File
 import org.apache.commons.net.ftp.FTPClient
 import scala.collection.mutable
 
@@ -38,7 +41,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private val glos_ftp: FTPClient = new FTPClient()
   
   private val temp_file = "platform.csv"
-  private val glos_metadata_file = "glos_metadata_test.xml"
+  private val glos_metadata_folder = "glosbuoy_metadata/"
 
   private val source = stationQuery.getSource(SourceId.GLOS)
   private val stationUpdater = new StationUpdateTool(stationQuery, logger)
@@ -52,6 +55,11 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     logger.info("Updating GLOS...")
     
     val sourceStationSensors = getSourceStations()
+    
+    logger.info("station count: " + sourceStationSensors.size)
+    for (station <- sourceStationSensors) {
+      logger.info("In update list: " + station._1.name)
+    }
 
     val databaseStations = stationQuery.getAllStations(source)
 
@@ -62,104 +70,185 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   }
   
   private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-    val xmlList = readInMetadata
-    val finallist = for (xml <- xmlList) yield {
-      val listitem = for {
-        stationXML <- (xml \\ "Station")
-        val station = readStationFromXML(stationXML)
-        val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
-        val sensors = readInSensors(stationXML, stationDB)
-        if (sensors.nonEmpty)
-      } yield {
-        (stationDB, sensors)
+    // read ftp for data files for stations
+    try {
+      if (!glos_ftp.isConnected) {
+        glos_ftp.connect(ftp_host, ftp_port)
+        glos_ftp.login(ftp_user, ftp_pass)
+        // check for succesful login
+        if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
+          glos_ftp.disconnect
+          logger.error("FTP connection was refused.")
+        } else {
+          // set to passive mode
+          glos_ftp.enterLocalPassiveMode
+          // set timeouts to 1 min
+          glos_ftp.setControlKeepAliveTimeout(60)
+          glos_ftp.setDataTimeout(60000)
+        }
       }
-      listitem
+    } catch {
+      case ex: Exception => {
+          logger.error(ex.toString)
+          return Nil
+      }
     }
-    finallist.flatten.toList
+    // read local ISOs for metadata
+    val dir = new File(glos_metadata_folder)
+    val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
+        val readin = scala.io.Source.fromFile(file)
+        val xml = scala.xml.XML.loadString(readin.mkString)
+//        logger.info("read in xml:\n" + xml)
+        // read in the station data
+        val station = readStationFromXML(xml)
+        // get the obs data, need this for the depth values
+        val dataXML = readInData(station.stationName)
+        if (dataXML.ne(null)) {
+          val depths = readInDepths(dataXML)
+          val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
+          val sensors = readInSensors((xml \ "contentInfo"), stationDB, depths)
+          if (sensors.nonEmpty)
+            (stationDB, sensors)
+          else
+            (null, Nil)
+        } else {
+          (null, Nil)
+        }
+    }
+    finallist.filter(p => p._2.nonEmpty).toList
   }
   
-  private def readInSensors(stationxml : scala.xml.Node, station : DatabaseStation) : List[(DatabaseSensor, List[(DatabasePhenomenon)])] = {
+  private def readInData(stationid: String) : scala.xml.Elem = {
+    val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    var retval: scala.xml.Elem = null
+    try {
+      for (file <- glos_ftp.listFiles) {
+        if (file.getName.contains(stationid)) {
+          glos_ftp.retrieveFile(file.getName, byteStream) match {
+            case true => {
+                retval = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
+                return retval
+            }
+            case _ => {
+                retval = null
+            }
+          }
+        }
+      }
+    } catch {
+      case ex: Exception => logger.error(ex.toString)
+    }
+    logger.info("could not find a data xml for " + stationid)
+    return retval
+  }
+  
+  private def readInDepths(data: scala.xml.Elem) : List[Double] = {
+    var continue: Boolean = true
+    var retval: List[Double] = List(0d)
+    var depthIndex: Integer = 1
+    while (continue) {
+      val xmlTag = if (depthIndex < 10) "dp00" + depthIndex else if (depthIndex < 100) "dp0" + depthIndex else "dp" + depthIndex
+      val depth = for (elm <- data \\ xmlTag) yield {
+        elm.text.trim
+      }
+      if (depth.isEmpty)
+        continue = false
+      else
+        retval = depth.head.toDouble :: retval
+      depthIndex += 1
+    }
+    
+    return retval
+  }
+  
+  private def readInSensors(stationxml : scala.xml.NodeSeq, station : DatabaseStation, depths: List[Double]) : List[(DatabaseSensor, List[(DatabasePhenomenon)])] = {
+    val orderedDepths = depths.reverse
     val sensors = for {
-      sensor <- (stationxml \ "Sensors" \\ "Sensor")
-      val sensorid = (sensor \\ "id").text.trim
-      val sensordesc = (sensor \\ "description").text.trim
-      val dbsensor = new DatabaseSensor(sensorid, sensordesc.toString, station.id)
-      val observedProperties = getObservedProperties((sensor \ "Phenomena"))
-      val dbObservedProperties = stationUpdater.updateObservedProperties(source, observedProperties)
-    } yield {
-      val phenomenaIGuess = observedProperties.map(p => p.phenomenon.toList)
-        (dbsensor, phenomenaIGuess.flatten)
-    }
-    val phenomSensors = for {
-      phenomSensor <- (stationxml \ "Sensors" \\ "Phenomenon")
-      val sensorid = (phenomSensor \ "foreigntag").text.trim
-      val sensordesc = (phenomSensor \ "name").text.trim
+      sensor <- (stationxml \\ "MD_Band")
+      val sensorid = (sensor \\ "aName" \ "CharacterString").text.trim
+      val sensordesc = (sensor \\ "descriptor" \ "CharacterString").text.trim
       val dbsensor = new DatabaseSensor(sensorid, sensordesc, station.id)
-      val observedProperties = getObservedProperties(phenomSensor)
-      val dbObservedProperties = stationUpdater.updateObservedProperties(source, observedProperties)
     } yield {
-        val phenomenaSupposedly = observedProperties.map(p => p.phenomenon.toList)
-        (dbsensor, phenomenaSupposedly.flatten)
+      var oprops: List[ObservedProperty] = Nil
+      if (sensorid.equalsIgnoreCase("sea_water_temperature")) {
+        oprops = getObservedProperties(sensorid, sensordesc, orderedDepths)
+      } else {
+        oprops = getObservedProperties(sensorid, sensordesc, List(0d))
+      }
+      val dboprops = stationUpdater.updateObservedProperties(source, oprops)
+      stationUpdater.getSourceSensors(station, dboprops)
     }
-    sensors.toList ::: phenomSensors.toList
+    sensors.toList.flatten
   }
   
-  private def getObservedProperties(parentNode: scala.xml.NodeSeq) : List[ObservedProperty] = {
-    val phenomena = for {
-      phenomena <- (parentNode \\ "Phenomenon")
-    } yield {
-      getObservedProperty(findPhenomenon((phenomena \ "tag").text.trim, (phenomena \ "units").text.trim),
-                          (phenomena \ "tag").text.trim,
-                          (phenomena \ "description").text.trim,
-                          (phenomena \ "name").text.trim)
-    }
-    phenomena.toList.filter(p => p.isDefined).map(p => p.get)
-  }
   
-  private def findPhenomenon(tag: String, units: String) : Phenomenon = {
-    val ltag = tag.toLowerCase
+  
+  private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
-    if (ltag contains "wdir") {
-      return Phenomena.instance.WIND_FROM_DIRECTION
-    } else if (ltag contains "wspd") {
-      return Phenomena.instance.WIND_SPEED
-    } else if (ltag contains "gust") {
-      return Phenomena.instance.WIND_SPEED_OF_GUST
-    } else if (ltag contains "atmp") {
-      return Phenomena.instance.AIR_TEMPERATURE
-    } else if (ltag contains "wtmp") {
-      return Phenomena.instance.SEA_WATER_TEMPERATURE
-    } else if (ltag contains "rh") {
-      return Phenomena.instance.RELATIVE_HUMIDITY
-    } else if (ltag contains "dewpt") {
-      return Phenomena.instance.DEW_POINT_TEMPERATURE
-    } else if (ltag contains "baro") {
-      return Phenomena.instance.AIR_PRESSURE
-    } else if (ltag contains "wvhgt") {
-      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT
-    } else if (ltag contains "dompd") {
-      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD
-    } else if (ltag contains "mwdir") {
-      return Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION
-    } else if (ltag contains "tp") {
-      return Phenomena.instance.SEA_WATER_TEMPERATURE
+    tag.toLowerCase match {
+      case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
+      case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
+      case "dew_point_temperature" => return Phenomena.instance.DEW_POINT_TEMPERATURE
+      case "relative_humidity" => return Phenomena.instance.RELATIVE_HUMIDITY
+      case "sea_surface_wave_significant_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
+      case "sea_surface_wind_wave_period" => return Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD
+      case "sea_water_temperature" => return Phenomena.instance.SEA_WATER_TEMPERATURE
+      case "wave_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
+      case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
+      case "wind_speed" => return Phenomena.instance.WIND_SPEED
+      case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
+      case _ => logger.info("Unhandled case: " + tag)
     }
-    // create a phenomena
-    Phenomena.instance.createHomelessParameter(ltag, units)
+    
+    return null
+  }
+  
+  private def getForeignTagFromName(name: String, index: Integer) : String = {
+    name.toLowerCase match {
+      case "air_pressure_at_sea_level" => "baro1"
+      case "air_temperature" => "atmp1"
+      case "dew_point_temperature" => "dewpt1"
+      case "relative_humidity" => "rh1"
+      case "sea_surface_wave_significant_height" => "wvhgt"
+      case "sea_surface_wind_wave_period" => "dompd"
+      case "sea_water_temperature" => {
+          if (index == 0)
+            "wtmp1"
+          else
+            if (index < 10) "tp00" + index else if (index < 100) "tp0" + index else "tp" + index
+      }
+      case "wave_height" => "wvhgt"
+      case "wind_from_direction" => "wdir1"
+      case "wind_speed" => "wspd1"
+      case "wind_speed_of_gust" => "gust1"
+      case _ => ""
+    }
+  }
+  
+  private def getObservedProperties(name: String, desc: String, depths: List[Double]) : List[ObservedProperty] = {
+    val properties = for {
+      (dpth,index) <- depths.zipWithIndex
+      val phenom = findPhenomenon(name)
+      val foreignTag = getForeignTagFromName(name, index)
+      if (phenom.ne(null) && !foreignTag.equals(""))
+    } yield {
+      getObservedProperty(phenom, foreignTag, desc, name, dpth)
+    }
+    properties.filter(_.isDefined).map(_.get)
   }
     
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String) : Option[ObservedProperty] = {
-    try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
-      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, desc, name))
-      }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
-    } catch {
-      case ex: Exception => {}
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String, depth: Double) : Option[ObservedProperty] = {
+    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId),stationQuery)
+    var dbId = -1L
+    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0)
+      dbId = insertPhenomenon(new DatabasePhenomenon(phenomenon.getId), phenomenon.getUnit.getSymbol, phenomenon.getName, phenomenon.getId).id
+    else
+      dbId = localPhenomenon.getDatabasePhenomenon.id
+    if (dbId < 0) {
+      logger.info("dbId of -1: " + foreignTag)
+      return None
     }
-    None
+    return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag,source,phenomenon.getUnit.getSymbol,dbId,depth))
   }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
@@ -169,25 +258,22 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     stationQuery.createPhenomenon(dbPhenom)
   }
 
-  private def readStationFromXML(stationxml : scala.xml.Node) : GLOSStation = {
-    val name = (stationxml \ "name").text.trim
-    val id = (stationxml \ "tag").text.trim
-    val desc = (stationxml \ "description").text.trim
-    val lat = (stationxml \ "latitude").text.trim.toDouble
-    val lon = (stationxml \ "longitude").text.trim.toDouble
-    val platform = (stationxml \ "platformtype").text.trim
-    new GLOSStation(name, id, desc, platform, lat, lon)
+  private def readStationFromXML(xml : scala.xml.Node) : GLOSStation = {
+//    val metadata = (xml \ "gmi:MI_Metadata")
+    val name = (xml \ "fileIdentifier" \ "CharacterString").text.trim
+    val id = name
+    var desc = (xml \ "identificationInfo" \\ "abstract" \ "CharacterString").text.trim
+    val lat = for (north <- xml \\ "northBoundLatitude" \ "Decimal") yield { north.text.trim }
+    val lon = for (west <- xml \\ "westBoundLongitude" \ "Decimal") yield { west.text.trim }
+    val platformType = "BUOY"
+    if (desc.length > 254) 
+      desc = desc.slice(0, 252) + "..."
+    logger.info("station: " + name + " - " + id + " - " + desc + " - " + lat.head + " - " + lon.head)
+    new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
   }
   
-  private def readInMetadata() : List[scala.xml.Elem] = {
-    // read in file(s), not sure how they will be reached, maybe ftp?
-    // for now read in test file
-    val file = scala.io.Source.fromFile(glos_metadata_file)
-    val fileString = file.mkString
-    file.close
-//    logger.info("reading in file:\n" + fileString)
-    // read in the file into xml
-    val xml = scala.xml.XML.loadString(fileString)
-    List(xml)
+  private def halt() = {
+    val z = 0
+    val stop = 1 / z
   }
 }
