@@ -15,6 +15,7 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.SourceId
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -28,7 +29,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
-    
+
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -67,7 +68,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   
   private def getStations():List[DatabaseStation] ={
     val data = httpSender.sendGetMessage(
-      "http://weather.noaa.gov/data/nsd_cccc.txt")
+        SourceUrls.NOAA_WEATHER_COLLECTION_OF_STATIONS)
 
     if (data != null) {
       val stations = for {
@@ -76,7 +77,9 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
         if (rows.size > 8)
         val station = createStation(rows)
         if (withInBoundingBox(station))
-        if (httpSender.doesUrlExists("http://www.nws.noaa.gov/data/obhistory/" + station.foreign_tag + ".html"))
+        if (httpSender.doesUrlExists(
+            SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL + 
+            station.foreign_tag + ".html"))
       } yield { station }
 
       stations.toList
