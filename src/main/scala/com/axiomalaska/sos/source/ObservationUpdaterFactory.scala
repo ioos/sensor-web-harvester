@@ -11,6 +11,7 @@ import com.axiomalaska.sos.source.observationretriever.SnoTelObservationRetrieve
 import com.axiomalaska.sos.source.observationretriever.StoretObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.UsgsWaterObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
+import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.sos.data.SosNetworkImp
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.PublisherInfo
@@ -259,6 +260,8 @@ class ObservationUpdaterFactory {
     
     // iterate over the stations and add a glos network
     addSourceNetworkToStations(stationRetriever, "network-glos", "glos", "glos network stations")
+  
+    System.out.println("Printed all networks for stations")
     
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
@@ -272,6 +275,7 @@ class ObservationUpdaterFactory {
     network.setId(id)
     network.setSourceId(sourceId)
     for (station <- stationRetriever.getLocalStations) {
+      System.out.println("Adding " + id + " network to station " + station.getId)
       station.addNetwork(network)
     }
   }

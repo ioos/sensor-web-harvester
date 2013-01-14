@@ -14,6 +14,7 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
 import java.io.ByteArrayOutputStream
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import org.apache.commons.net.ftp.FTPClient
@@ -49,20 +50,25 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
 //  private val ftp_port = 21
 //  private val ftp_user = "scowan"
 //  private val ftp_pass = "KQ6T6m1B"
-  private val glos_ftp: FTPClient = new FTPClient()  
+  private val glos_ftp: FTPClient = new FTPClient()
+  
+  private val DEBUG: Boolean = true
+  private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
     phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
 
     logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
-    logger.info("Files In Memory - " + filesInMemory)
+    logger.info("Files In Memory - " + filesInMemory.size)
     
     // retrieve files if needed
-    if (filesInMemory.size < 1)
-      readInFtpFilesIntoMemory(station.getId)
-    
-    return Nil
+    if (filesInMemory.size < 1) {
+      if (!DEBUG)
+        readInFtpFilesIntoMemory(station.getId)
+      else
+        readInDebugFilesIntoMemory(station.getId)
+    }
     
     val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
     
@@ -139,14 +145,14 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     // remove files from ftp
-//    try {
-//      logger.info("removing files that have been read into memory")
-//      for (file <- filesToRemove) {
-//        removeFileOnServer(file)
-//      }
-//    } catch {
-//      case ex: Exception => logger.error("Exception removing files from ftp")
-//    }
+    try {
+      logger.info("removing files that have been read into memory")
+      for (file <- filesToRemove) {
+        removeFileOnServer(file)
+      }
+    } catch {
+      case ex: Exception => logger.error("Exception removing files from ftp")
+    }
     
     try {
       logger.info("disconnecting gftp")
@@ -240,5 +246,47 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     if(!success)
       logger.error("Could not read in file " + fileName + " after 3 attempts.")
     retval
+  }
+  
+   ///////////////////////////////////////////////////////////////
+   ////////               Debug                     //////////////
+   ///////////////////////////////////////////////////////////////
+   
+  private def readInDebugFilesIntoMemory(stationid: String) {
+    try {
+      val dir = new File(DEBUG_DIR)
+      var fileCount = 0
+      val fileList = for {
+        file <- dir.listFiles()
+        val currentCount = fileCount
+        if (file.getName.contains(".xml") && file.getName.toLowerCase.contains(stationid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
+      } yield {
+        filesToRemove = file.getAbsolutePath :: filesToRemove
+        fileCount += 1
+        loadFileDebug(file)
+      }
+      filesInMemory = fileList.filter(_.isDefined).map(_.get).toList
+    } catch {
+      case ex: Exception => { ex.printStackTrace() }
+    }
+
+    // remove the files read-in
+    for (rf <- filesToRemove) {
+      try {
+        val file = new File(rf)
+        if (!file.delete)
+          logger.warn("Unable to delete file: " + rf)
+      } catch {
+        case ex: Exception => logger.error("Deleting file: rf \n\t" + ex.toString)
+      }
+    }
+  }
+
+  private def loadFileDebug(file: java.io.File) : Option[scala.xml.Elem] = {
+    try {
+      new Some[scala.xml.Elem](scala.xml.XML.loadFile(file))
+    } catch {
+      case ex: Exception => { None }
+    }
   }
 }

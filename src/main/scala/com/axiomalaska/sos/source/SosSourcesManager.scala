@@ -1,11 +1,8 @@
 package com.axiomalaska.sos.source
 
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.source.isowriter.ISOWriterAdapter
-import com.axiomalaska.sos.source.isowriter.NdbcIsoWriter
-import com.axiomalaska.sos.source.stationupdater.AggregateStationUpdater
 import org.apache.log4j.Logger
 import scala.util.Random
+import com.axiomalaska.sos.data.SosNetworkImp
 import java.util.Calendar
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
@@ -56,11 +53,20 @@ class SosSourcesManager(
           Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), units)
         }
       }
-        
+      
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
-        logger.info("Running updater: " + observationUpdater.toString)
         observationUpdater.update(rootNetwork)
       }
     })
+  }
+  
+  private def getSourceNetwork(sourceName: String) : SosNetworkImp = {
+    val network = new SosNetworkImp()
+    network.setDescription(sourceName + " networked stations")
+    network.setId("network-" + sourceName)
+    network.setSourceId(sourceName)
+    network.setShortName(sourceName + " stations")
+    network.setLongName("stations in the " + sourceName + " network")
+    return network
   }
 }

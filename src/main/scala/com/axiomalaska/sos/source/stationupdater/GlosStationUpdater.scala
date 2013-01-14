@@ -171,12 +171,19 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     } yield {
       var oprops: List[ObservedProperty] = Nil
       if (sensorid.equalsIgnoreCase("sea_water_temperature")) {
-        oprops = getObservedProperties(sensorid, sensordesc, orderedDepths)
+        val swtsen = for {
+          (depth, index) <- depths.zipWithIndex
+        } yield {
+          oprops = getObservedProperties(sensorid, sensordesc, depth, index)
+          val dboprops = stationUpdater.updateObservedProperties(source, oprops)
+          stationUpdater.getSourceSensors(station, dboprops)
+        }
+        swtsen.flatten
       } else {
         oprops = getObservedProperties(sensorid, sensordesc, List(0d))
+        val dboprops = stationUpdater.updateObservedProperties(source, oprops)
+        stationUpdater.getSourceSensors(station, dboprops)
       }
-      val dboprops = stationUpdater.updateObservedProperties(source, oprops)
-      stationUpdater.getSourceSensors(station, dboprops)
     }
     sensors.toList.flatten
   }
@@ -235,6 +242,15 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       getObservedProperty(phenom, foreignTag, desc, name, dpth)
     }
     properties.filter(_.isDefined).map(_.get)
+  }
+  
+  private def getObservedProperties(name: String, desc: String, depth: Double, index: Integer) : List[ObservedProperty] = {
+     val phenom = findPhenomenon(name)
+     val foreignTag = getForeignTagFromName(name, index)
+     if (phenom != null && !foreignTag.equals(""))
+       List(getObservedProperty(phenom, foreignTag, desc, name, depth).get)
+     else
+       Nil
   }
     
   private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String, depth: Double) : Option[ObservedProperty] = {

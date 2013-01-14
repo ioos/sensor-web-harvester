@@ -67,6 +67,10 @@ class LocalStation(val localSource:LocalSource,
   def addNetwork(network: SosNetwork) = {
     networks.add(network)
   }
+  
+  def setNetworks(nets: java.util.List[SosNetwork]) {
+    
+  }
 
   def isMoving = false
   
