@@ -18,6 +18,7 @@ import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
 import org.cuahsi.waterML.x11.TsValuesSingleVariableType
 import org.cuahsi.waterML.x11.ValueSingleVariable
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class UsgsWaterObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -97,7 +98,7 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
         new HttpPart("endDT", formatedEndDate))
         
     val result =
-      httpSender.sendGetMessage("http://waterservices.usgs.gov/nwis/iv", parts)
+      httpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts)
     
     return result
   }

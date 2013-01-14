@@ -22,6 +22,7 @@ import org.cuahsi.waterML.x11.TimeSeriesType
 import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
 import org.cuahsi.waterML.x11.SiteInfoType
 import org.cuahsi.waterML.x11.LatLonPointType
+import com.axiomalaska.sos.source.SourceUrls
 
 class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -35,7 +36,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.USGSWATER)
-    
+ 
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -97,7 +98,8 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
     
     logger.info("Processing state: " + stateTag)
     val rawServerData = httpSender.sendGetMessage(
-        "http://waterservices.usgs.gov/nwis/iv?stateCd=" + stateTag + "&period=PT4H")
+        SourceUrls.USGS_WATER_COLLECTION_OF_STATE_STATIONS
+        + stateTag + "&period=PT4H")
 
     if (rawServerData != null) {
       val documentOption = try{

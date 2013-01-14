@@ -13,6 +13,7 @@ import java.util.Calendar
 import java.util.TimeZone
 import java.text.SimpleDateFormat
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -38,7 +39,7 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
     logger.info("NOOA-WEATHER: Collecting for station - " + station.databaseStation.foreign_tag)
     
     val rawData =
-      httpSender.sendGetMessage("http://www.nws.noaa.gov/data/obhistory/" +
+      httpSender.sendGetMessage(SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL +
         station.databaseStation.foreign_tag + ".html")
 
     val timezone = timezoneParser.findFirstMatchIn(rawData) match{
