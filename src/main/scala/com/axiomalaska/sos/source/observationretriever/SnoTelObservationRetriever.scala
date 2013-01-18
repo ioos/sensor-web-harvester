@@ -141,6 +141,9 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
     return calendar
   }
 
+  /**
+   * return (name, depth)
+   */
   private def createHeaders(headers: Array[String]): List[(String, Double)] = {
     val formatedHeaders = for (originalHeader <- headers) yield {
       val index = originalHeader.indexOf(".")

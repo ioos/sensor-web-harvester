@@ -11,11 +11,7 @@ class LocalSensor(
   private val stationQuery: StationQuery) extends SosSensor {
 
   def getId(): String = {
-    if (databaseSensor.depth != 0.0) {
-      databaseSensor.tag + "_" + databaseSensor.depth + "m"
-    } else {
-      databaseSensor.tag
-    }
+    databaseSensor.tag
   }
 
   def getDescription() = databaseSensor.description

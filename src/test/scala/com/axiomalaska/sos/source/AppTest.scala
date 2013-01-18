@@ -95,7 +95,7 @@ class AppTest {
 //    rootNetwork.setSourceId("aoos")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildNoaaNosCoOpsObservationUpdater(
+//      val observationUpdater = factory.buildSnotelObservationUpdater(
 //        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo)
 //
 //      observationUpdater.update(rootNetwork)
@@ -179,7 +179,7 @@ class AppTest {
 //        "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new NoaaNosCoOpsStationUpdater(stationQuery, worldBoundingBox)
+//      val stationUpdater = new SnoTelStationUpdater(stationQuery, worldBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }
