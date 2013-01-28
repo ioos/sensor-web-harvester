@@ -346,25 +346,25 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, 0.3048))
+            SensorPhenomenonIds.AIR_TEMPERATURE, -0.3048))
       }
       case "AIRTEMP.3FOOT" => {
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, 0.9144))
+            SensorPhenomenonIds.AIR_TEMPERATURE, -0.9144))
       }
       case "AIRTEMP.8FOOT" => {
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, 2.4384))
+            SensorPhenomenonIds.AIR_TEMPERATURE, -2.4384))
       }
       case "AIRTEMP.15FOOT" => {
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, 4.572))
+            SensorPhenomenonIds.AIR_TEMPERATURE, -4.572))
       }
       case "MaximumAirTemperature" => {
         return new Some[ObservedProperty](
@@ -400,20 +400,20 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, 0.1016))
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.1016))
       }
       case "AverageSoilTemperature20Inches" => {
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, 0.508))
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.508))
       }
       // The name is correct with the Y
       case "AverageSoilYemperature40Inches" => {
         return new Some[ObservedProperty](
           stationUpdater.createObservedProperty(id,
             source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, 1.016))
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -1.016))
       }
       case "SoilTemperatureSensor1" => {
         return new Some[ObservedProperty](

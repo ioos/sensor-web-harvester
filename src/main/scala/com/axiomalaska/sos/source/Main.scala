@@ -100,9 +100,12 @@ object Main {
     publisherInfo.setName(name)
     publisherInfo.setWebAddress(webAddress)
 
-    val rootNetwork = new SosNetworkImp();
-    rootNetwork.setId(rootNetworkId);
-    rootNetwork.setSourceId(rootNetworkSourceId);
+    val rootNetwork = new SosNetworkImp()
+    rootNetwork.setId(rootNetworkId)
+    rootNetwork.setSourceId(rootNetworkSourceId)
+    rootNetwork.setDescription("All stations")
+    rootNetwork.setLongName(rootNetworkSourceId)
+    rootNetwork.setShortName(rootNetworkSourceId)
 
     val sosManager = new SosSourcesManager(databaseUrl,
       databaseUsername, databasePassword, sosUrl, publisherInfo, 

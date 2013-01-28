@@ -40,6 +40,9 @@ import com.axiomalaska.sos.ObservationSubmitter
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.stationupdater.NdbcSosStationUpdater
 import com.axiomalaska.sos.data.SosNetworkImp
+import com.axiomalaska.sos.source.data.LocalSensor
+import com.axiomalaska.sos.source.data.LocalPhenomenon
+import com.axiomalaska.sos.data.SosNetwork
 
 @Test
 class AppTest {
@@ -73,6 +76,11 @@ class AppTest {
         new Location(85.0, 179.0))
   }
   
+  def alaskaBoundingBox():BoundingBox ={
+    BoundingBox(new Location(40, -179.0), 
+        new Location(85.0, -140.0))
+  }
+  
   @Test
   def testOK() = assertTrue(true)
 
@@ -93,10 +101,13 @@ class AppTest {
 //    val rootNetwork = new SosNetworkImp()
 //    rootNetwork.setId("all")
 //    rootNetwork.setSourceId("aoos")
+//    rootNetwork.setDescription("All AOOS stations")
+//    rootNetwork.setLongName("All AOOS stations")
+//    rootNetwork.setShortName("All")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildSnotelObservationUpdater(
-//        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo)
+//      val observationUpdater = factory.buildRawsObservationUpdater(
+//        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo, rootNetwork)
 //
 //      observationUpdater.update(rootNetwork)
 //    })
@@ -107,28 +118,43 @@ class AppTest {
 //    val observationSubmitter = new ObservationSubmitter(
 //      "http://staging1.axiom:8080/52n-sos-ioos-dev/sos");
 //    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", "postgres", "postgres")
-//
+//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
+//      "postgres", "postgres")
+//    
 //    val publisherInfo = new PublisherInfoImp()
 //
-//    publisherInfo.setCountry("")
-//    publisherInfo.setEmail("")
-//    publisherInfo.setName("")
-//    publisherInfo.setWebAddress("")
+//    publisherInfo.setCountry("USA")
+//    publisherInfo.setEmail("lance@axiomalaska.com")
+//    publisherInfo.setName("AOOS")
+//    publisherInfo.setWebAddress("http://www.aoos.org")
+//    
+//    val rootNetwork = new SosNetworkImp()
+//    rootNetwork.setId("all")
+//    rootNetwork.setSourceId("aoos")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationRetriever = new NerrsObservationRetriever(stationQuery)
+//      val observationRetriever = new SnoTelObservationRetriever(stationQuery)
 //      val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever)
-//      val databaseSource = stationQuery.getSource(SourceId.NERRS)
+//      val databaseSource = stationQuery.getSource(SourceId.SNOTEL)
 //      val sosSource = new LocalSource(databaseSource)
-//      val station = stationQuery.getStation(101829)
-//      val sosStation = new LocalStation(sosSource, station, stationQuery)
-//      observationSubmitter.update(sosStation,
-//        retrieverAdapter, publisherInfo);
+//      val station = stationQuery.getStation(123505)
+//      val sosStation = new LocalStation(sosSource, station, stationQuery, rootNetwork)
+//      val sensor = stationQuery.getActiveSensors(station).find(s => s.id == 549280).get
+//      val sosSensor = new LocalSensor(sensor, stationQuery)
+//      val databasePhenomenon = stationQuery.getPhenomena(sensor).head
+//      val sosPhenomenon = new LocalPhenomenon(databasePhenomenon)
+//      
+////      val observedProperties = 
+////        stationQuery.getObservedProperties(station, sensor, databasePhenomenon)
+////      observedProperties.foreach(o => println(o.foreign_tag + o.depth))
+//      
+//      observationSubmitter.update(rootNetwork, sosStation, retrieverAdapter, publisherInfo)
+//      
+////      observationSubmitter.update(rootNetwork, sosStation, sosSensor, sosPhenomenon,
+////        retrieverAdapter)
 //    })
 //  }
   
-//  
 //  @Test
 //  def test(){
 //    val httpSender = new HttpSender()
@@ -176,10 +202,11 @@ class AppTest {
 //  @Test
 //  def updateStationsInDatabase(){
 //    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", "sensoruser", "sensor")
+//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
+//        "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new SnoTelStationUpdater(stationQuery, worldBoundingBox)
+//      val stationUpdater = new RawsStationUpdater(stationQuery, alaskaBoundingBox)
 //      stationUpdater.update()
 //    })
 //  }
@@ -266,7 +293,7 @@ class AppTest {
   }
   
   private class StationRetriever2(
-    private val stationQuery: StationQuery) extends StationRetriever {
+    private val stationQuery: StationQuery, rootNetwork:SosNetwork) extends StationRetriever {
 
     override def getStations(): java.util.List[SosStation] = {
       val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
@@ -275,7 +302,7 @@ class AppTest {
         station <- stationQuery.getAllStations(source)
 //        if (station.tag == "KBAN")
       } yield {
-        new LocalStation(sosSource, station, stationQuery)
+        new LocalStation(sosSource, station, stationQuery, rootNetwork)
       }
     }
   }

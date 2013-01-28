@@ -34,7 +34,7 @@ class SosSourcesManager(
 
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery, publisherInfo, logger)
+        sosUrl, stationQuery, publisherInfo, rootNetwork, logger)
 
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
         observationUpdater.update(rootNetwork)
