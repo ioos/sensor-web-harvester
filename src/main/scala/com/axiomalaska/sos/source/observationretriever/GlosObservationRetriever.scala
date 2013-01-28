@@ -23,6 +23,8 @@ import org.apache.log4j.Logger
 
 object GlosObservationRetriever {
   private var filesInMemory: List[scala.xml.Elem] = Nil
+  // current station name in 'filesToRemove'
+  private var currentStationName: String = ""
 }
 
 class GlosObservationRetriever(private val stationQuery:StationQuery, 
@@ -36,24 +38,22 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private val source = stationQuery.getSource(SourceId.GLOS)
   private val stationList = stationQuery.getAllStations(source)
   
-  private val MAX_FILE_LIMIT = 200
+  private val MAX_FILE_LIMIT = 2500
   
-  private var filesToRemove: List[String] = List()
+  private var filesToMove: List[String] = List()
     
   //ftp info - below is the glos server
   private val ftp_host = "glos.us"
   private val ftp_port = 21
   private val ftp_user = "asa"
   private val ftp_pass = "AGSLaos001"
-  // below is a temp server used for testing
-//  private val ftp_host = "ftp.oilmap.com"
-//  private val ftp_port = 21
-//  private val ftp_user = "scowan"
-//  private val ftp_pass = "KQ6T6m1B"
+  private val reloc_dir = "processed"
   private val glos_ftp: FTPClient = new FTPClient()
   
-  private val DEBUG: Boolean = true
+  ////////// DEBUG VALs //////////////////////////////////////////
+  private val DEBUG: Boolean = false  // enable to run on local debug test files
   private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
+  ////////////////////////////////////////////////////////////////
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
     phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
@@ -63,11 +63,13 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     logger.info("Files In Memory - " + filesInMemory.size)
     
     // retrieve files if needed
-    if (filesInMemory.size < 1) {
+    if (!currentStationName.equals(station.getId)) {
       if (!DEBUG)
         readInFtpFilesIntoMemory(station.getId)
       else
         readInDebugFilesIntoMemory(station.getId)
+      
+      currentStationName = station.getId
     }
     
     val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
@@ -91,7 +93,13 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
-          (message \\ tag).filter(p => p.text != "").foreach(f => observation.addValue(f.text.trim.toDouble, reportDate))
+          (message \\ tag).filter(p => p.text != "").foreach(f => {
+              try {
+                observation.addValue(f.text.trim.toDouble, reportDate)
+              } catch {
+                case ex: Exception => logger.error(ex.toString)
+              }
+            })
         }
       }
     }
@@ -126,13 +134,17 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     try {
+      // clear out previous lists
+      filesInMemory = Nil
+      filesToMove = Nil
       // get file list; only taking the first MAX_FILE_LIMIT items
-      val fileList = glos_ftp.listFiles.take(MAX_FILE_LIMIT)
+      val fileList = glos_ftp.listFiles
       // read files and add their contents to the file list in memory
       var fileCount = 0
+      logger.info("Getting files for station: " + stationId)
       val files = for {
         file <- fileList
-        if (file.getName.toLowerCase.contains(stationId.toLowerCase))
+        if (file.getName.toLowerCase.contains(stationId.toLowerCase) && fileCount < MAX_FILE_LIMIT)
       } yield {
         fileCount += 1
         logger.info("\nReading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
@@ -144,11 +156,12 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       case ex: Exception => logger.error("Exception reading in file: " + ex.toString)
     }
     
-    // remove files from ftp
+    // move files into a processed directory; This will be skipped for now until we have
+    // the privileges needed to move/rename files on the glos server.
     try {
       logger.info("removing files that have been read into memory")
-      for (file <- filesToRemove) {
-        removeFileOnServer(file)
+      for (file <- filesToMove) {
+        moveFileToProcessed(file)
       }
     } catch {
       case ex: Exception => logger.error("Exception removing files from ftp")
@@ -193,16 +206,18 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     xmlList.filter(_.isDefined).map(g => g.get).toList
   }
   
-  private def removeFileOnServer(fileName: String) = {
+  private def moveFileToProcessed(fileName: String) = {
+    logger.info("Moving file " + fileName)
+    val dest = "./" + reloc_dir + "/" + fileName
     var success = false
     var attempts = 0
     while (attempts < 3 && !success) {
       try {
-        success = glos_ftp.deleteFile(fileName)
+        success = glos_ftp.rename(fileName, dest)
         attempts += 1
       } catch {
         case ex: Exception => {
-            logger.error("ERROR removinjavag file from server: " + fileName)
+            logger.error("ERROR renaming file on server: " + fileName)
             success = false
             attempts = 3
         }
@@ -210,10 +225,10 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     if (success)
-      logger.info("Successfully deleted file " + fileName + " from server.")
+      logger.info("Successfully moved file " + fileName + " to " + dest)
     else
-      logger.info("Unable to delte file " + fileName + " after three attempts.")
-  }
+      logger.info("Unable to move file " + fileName + " after three attempts.")
+  }    
   
   private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
     val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
@@ -226,7 +241,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
         glos_ftp.retrieveFile(fileName, byteStream) match {
           case true => {
               logger.info("got a positive on file received")
-              filesToRemove = fileName :: filesToRemove
+              filesToMove = fileName :: filesToMove
               // doing a test load of xml to throw exception in case file wasn't fully downloaded
               val xml = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
               retval = new Some[scala.xml.Elem](xml)
@@ -261,7 +276,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
         val currentCount = fileCount
         if (file.getName.contains(".xml") && file.getName.toLowerCase.contains(stationid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
       } yield {
-        filesToRemove = file.getAbsolutePath :: filesToRemove
+        filesToMove = file.getAbsolutePath :: filesToMove
         fileCount += 1
         loadFileDebug(file)
       }
@@ -271,7 +286,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
 
     // remove the files read-in
-    for (rf <- filesToRemove) {
+    for (rf <- filesToMove) {
       try {
         val file = new File(rf)
         if (!file.delete)

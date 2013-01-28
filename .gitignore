@@ -26,6 +26,7 @@ epa_*
 *csv
 glos_metadata_test.xml
 glos_station/*
+glosbuoy_metadata/*
 *gz
 *doc*
 *out*
@@ -35,3 +36,4 @@ iso/*
 *iml
 *sh
 *bat
+*zip

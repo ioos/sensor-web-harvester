@@ -259,7 +259,7 @@ class ObservationUpdaterFactory {
     val observationRetriever = new GlosObservationRetriever(stationQuery, logger)
     
     // iterate over the stations and add a glos network
-    addSourceNetworkToStations(stationRetriever, "network-glos", "glos", "glos network stations")
+    addSourceNetworkToStations(stationRetriever, "glos", "glos", "glos network stations")
   
     System.out.println("Printed all networks for stations")
     

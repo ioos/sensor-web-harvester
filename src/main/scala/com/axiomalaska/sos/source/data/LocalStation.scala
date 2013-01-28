@@ -12,7 +12,7 @@ class LocalStation(val localSource:LocalSource,
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery) extends SosStation {
 
-  private val networks: java.util.List[SosNetwork] = new java.util.ArrayList()
+  private var networks: java.util.List[SosNetwork] = new java.util.ArrayList()
 
   /**
    * A list of phenomena that this station has readings for
@@ -54,14 +54,25 @@ class LocalStation(val localSource:LocalSource,
     val stationNetworks = stationQuery.getNetworks(databaseStation).map(
         network => new LocalNetwork(network))
     val set = new mutable.HashSet[String]
+    // fill in set with items in local network list
+    for {
+      network <- networks
+      val networkId = network.getSourceId + network.getId
+      if (!set.contains(networkId))
+    } {
+      set += networkId
+    }
+    // get networks from DB
     for {
       network <- sourceNetworks ::: stationNetworks
       val networkId = network.getSourceId + network.getId
       if (!set.contains(networkId))
-    } yield {
+    } {
       set += networkId
-      network
+      addNetwork(network)
     }
+    // return combo of DB and local networks
+    networks
   }
   
   def addNetwork(network: SosNetwork) = {
@@ -69,7 +80,10 @@ class LocalStation(val localSource:LocalSource,
   }
   
   def setNetworks(nets: java.util.List[SosNetwork]) {
-    
+    networks.clear
+    for (net <- nets) {
+      networks.add(net)
+    }
   }
 
   def isMoving = false

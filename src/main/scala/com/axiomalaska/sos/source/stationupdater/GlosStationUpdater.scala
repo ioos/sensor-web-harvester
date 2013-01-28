@@ -126,8 +126,13 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         if (file.getName.contains(stationid)) {
           glos_ftp.retrieveFile(file.getName, byteStream) match {
             case true => {
-                retval = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
-                return retval
+                try {
+                  retval = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
+                  return retval
+                } catch {
+                  case ex: Exception => logger.error("Could not open file: " + file.getName + "\n" + ex.toString)
+                }
+                retval = null
             }
             case _ => {
                 retval = null
