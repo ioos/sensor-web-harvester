@@ -112,15 +112,11 @@ class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
 }
 
 class DatabaseSensor(val tag: String, val description:String, val station_id:Long, 
-    val depth:Double, val active:Boolean) extends KeyedEntity[Long] {
+    val active:Boolean) extends KeyedEntity[Long] {
   val id: Long = -1
   
-  def this(tag: String, description:String, station_id:Long, depth:Double){
-    this(tag, description, station_id, depth, true)
-  }
-  
   def this(tag: String, description:String, station_id:Long){
-    this(tag, description, station_id, 0, true)
+    this(tag, description, station_id, true)
   }
   
   lazy val phenomena = 

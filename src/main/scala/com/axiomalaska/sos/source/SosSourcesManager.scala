@@ -2,11 +2,11 @@ package com.axiomalaska.sos.source
 
 import org.apache.log4j.Logger
 import scala.util.Random
-import com.axiomalaska.sos.data.SosNetworkImp
-import java.util.Calendar
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.data.SosNetworkImp
+import java.util.Calendar
 
 import collection.JavaConversions._
 
@@ -39,7 +39,7 @@ class SosSourcesManager(
 
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery, publisherInfo, sources.toLowerCase, logger)
+        sosUrl, stationQuery, publisherInfo, sources.toLowerCase, rootNetwork, logger)
 
       // load phenomenon
       val phenomena = stationQuery.getPhenomena

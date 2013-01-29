@@ -23,7 +23,7 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
   // ---------------------------------------------------------------------------
   
   override def getObservationCollection( station:SosStation, 
-	sensor:SosSensor, phenomenon:Phenomenon, startDate:Calendar): ObservationCollection = {
+	sensor:SosSensor, phenomenon:Phenomenon, startDate:Calendar): java.util.List[ObservationCollection] = {
 
     val observationValuesCollection = (station, sensor, phenomenon) match {
       case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
@@ -32,15 +32,8 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
       case _ => Nil
     }
     
-    val filteredObservationValuesCollection = observationValuesCollection.filter(_.getDates.size > 0)
-
-    if (filteredObservationValuesCollection.size == 1) {
-      createObservationCollection(station, filteredObservationValuesCollection.head)
-    } else if (filteredObservationValuesCollection.size == 0) {
-      return null
-    } else {
-      logger.error("Error more than one observationValues")
-      return null
+    for(observationValuesCollection <- observationValuesCollection.filter(_.getDates.size > 0)) yield{
+      createObservationCollection(station, observationValuesCollection)
     }
   }
 
@@ -60,6 +53,13 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
     observationCollection.setPhenomenon(observationValues.phenomenon)
     observationCollection.setSensor(observationValues.sensor)
     observationCollection.setStation(station)
+    
+    if(observationValues.observedProperty.depth != 0.0){
+      observationCollection.setDepth(observationValues.observedProperty.depth)
+    }
+    else{
+      observationCollection.setDepth(null)
+    }
 
     observationCollection
   }

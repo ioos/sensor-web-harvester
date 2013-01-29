@@ -1,13 +1,13 @@
 package com.axiomalaska.sos.source
 
-import com.axiomalaska.sos.data.Location
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.data.PublisherInfoImp
+import com.axiomalaska.sos.data.SosNetworkImp
 import java.io.File
 import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
-import com.axiomalaska.sos.data.SosNetworkImp
 
 case class Properties(val sosUrl: String,
       val country: String,

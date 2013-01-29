@@ -1,10 +1,11 @@
 package com.axiomalaska.sos.source
 
-import com.axiomalaska.sos.StationRetriever
-import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalStation
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.StationRetriever
+import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalSource
 
 /**
@@ -13,7 +14,7 @@ import com.axiomalaska.sos.source.data.LocalSource
  */
 class SourceStationRetriever(
     private val stationQuery:StationQuery, 
-    val sourceId: Int, 
+    val sourceId: Int, rootNetwork:SosNetwork,
     private val logger: Logger = Logger.getRootLogger()) extends StationRetriever {
     
     private var stationList: List[LocalStation] = Nil
@@ -44,15 +45,17 @@ class SourceStationRetriever(
     return stationList
   }
   
-  def populateStationList() = {
+  def populateStationList() : List[LocalStation] = {
       val source = stationQuery.getSource(sourceId)
       
       val sosSource = new LocalSource(source)
       
       val databaseStations = stationQuery.getActiveStations(source)
       
-      stationList = databaseStations.map(station => 
-        new LocalStation(sosSource, station, stationQuery))
+      val sosStations = databaseStations.map(station => 
+        new LocalStation(sosSource, station, stationQuery, rootNetwork))
+        
+      return sosStations
   }
   
   

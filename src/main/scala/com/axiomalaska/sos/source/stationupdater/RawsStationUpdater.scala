@@ -2,6 +2,7 @@ package com.axiomalaska.sos.source.stationupdater
 
 import java.util.Calendar
 import java.util.TimeZone
+import com.axiomalaska.sos.tools.HttpPart
 import java.text.SimpleDateFormat
 import org.apache.log4j.Logger
 import org.jsoup.Jsoup
@@ -10,20 +11,18 @@ import scala.collection.JavaConversions._
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
-import com.axiomalaska.sos.tools.HttpPart
-import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.BoundingBox
+import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SourceId
-import com.axiomalaska.sos.source.SourceUrls
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -314,16 +313,28 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id)
       }
       case "AIRTEMP.1FOOT" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id, 0.3048)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, -0.3048))
       }
       case "AIRTEMP.3FOOT" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id, 0.9144)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, -0.9144))
       }
       case "AIRTEMP.8FOOT" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id, 2.4384)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, -2.4384))
       }
       case "AIRTEMP.15FOOT" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id, 4.572)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.AIR_TEMPERATURE, -4.572))
       }
       case "MaximumAirTemperature" => {
         getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM, id)
@@ -341,14 +352,23 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         getObservedProperty(Phenomena.instance.FUEL_MOISTURE, id)
       }
       case "AverageSoilTemperature4Inches" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.CELSIUS), id, 0.1016)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.1016))
       }
       case "AverageSoilTemperature20Inches" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.CELSIUS), id, 0.508)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.508))
       }
       // The name is correct with the Y
       case "AverageSoilYemperature40Inches" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.CELSIUS), id, 1.016)
+        return new Some[ObservedProperty](
+          stationUpdater.createObservedProperty(id,
+            source, Units.CELSIUS,
+            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -1.016))
       }
       case "SoilTemperatureSensor1" => {
         getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.CELSIUS), id)

@@ -110,7 +110,7 @@ private class StationQueryImp(url:String,
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor ={
     using(session){
       val vaildSensor = new DatabaseSensor(sensor.tag, sensor.description, 
-          databaseStation.id, sensor.depth)
+          databaseStation.id)
       StationDatabase.sensors.insert(vaildSensor)
     }
   }
@@ -173,7 +173,7 @@ private class StationQueryImp(url:String,
       val source = station.source.head
       
       source.observedProperties.where(op => 
-        op.phenomenon_id === phenomenon.id and op.depth === sensor.depth).toList
+        op.phenomenon_id === phenomenon.id).toList
     }
   }
   

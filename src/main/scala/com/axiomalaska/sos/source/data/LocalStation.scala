@@ -10,7 +10,8 @@ import scala.collection.mutable
 
 class LocalStation(val localSource:LocalSource, 
     val databaseStation: DatabaseStation,
-  private val stationQuery: StationQuery) extends SosStation {
+  private val stationQuery: StationQuery,
+  private val rootNetwork:SosNetwork) extends SosStation {
 
   private var networks: java.util.List[SosNetwork] = new java.util.ArrayList()
 
@@ -53,6 +54,7 @@ class LocalStation(val localSource:LocalSource,
         network => new LocalNetwork(network))
     val stationNetworks = stationQuery.getNetworks(databaseStation).map(
         network => new LocalNetwork(network))
+    val combinedNetworks = rootNetwork :: sourceNetworks ::: stationNetworks
     val set = new mutable.HashSet[String]
     // fill in set with items in local network list
     for {

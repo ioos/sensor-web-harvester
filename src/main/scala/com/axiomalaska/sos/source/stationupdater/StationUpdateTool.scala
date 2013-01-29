@@ -1,15 +1,16 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import org.apache.log4j.Logger
-
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.StationQuery
-
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 
 class StationUpdateTool(private val stationQuery:StationQuery, 
   private val logger: Logger = Logger.getRootLogger()) {
@@ -49,7 +50,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
           }
 
           if (createdSensors.nonEmpty) {
-            logger.info("Associating Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
+            logger.info("Association Sensors " + createdSensors.map(s => s.tag).mkString(", ") +
               " to Station: " + sourceStation.name)
           }
         }
@@ -62,7 +63,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
             phenomena.foreach(phenomenon =>
               stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
           }
-          logger.info("Created new sensors: " + sourceSensors.map(s => s._1.tag + ":" + s._1.depth).mkString(", "))
+          logger.info("Created new sensors: " + sourceSensors.map(s => s._1.tag).mkString(", "))
         }
       }
     }
@@ -70,21 +71,14 @@ class StationUpdateTool(private val stationQuery:StationQuery,
   
   def getSourceSensors(station:DatabaseStation, observedProperties: List[ObservedProperty]): 
   List[(DatabaseSensor, List[DatabasePhenomenon])] = {
-    val set = new mutable.HashSet[(Long, Double)]
+    val set = new mutable.HashSet[Long]
     val sensors = for{observedProperty <- observedProperties
-      val id = (observedProperty.phenomenon_id, observedProperty.depth)
-      if(!set.contains(id))} yield{
-      set += id
-      val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
-      // needed to create a better sensor tag that just using the phenomenon id (since it changed) - SEAN M COWAN
-      val sensortag = phenomenon.tag.substring(phenomenon.tag.lastIndexOf("/")+1)
-      val description = if (observedProperty.depth != 0) {
-    	  phenomenon.name + " with depth " + observedProperty.depth + " m"
-      } else {
-    	  phenomenon.name
-      }
-      (new DatabaseSensor(sensortag, description, station.id, observedProperty.depth),
-          List(phenomenon))
+      if(!set.contains(observedProperty.phenomenon_id))} yield{
+      set += observedProperty.phenomenon_id
+      val databasePhenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
+      val phenomenon = findPhenomenon(databasePhenomenon)
+      (new DatabaseSensor(databasePhenomenon.tag, phenomenon.getName(), station.id),
+          List(databasePhenomenon))
     }
 
     return sensors
@@ -120,15 +114,29 @@ class StationUpdateTool(private val stationQuery:StationQuery,
     return observedProperties
   }
   
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-  
   def createObservedProperty(foreignTag:String, source:Source, 
       foreignUnits:String, phenomenonId:Long, depth:Double = 0):ObservedProperty ={
     
     new ObservedProperty(foreignTag, source.id, foreignUnits,
       phenomenonId, depth)
+  }
+  
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+  
+  private def findPhenomenon(databasePhenomenon:DatabasePhenomenon):Phenomenon = {
+    val option = Phenomena.instance.getAllPhenomena().find(phenomenon =>{
+      val index = phenomenon.getId().lastIndexOf("/") + 1
+      val tag = phenomenon.getId().substring(index)
+      tag == databasePhenomenon.tag
+    })
+    
+    if(option.isEmpty){
+      throw new Exception("Did not find Phenomenon");
+    }
+    
+    option.get
   }
   
   private def isThereAnEqualSensor(originalSensors:List[DatabaseSensor], 
@@ -137,8 +145,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
        val originalPhenomena = stationQuery.getPhenomena(originalSensor)
        
        (newPhenomena.forall(newPhenomenon => originalPhenomena.exists(_.tag == newPhenomenon.tag)) &&
-       originalPhenomena.forall(originalPhenomenon => newPhenomena.exists(_.tag == originalPhenomenon.tag)) &&
-       originalSensor.depth == newSensor.depth)
+       originalPhenomena.forall(originalPhenomenon => newPhenomena.exists(_.tag == originalPhenomenon.tag)))
     })
   }
   

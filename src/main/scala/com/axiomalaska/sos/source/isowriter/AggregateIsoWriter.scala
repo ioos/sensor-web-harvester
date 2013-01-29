@@ -5,6 +5,7 @@
 
 package com.axiomalaska.sos.source.isowriter
 
+import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalSource
 import com.axiomalaska.sos.source.data.LocalStation
@@ -16,6 +17,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
                          private val isoDirectory: String,
                          private val sources: String,
                          private val overwrite: Boolean = true,
+                         private val rootNetwork: SosNetwork,
                          private val logger: Logger = Logger.getRootLogger()) {
 
   def writeISOs() {
@@ -26,7 +28,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
         val src = w._1
         val wrt = w._2
         for (station <- stationQuery.getAllStations(src)) {
-          wrt.writeISOFile(new LocalStation(new LocalSource(src), station, stationQuery))
+          wrt.writeISOFile(new LocalStation(new LocalSource(src), station, stationQuery, rootNetwork))
         }
       }
     )

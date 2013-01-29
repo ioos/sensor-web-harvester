@@ -1,21 +1,16 @@
 package com.axiomalaska.sos.source.data
 
-import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.data.SosSensor
-import scala.collection.JavaConversions._
-import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.data.SosSensor
+import com.axiomalaska.sos.source.StationQuery
+import scala.collection.JavaConversions._
 
 class LocalSensor(
   val databaseSensor: DatabaseSensor,
   private val stationQuery: StationQuery) extends SosSensor {
 
   def getId(): String = {
-//    if (databaseSensor.depth != 0.0) {
-//      databaseSensor.tag + "_" + databaseSensor.depth + "m"
-//    } else {
-//      databaseSensor.tag
-//    }
     databaseSensor.tag
   }
 
