@@ -214,7 +214,6 @@ object Main {
     return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
                           databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation,
                           rootNetworkId,rootNetworkSourceId,rootNetworkDescription,rootNetworkName)
-
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

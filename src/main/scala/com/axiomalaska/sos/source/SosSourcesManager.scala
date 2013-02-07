@@ -41,8 +41,6 @@ class SosSourcesManager(
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, publisherInfo, sources.toLowerCase, rootNetwork, logger)
-      
-        logger.info("Number of known phenomena: " + stationQuery.getPhenomena.size);
 
       // load phenomenon
       val phenomena = stationQuery.getPhenomena

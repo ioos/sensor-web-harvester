@@ -60,11 +60,11 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
             station, sensor, phenomenon, startDate)
       }
       case None => {
-        val exceptionDocument =
-          ExceptionReportDocument.Factory.parse(rawData);
-
-        val fullMessage = exceptionDocument.getExceptionReport().
-          getExceptionArray()(0).getExceptionTextArray().mkString(", ");
+//        val exceptionDocument =
+//          ExceptionReportDocument.Factory.parse(rawData);
+//
+//        val fullMessage = exceptionDocument.getExceptionReport().
+//          getExceptionArray()(0).getExceptionTextArray().mkString(", ");
         
         return Nil
       }

@@ -103,6 +103,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     }
     // read local ISOs for metadata
     val dir = new File(glos_metadata_folder)
+    logger.info(dir.listFiles.length + " files in directory")
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
         val readin = scala.io.Source.fromFile(file)
         val xml = scala.xml.XML.loadString(readin.mkString)
@@ -111,8 +112,10 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         val station = readStationFromXML(xml)
         // get the obs data, need this for the depth values
         if (DEBUG) readInDebugFilesIntoMemory(station.stationName)
+        logger.info(filesInMemory.size + " files for station")
         val dataXML = if (!DEBUG) readInData(station.stationName) else readInDataDebug()
         if (dataXML.ne(null)) {
+          logger.info("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
           val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
           val sensors = readInSensors((xml \ "contentInfo"), stationDB, depths)
@@ -215,6 +218,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
+    logger.info("looking for tag: " + tag)
     tag.toLowerCase match {
       case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
       case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
@@ -310,12 +314,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val platformType = "BUOY"
     if (desc.length > 254) 
       desc = desc.slice(0, 252) + "..."
+    logger.info("read in station: " + name)
     new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
-  }
-  
-  private def halt() = {
-    val z = 0
-    val stop = 1 / z
   }
   
    ///////////////////////////////////////////////////////////////
@@ -343,17 +343,6 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       filesInMemory = fileList.filter(_.isDefined).map(_.get).toList
     } catch {
       case ex: Exception => { ex.printStackTrace() }
-    }
-
-    // remove the files read-in
-    for (rf <- filesToMove) {
-      try {
-        val file = new File(rf)
-        if (!file.delete)
-          logger.warn("Unable to delete file: " + rf)
-      } catch {
-        case ex: Exception => logger.error("Deleting file: rf \n\t" + ex.toString)
-      }
     }
   }
 
