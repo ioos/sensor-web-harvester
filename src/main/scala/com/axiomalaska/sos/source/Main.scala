@@ -25,7 +25,10 @@ case class Properties(val sosUrl: String,
       val isoTemplate: String,
       val isoLocation: String,
       val rootNetworkId: String,
-      val rootNetworkSourceId: String)
+      val rootNetworkSourceId: String,
+      val rootNetworkDescription: String,
+      val rootNetworkName: String
+      )
 
 object Main {
 
@@ -150,6 +153,9 @@ object Main {
     val rootNetwork = new SosNetworkImp();
     rootNetwork.setId(propertiesRead.rootNetworkId);
     rootNetwork.setSourceId(propertiesRead.rootNetworkSourceId);
+    rootNetwork.setDescription(propertiesRead.rootNetworkDescription)
+    rootNetwork.setLongName(propertiesRead.rootNetworkName)
+    rootNetwork.setShortName(propertiesRead.rootNetworkName)
 
     val sosManager = new SosSourcesManager(propertiesRead.databaseUrl,
       propertiesRead.databaseUsername, propertiesRead.databasePassword, propertiesRead.sosUrl, publisherInfo, propertiesRead.sources,
@@ -168,8 +174,15 @@ object Main {
     logger.info("Database Username: " + propertiesRead.databaseUsername)
     logger.info("Database Password: " + propertiesRead.databasePassword)
     
+    val rootNetwork = new SosNetworkImp()
+    rootNetwork.setId(propertiesRead.rootNetworkId)
+    rootNetwork.setSourceId(propertiesRead.rootNetworkSourceId)
+    rootNetwork.setDescription(propertiesRead.rootNetworkDescription)
+    rootNetwork.setLongName(propertiesRead.rootNetworkName)
+    rootNetwork.setShortName(propertiesRead.rootNetworkName)
+    
     val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
-                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, overWrite, logger)
+                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, overWrite, rootNetwork, logger)
     
     isoManager.writeISOs()
   }
@@ -190,15 +203,17 @@ object Main {
     val eastLon = properties.getDouble("east_lon")
     val isoTemplate = properties.getString("iso_template")
     val isoLocation = properties.getString("iso_write_location")
-    val rootNetworkId = properties.getString("root_network")
-    val rootNetworkSourceId = properties.getString("root_network_source")
+    val rootNetworkId = properties.getString("root_network", "network-all")
+    val rootNetworkSourceId = properties.getString("root_network_source", "all")
+    val rootNetworkDescription = properties.getString("root_network_description", "All stations")
+    val rootNetworkName = properties.getString("root_network_long_name", "network all")
 
     if (properties.containsKey("sources"))
       sources = properties.getString("sources")
       
     return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
-                          databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,
-                          isoLocation,rootNetworkId,rootNetworkSourceId)
+                          databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation,
+                          rootNetworkId,rootNetworkSourceId,rootNetworkDescription,rootNetworkName)
 
   }
   

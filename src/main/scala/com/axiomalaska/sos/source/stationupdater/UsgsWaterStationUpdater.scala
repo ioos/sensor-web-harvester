@@ -270,9 +270,6 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
     stationQuery.createPhenomenon(dbPhenom)
   }
     

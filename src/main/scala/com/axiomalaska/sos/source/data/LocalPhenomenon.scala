@@ -17,10 +17,11 @@ class LocalPhenomenon(val databasePhenomenon:DatabasePhenomenon, private val sta
   def getName() = phenomenon.getName()
   def getId() = phenomenon.getId()
   def getUnit() = phenomenon.getUnit()
+  def getTag() = phenomenon.getTag()
   
   private def findPhenomenon():Phenomenon = {
     val option = Phenomena.instance.getAllPhenomena().find(phenomenon =>{
-        phenomenon.getId() == databasePhenomenon.tag
+        phenomenon.getTag() == databasePhenomenon.tag
     })
   
     if(option.isEmpty){
@@ -35,7 +36,7 @@ class LocalPhenomenon(val databasePhenomenon:DatabasePhenomenon, private val sta
       null
     else
       try {
-        return stationQuery.getPhenomenon(phenomenon.getId)
+        return stationQuery.getPhenomenon(phenomenon.getTag)
       } catch {
         case ex: Exception => {
             null

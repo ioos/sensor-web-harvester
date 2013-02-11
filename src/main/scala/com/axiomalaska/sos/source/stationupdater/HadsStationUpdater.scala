@@ -367,7 +367,7 @@ class HadsStationUpdater(
         getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, id)
       }
       case "HG" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("stream_gage_height", Units.FEET), id)
+          getObservedProperty(Phenomena.instance.createHomelessParameter("stream_gage_height", Units.FEET), id)
       }
       case "HG2" => {
         return None
@@ -383,7 +383,7 @@ class HadsStationUpdater(
         getObservedProperty(Phenomena.instance.SALINITY, id)
       }
       case "HM" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("water_level", Units.FEET), id)
+          getObservedProperty(Phenomena.instance.createHomelessParameter("water_level", Units.FEET), id)
       }
       case "PA" => {
         getObservedProperty(Phenomena.instance.AIR_PRESSURE, id)
@@ -395,7 +395,7 @@ class HadsStationUpdater(
         getObservedProperty(Phenomena.instance.SNOW_WATER_EQUIVALENT, id)
       }
       case "TS" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.FAHRENHEIT), id)
+          getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.FAHRENHEIT), id)
       }
       case _ => {
         logger.debug("[" + source.name + "] observed property: " + id +
@@ -420,9 +420,6 @@ class HadsStationUpdater(
   }
     
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
     stationQuery.createPhenomenon(dbPhenom)
   }
 }

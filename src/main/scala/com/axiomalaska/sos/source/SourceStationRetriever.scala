@@ -45,17 +45,17 @@ class SourceStationRetriever(
     return stationList
   }
   
-  def populateStationList() : List[LocalStation] = {
+  def populateStationList() {
       val source = stationQuery.getSource(sourceId)
       
       val sosSource = new LocalSource(source)
       
       val databaseStations = stationQuery.getActiveStations(source)
       
-      val sosStations = databaseStations.map(station => 
+      val allStations = stationQuery.getAllStations(source)
+      
+      stationList = databaseStations.map(station => 
         new LocalStation(sosSource, station, stationQuery, rootNetwork))
-        
-      return sosStations
   }
   
   

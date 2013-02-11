@@ -149,7 +149,14 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def readInDepths(data: scala.xml.Elem) : List[Double] = {
     var continue: Boolean = true
-    var retval: List[Double] = List(0d)
+    var retval: List[Double] = Nil
+    
+    val wtmp = for (wt <- data \\ "wtmp1") yield { wt }
+    if (wtmp.nonEmpty)
+      retval = List(0d)
+    else
+      retval = List(-1d)
+    
     var depthIndex: Integer = 1
     while (continue) {
       val xmlTag = if (depthIndex < 10) "dp00" + depthIndex else if (depthIndex < 100) "dp0" + depthIndex else "dp" + depthIndex
@@ -176,8 +183,11 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     } yield {
       var oprops: List[ObservedProperty] = Nil
       if (sensorid.equalsIgnoreCase("sea_water_temperature")) {
+        logger.info("index-depth:")
+        for ((depth, index) <- orderedDepths.zipWithIndex) {logger.info(index + " - " + depth)}
         val swtsen = for {
-          (depth, index) <- depths.zipWithIndex
+          (depth, index) <- orderedDepths.zipWithIndex
+          if (depth >= 0)
         } yield {
           oprops = getObservedProperties(sensorid, sensordesc, depth, index)
           val dboprops = stationUpdater.updateObservedProperties(source, oprops)
@@ -185,7 +195,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         }
         swtsen.flatten
       } else {
-        oprops = getObservedProperties(sensorid, sensordesc, List(0d))
+        oprops = getObservedProperties(sensorid, sensordesc, 0d, 0)
         val dboprops = stationUpdater.updateObservedProperties(source, oprops)
         stationUpdater.getSourceSensors(station, dboprops)
       }
@@ -259,23 +269,23 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   }
     
   private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String, depth: Double) : Option[ObservedProperty] = {
-    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId),stationQuery)
+    val index = phenomenon.getId().lastIndexOf("/") + 1
+    val tag = phenomenon.getId().substring(index)
+    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag),stationQuery)
     var dbId = -1L
-    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0)
-      dbId = insertPhenomenon(new DatabasePhenomenon(phenomenon.getId), phenomenon.getUnit.getSymbol, phenomenon.getName, phenomenon.getId).id
-    else
+    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0) {
+      dbId = insertPhenomenon(new DatabasePhenomenon(tag), phenomenon.getUnit.getSymbol, phenomenon.getName, phenomenon.getId).id
+    } else {
       dbId = localPhenomenon.getDatabasePhenomenon.id
+    }
     if (dbId < 0) {
-      logger.info("dbId of -1: " + foreignTag)
+      logger.warn("dbId of -1: " + foreignTag)
       return None
     }
     return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag,source,phenomenon.getUnit.getSymbol,dbId,depth))
   }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
     stationQuery.createPhenomenon(dbPhenom)
   }
 
@@ -289,7 +299,6 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val platformType = "BUOY"
     if (desc.length > 254) 
       desc = desc.slice(0, 252) + "..."
-    logger.info("station: " + name + " - " + id + " - " + desc + " - " + lat.head + " - " + lon.head)
     new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
   }
   

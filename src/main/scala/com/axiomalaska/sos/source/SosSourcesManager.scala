@@ -40,19 +40,14 @@ class SosSourcesManager(
     queryBuilder.withStationQuery(stationQuery => {
       val observationUpdaters = factory.buildAllSourceObservationUpdaters(
         sosUrl, stationQuery, publisherInfo, sources.toLowerCase, rootNetwork, logger)
+      
+        logger.info("Number of known phenomena: " + stationQuery.getPhenomena.size);
 
       // load phenomenon
-      val phenomena = stationQuery.getPhenomena
-      for (phenom <- phenomena) {
-        val units = if (phenom.units.equalsIgnoreCase("none")) "" else phenom.units
-        if (units.equalsIgnoreCase("\u00B5g.L-1")) {
-          Phenomena.instance.createPhenomenonWithugL(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1))
-        } else if (units.contains("100mL")) {
-          Phenomena.instance.createPhenomenonWithPPmL(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1))
-        } else {
-          Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), units)
-        }
-      }
+//      val phenomena = stationQuery.getPhenomena
+//      for (phenom <- phenomena) {
+//        Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), "")
+//      }
       
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
         observationUpdater.update(rootNetwork)

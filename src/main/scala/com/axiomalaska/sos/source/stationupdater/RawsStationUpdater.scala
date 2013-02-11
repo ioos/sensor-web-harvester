@@ -3,6 +3,7 @@ package com.axiomalaska.sos.source.stationupdater
 import java.util.Calendar
 import java.util.TimeZone
 import com.axiomalaska.sos.tools.HttpPart
+import com.axiomalaska.sos.tools.HttpSender
 import java.text.SimpleDateFormat
 import org.apache.log4j.Logger
 import org.jsoup.Jsoup
@@ -23,6 +24,7 @@ import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.SourceId
+import com.axiomalaska.sos.source.SourceUrls
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
@@ -490,9 +492,6 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
     stationQuery.createPhenomenon(dbPhenom)
   }
 }

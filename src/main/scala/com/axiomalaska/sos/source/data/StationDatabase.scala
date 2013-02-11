@@ -130,9 +130,6 @@ class DatabaseSensor(val tag: String, val description:String, val station_id:Lon
 // to use this until something new is available
 class DatabasePhenomenon(val tag:String) extends KeyedEntity[Long]{
   val id: Long = -1
-  var units: String = ""
-  var description: String = ""
-  var name: String = ""
 
   lazy val sensors:Query[DatabaseSensor] = StationDatabase.xSensorPhenomenon.right(this)
   

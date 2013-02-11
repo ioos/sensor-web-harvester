@@ -13,9 +13,11 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.SourceUrls
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import java.util.zip.ZipFile
 import scala.collection.JavaConversions._
@@ -412,9 +414,6 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    dbPhenom.units = units
-    dbPhenom.description = description
-    dbPhenom.name = name
     stationQuery.createPhenomenon(dbPhenom)
   }
 }

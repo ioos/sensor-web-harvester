@@ -166,7 +166,9 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
       getObservedProperty(Phenomena.instance.AIR_PRESSURE, "Pressure"))
     
     private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : ObservedProperty = {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      val index = phenomenon.getId().lastIndexOf("/") + 1
+      val tag = phenomenon.getId().substring(index)
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag),stationQuery)
       if (localPhenom.databasePhenomenon.id < 0) {
         localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, phenomenon.getUnit.getSymbol, phenomenon.getId, phenomenon.getName))
       }
@@ -174,9 +176,6 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     }
     
     private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-      dbPhenom.units = units
-      dbPhenom.description = description
-      dbPhenom.name = name
       stationQuery.createPhenomenon(dbPhenom)
     }
 }

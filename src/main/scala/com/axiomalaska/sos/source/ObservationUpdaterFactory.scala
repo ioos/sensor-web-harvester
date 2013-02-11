@@ -28,38 +28,34 @@ class ObservationUpdaterFactory {
     logger: Logger = Logger.getRootLogger()): List[ObservationUpdater] = {
     var retval: List[ObservationUpdater] = List()
     if (sources.contains("all") || sources.contains("glos")) {
-      retval = buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildGlosObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("hads")) {
-      retval = buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildHadsObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("ndbc")) {
-      retval = buildNdbcFlatFileObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildNdbcFlatFileObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("nerrs")) {
-      retval = buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildNerrsObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("noaanoscoops")) {
-      retval = buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildNoaaNosCoOpsObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("noaaweather")) {
-      retval = buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildNoaaWeatherObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("raws")) {
-      retval = buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildRawsObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("snotel")) {
-      retval = buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildSnotelObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("storet")) {
-      retval = buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
+      retval = buildStoretObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     if (sources.contains("all") || sources.contains("usgswater")) {
-      retval = buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, logger) :: retval
-    }
-    
-    for (item <- retval) {
-      logger.info("Getting observations from item: " + item.toString())
+      retval = buildUsgsWaterObservationUpdater(sosUrl, stationQuery, publisherInfo, rootNetwork, logger) :: retval
     }
     
     return retval
@@ -95,7 +91,7 @@ class ObservationUpdaterFactory {
         rootNetwork, logger)
     val observationRetriever = new NoaaNosCoOpsObservationRetriever(stationQuery, logger)
     
-    addSourceNetworkToStations(stationRetriever, "network-noaa", "noaa", "noaa network stations")
+    addSourceNetworkToStations(stationRetriever, "noaa", "noaa", "noaa coops network stations")
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
@@ -234,7 +230,7 @@ class ObservationUpdaterFactory {
         rootNetwork, logger)
     val observationRetriever = new NoaaWeatherObservationRetriever(stationQuery, logger)
     
-    addSourceNetworkToStations(stationRetriever, "network-noaa", "noaa", "noaa network stations")
+    addSourceNetworkToStations(stationRetriever, "noaa", "noaa", "noaa weather network stations")
 
     val retrieverAdapter = new ObservationRetrieverAdapter(observationRetriever, logger)
     val observationUpdater = new ObservationUpdater(sosUrl,
@@ -244,9 +240,9 @@ class ObservationUpdaterFactory {
   }
   
   def buildStoretObservationUpdater(sosUrl: String, 
-      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, rootNetwork:SosNetwork, 
       logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.STORET, logger)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.STORET, rootNetwork, logger)
     
     // attempt 2: iterate over the stations and add a storet network
     addSourceNetworkToStations(stationRetriever, "network-storet", "storet", "storet network stations")
@@ -261,9 +257,9 @@ class ObservationUpdaterFactory {
   }
   
   def buildGlosObservationUpdater(sosUrl: String, 
-      stationQuery:StationQuery, publisherInfo:PublisherInfo, 
+      stationQuery:StationQuery, publisherInfo:PublisherInfo, rootNetwork:SosNetwork, 
       logger: Logger = Logger.getRootLogger()): ObservationUpdater = {
-    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.GLOS, logger)
+    val stationRetriever = new SourceStationRetriever(stationQuery, SourceId.GLOS, rootNetwork, logger)
     val observationRetriever = new GlosObservationRetriever(stationQuery, logger)
     
     // iterate over the stations and add a glos network

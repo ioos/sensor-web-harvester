@@ -23,7 +23,6 @@ import org.apache.log4j.Logger
 
 object GlosObservationRetriever {
   private var filesInMemory: List[scala.xml.Elem] = Nil
-  // current station name in 'filesToRemove'
   private var currentStationName: String = ""
 }
 
@@ -60,8 +59,6 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
 
     logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
-    logger.info("Files In Memory - " + filesInMemory.size)
-    
     // retrieve files if needed
     if (!currentStationName.equals(station.getId)) {
       if (!DEBUG)
@@ -93,6 +90,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
+          logger.info("Getting observations for tag: " + tag + " - with depth: " + observation.observedProperty.depth)
           (message \\ tag).filter(p => p.text != "").foreach(f => {
               try {
                 observation.addValue(f.text.trim.toDouble, reportDate)
@@ -108,19 +106,15 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   }
   
   private def readInFtpFilesIntoMemory(stationId: String) = {
-    // connect to the ftp
     try {
       if (!glos_ftp.isConnected) {
         glos_ftp.connect(ftp_host, ftp_port)
         glos_ftp.login(ftp_user, ftp_pass)
-        // check for succesful login
         if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
           glos_ftp.disconnect
           logger.error("FTP connection was refused.")
         } else {
-          // set to passive mode
           glos_ftp.enterLocalPassiveMode
-          // set timeouts to 1 min
           glos_ftp.setControlKeepAliveTimeout(60)
           glos_ftp.setDataTimeout(60000)
         }
@@ -134,34 +128,28 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     }
     
     try {
-      // clear out previous lists
       filesInMemory = Nil
       filesToMove = Nil
-      // get file list; only taking the first MAX_FILE_LIMIT items
       val fileList = glos_ftp.listFiles
-      // read files and add their contents to the file list in memory
       var fileCount = 0
-      logger.info("Getting files for station: " + stationId)
       val files = for {
         file <- fileList
         if (file.getName.toLowerCase.contains(stationId.toLowerCase) && fileCount < MAX_FILE_LIMIT)
       } yield {
         fileCount += 1
-        logger.info("\nReading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
+        logger.info("Reading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
         readFileIntoXML(file.getName)
       }
-      // get a list with nones removed
       filesInMemory = files.filter(_.isDefined).map(m => m.get).toList
     } catch {
       case ex: Exception => logger.error("Exception reading in file: " + ex.toString)
     }
     
-    // move files into a processed directory; This will be skipped for now until we have
-    // the privileges needed to move/rename files on the glos server.
     try {
-      logger.info("removing files that have been read into memory")
+      logger.info("moving files to processed folder")
       for (file <- filesToMove) {
-        moveFileToProcessed(file)
+         logger.info("Moving file " + file)
+         moveFileToProcessed(file)
       }
     } catch {
       case ex: Exception => logger.error("Exception removing files from ftp")
@@ -187,7 +175,6 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   }
   
   private def getMatchedStations(stationTag : String) : List[scala.xml.Elem] = {
-    logger.info("checking for station tag " + stationTag)
     val xmlList = for {
       file <- filesInMemory
     } yield {
@@ -207,7 +194,6 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   }
   
   private def moveFileToProcessed(fileName: String) = {
-    logger.info("Moving file " + fileName)
     val dest = "./" + reloc_dir + "/" + fileName
     var success = false
     var attempts = 0
@@ -227,7 +213,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     if (success)
       logger.info("Successfully moved file " + fileName + " to " + dest)
     else
-      logger.info("Unable to move file " + fileName + " after three attempts.")
+      logger.warn("Unable to move file " + fileName + " after three attempts.")
   }    
   
   private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
@@ -240,21 +226,19 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       try {
         glos_ftp.retrieveFile(fileName, byteStream) match {
           case true => {
-              logger.info("got a positive on file received")
               filesToMove = fileName :: filesToMove
-              // doing a test load of xml to throw exception in case file wasn't fully downloaded
               val xml = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
               retval = new Some[scala.xml.Elem](xml)
           }
           case false => {
-              logger.info("could not read in file " + fileName)
+              logger.error("could not read in file " + fileName)
               retval = None
           }
         }
         success = true
       } catch {
         case ex: Exception => {
-            logger.info("Attempt " + attempts + " failed to read file " + fileName)
+            logger.warn("Attempt " + attempts + " failed to read file " + fileName)
         }
       }
     }

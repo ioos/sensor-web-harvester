@@ -49,7 +49,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       val timeandvalues = getValuesDateDepths(observationValue.phenomenon.getName)
       for {
         addto <- timeandvalues
-        if (sensor.databaseSensor.depth == addto._3 && !observationValue.containsDate(addto._1))
+        if (observationValue.observedProperty.depth == addto._3 && !observationValue.containsDate(addto._1))
       } {
         observationValue.addValue(addto._2, addto._1)
       }
