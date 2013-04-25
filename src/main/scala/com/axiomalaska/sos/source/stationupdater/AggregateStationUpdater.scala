@@ -61,7 +61,7 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
     }
     if (sources.contains("ndbc")) {
       logger.info("adding NDBC updater")
-      retval = new NdbcStationUpdater(stationQuery, boundingBox, logger) :: retval
+      retval = new NdbcSosStationUpdater(stationQuery, boundingBox, logger) :: retval
     }
     if (sources.contains("noaanoscoops")) {
       logger.info("adding NOAA-NOSCOOPS updater")

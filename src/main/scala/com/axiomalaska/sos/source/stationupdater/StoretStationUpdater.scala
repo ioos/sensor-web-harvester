@@ -58,7 +58,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         val splitResponse = response.toString split '\n'
         val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
         stationResponse = filterCSV(meh)
-        logger.info("Collected " + stationResponse.size + " lines of metadata")
         // go through the list, compiling all of the stations
         val retval = for {
           (stationLine, index) <- stationResponse.zipWithIndex
@@ -113,7 +112,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     if (!resultResponse._1.equalsIgnoreCase(station.foreign_tag)) {
       try {
         val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
-        logger debug "Sending request: " + request
         val response = httpSender.sendGetMessage(request)
         if (response != null) {
           val splitResponse = response.mkString.split('\n')
@@ -232,24 +230,20 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   }
   
   private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, depth: String) : Option[ObservedProperty] = {
-    try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
-      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-      var ddepth: Double = 0
-      try {
-        ddepth = java.lang.Double.parseDouble(depth)
-      } catch {
-        case ex: Exception => logger debug ex.toString
-      }
-      
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
-      }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id,ddepth))
-    } catch {
-      case ex: Exception => {}
+    val index = phenomenon.getId().lastIndexOf("/") + 1
+    val tag = phenomenon.getId().substring(index)
+    val units = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+    var dbId = -1L
+    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag), stationQuery)
+    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0) {
+      dbId = insertPhenomenon(new DatabasePhenomenon(tag), units, phenomenon.getName, phenomenon.getId).id
+    } else {
+      dbId = localPhenomenon.getDatabasePhenomenon.id
     }
-    None
+    if (dbId < 0) {
+      logger.warn("dbId of -1: " + foreignTag)
+    }
+    return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, units, dbId, 0d))
   }
   
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {

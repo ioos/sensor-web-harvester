@@ -150,8 +150,11 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
+    logger info "checking lat/lon for station " + station.tag
+    logger info station.latitude + " - " + station.longitude
     val stationLocation = new Location(station.latitude, station.longitude)
     geoTools.isStationWithinRegion(stationLocation, boundingBox)
+    true
   }
 
   private def createSourceStation(foreignId: String): Option[DatabaseStation] = {

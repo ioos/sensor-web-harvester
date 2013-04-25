@@ -140,11 +140,13 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
     val sourceObservedProperty = foreignObservatedProperties.flatMap(foreignObservatedProperty => 
       getObservedProperty(foreignObservatedProperty._1, foreignObservatedProperty._2, source))
 
+      logger.info("returning " + sourceObservedProperty.size + " properties")
     return sourceObservedProperty
   }
   
   private def getObservedProperty(aggregateName: String, namedQuantity: NamedQuantityType,
       source: Source): Option[ObservedProperty] = {
+      logger.info("getting observed property: " + aggregateName + " - " + namedQuantity.getName())
     (aggregateName, namedQuantity.getName()) match {
       case (_, "WaterTemperature") => {
           return defineObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, aggregateName)
@@ -312,17 +314,20 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def defineObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
-    try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
-      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
-      }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
-    } catch {
-      case ex: Exception => {}
+    val index = phenomenon.getId().lastIndexOf("/") + 1
+    val tag = phenomenon.getId().substring(index)
+    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag),stationQuery)
+    var dbId = -1L
+    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0) {
+      dbId = insertPhenomenon(new DatabasePhenomenon(tag), phenomenon.getUnit.getSymbol, phenomenon.getName, phenomenon.getId).id
+    } else {
+      dbId = localPhenomenon.getDatabasePhenomenon.id
     }
-    None
+    if (dbId < 0) {
+      logger.warn("dbId of -1: " + foreignTag)
+      return None
+    }
+    return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag,source,phenomenon.getUnit.getSymbol,dbId,0d))
   }
   
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {

@@ -47,7 +47,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   
   override def getSensorTagsAndNames(station: LocalStation) : List[(String,String)] = {
     // read through get caps and get the observedProperties of the station
-    val stid = station.getId.toLowerCase
+    val stid = station.getId.toLowerCase.replace("wmo:", "")
     val retval = for {
       obsoff <- ndbcGetCaps \\ "ObservationOffering"
       val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)
@@ -115,6 +115,10 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     new DataIdentification(idabstract,citation,keywords,agg,extent)
   }
   
+    override def getForeignTag(station: LocalStation) : String = {
+      station.databaseStation.foreign_tag.toLowerCase.replace("wmo:", "")
+    }
+  
   //////////////////////////////////////////////////////////////////////////////
   
   private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
@@ -125,7 +129,8 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   }
   
   private def getStationAbstract(station: LocalStation) : String = {
-    val stid = station.getId.toLowerCase
+    val stid = station.getId.toLowerCase.replace("wmo:", "")
+    logger.info(stid)
     val retval = for {
       obsoff <- ndbcGetCaps \\ "ObservationOffering"
       val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)
@@ -137,7 +142,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   }    
       
   private def getStationTemporalExtents(station: LocalStation) : (Calendar, Calendar) = {
-    val stid = station.getId.toLowerCase
+    val stid = station.getId.toLowerCase.replace("wmo:", "")
     val retval = for {
       obsoff <- ndbcGetCaps \\ "ObservationOffering"
       val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)

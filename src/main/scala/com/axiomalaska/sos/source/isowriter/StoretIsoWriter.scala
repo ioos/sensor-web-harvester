@@ -10,6 +10,7 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.tools.HttpSender
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import java.util.Date
 import org.apache.log4j.Logger
 
 object StoretIsoWriter {
@@ -182,8 +183,22 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
 
   private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     val temporals = getStationTemporalExtents
-    val begin = if (temporals._1 != null) formatDateTime(temporals._1) else ""
-    val end = if (temporals._2 != null) formatDateTime(temporals._2) else ""
+    val begin = if (temporals._1 != null) {
+      if (temporals._1.getTimeInMillis != Long.MaxValue)
+        formatDateTime(temporals._1)
+      else
+        "unknown"
+    } else {
+      ""
+    }
+    val end = if (temporals._2 != null) {
+      if (temporals._2.getTimeInMillis != Long.MinValue)
+        formatDateTime(temporals._2)
+      else
+        "unknown"
+    } else {
+      ""
+    }
     new ServiceIdentificationExtent(station.getLocation.getLatitude.toString, station.getLocation.getLongitude.toString,begin,end)
   }
 
@@ -226,7 +241,8 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
     try {
       var startDate: Calendar = Calendar.getInstance
       var endDate: Calendar = Calendar.getInstance
-      endDate.setTimeInMillis(0)
+      endDate.setTimeInMillis(Long.MinValue)
+      startDate.setTimeInMillis(Long.MaxValue)
       val splitLines = resultResponse map { _.split(",") }
       for (line <- splitLines) {
         val other = (line zipWithIndex) map (i => (i._1,i._2,""))

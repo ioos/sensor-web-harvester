@@ -6,6 +6,8 @@
 package com.axiomalaska.sos.source.observationretriever
 
 
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
@@ -49,8 +51,10 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private val reloc_dir = "processed"
   private val glos_ftp: FTPClient = new FTPClient()
   
+  private val GLOS_MMISW = "http://mmisw.org/this/is/fake/parameter/"
+  
   ////////// DEBUG VALs //////////////////////////////////////////
-  private val DEBUG: Boolean = false  // enable to run on local debug test files
+  private val DEBUG: Boolean = true  // enable to run on local debug test files
   private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
   ////////////////////////////////////////////////////////////////
     
@@ -59,22 +63,24 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
 
     logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
-    // retrieve files if needed
-    if (!currentStationName.equals(station.getId)) {
-      if (!DEBUG)
-        readInFtpFilesIntoMemory(station.getId)
-      else
-        readInDebugFilesIntoMemory(station.getId)
-      
-      currentStationName = station.getId
-    }
+    val stid = if (station.getId.contains(":")) station.getId.substring(station.getId.lastIndexOf(":") + 1) else station.getId
     
+    // retrieve files if needed
+    if (!currentStationName.equals(stid)) {
+      if (!DEBUG)
+        readInFtpFilesIntoMemory(stid)
+      else
+        readInDebugFilesIntoMemory(stid)
+      
+      currentStationName = stid
+    }
     val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
     
     // iterate through the files on the server, match their station text to the station name
     // then get date of the file and check it against the startDate
     // finally iterate over the observation values and match the tags to what the file has, adding data to that observationValue
-    val stationXMLList = getMatchedStations(station.databaseStation.foreign_tag)
+    val sttag = if (station.databaseStation.foreign_tag.contains(":")) station.databaseStation.foreign_tag.substring(station.databaseStation.foreign_tag.lastIndexOf(":")+1) else station.databaseStation.foreign_tag
+    val stationXMLList = getMatchedStations(sttag)
     for (stationXML <- stationXMLList) {
       for {
         message <- (stationXML \\ "message")
@@ -83,14 +89,12 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
           val date = dateParser.parse(dateStr)
           val calendar = Calendar.getInstance
           calendar.setTimeInMillis(date.getTime)
-          calendar.getTime
           calendar
         }
         if(reportDate.after(startDate))
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
-          logger.info("Getting observations for tag: " + tag + " - with depth: " + observation.observedProperty.depth)
           (message \\ tag).filter(p => p.text != "").foreach(f => {
               try {
                 observation.addValue(f.text.trim.toDouble, reportDate)
@@ -170,7 +174,26 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
     for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
+      new ObservationValues(observedProperty, sensor, phenomenonFromTag(phenomenon), observedProperty.foreign_units)
+    }
+  }
+  
+  private def phenomenonFromTag(lphenom : LocalPhenomenon) : Phenomenon = {
+    val tag = lphenom.getTag.toLowerCase
+    tag match {
+      case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
+      case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
+      case "dew_point_temperature" => return Phenomena.instance.DEW_POINT_TEMPERATURE
+      case "relative_humidity" => return Phenomena.instance.RELATIVE_HUMIDITY
+      case "sea_surface_wave_significant_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
+      case "sea_surface_wind_wave_period" => return Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD
+      case "sea_water_temperature" => return Phenomena.instance.SEA_WATER_TEMPERATURE
+      case "wave_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
+      case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
+      case "wind_speed" => return Phenomena.instance.WIND_SPEED
+      case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
+      case "sun_radiation" => return Phenomena.instance.createHomelessParameter(tag, GLOS_MMISW, "rads")
+      case _ => return lphenom
     }
   }
   
@@ -179,7 +202,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       file <- filesInMemory
     } yield {
       if (file != null) {
-        if ((file \\ "message" \ "station").text.trim.equalsIgnoreCase(stationTag)) {
+        if ((file \\ "message" \ "station").head.text.trim.equalsIgnoreCase(stationTag)) {
           new Some[scala.xml.Elem](file)
         } else {
           None

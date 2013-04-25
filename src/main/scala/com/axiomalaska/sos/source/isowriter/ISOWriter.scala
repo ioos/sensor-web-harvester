@@ -13,6 +13,7 @@ import org.apache.log4j.Logger
 
 trait ISOWriter {
   def writeISOFile(station: LocalStation)
+  def writeFileList(sourceName: String)
 }
 
 case class ServiceIdentification(val srvAbstract: String,
@@ -78,6 +79,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   private var dataIdentification: DataIdentification = null
   private var dimensions: List[Dimension] = Nil
   
+  private var fileList: List[String] = Nil
+  
   def writeISOFile(station: LocalStation) {
     lstation = station
     val file = new java.io.File(templateFile)
@@ -95,8 +98,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       // get a file list and see if the current station already exists; skip if it does
       val files = sourceDir.listFiles
       for (tfile <- files) {
-        if (tfile.getName.toLowerCase.contains(station.databaseStation.foreign_tag.toLowerCase)) {
-          logger info "Skipping: " + station.databaseStation.foreign_tag
+        if (tfile.getName.toLowerCase.contains(getForeignTag(station))) {
+          logger info "Skipping: " + getForeignTag(station)
           return
         }
       }
@@ -107,7 +110,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       return
     }
     
-    val fileName = sourceDir.getPath + "/" + station.databaseStation.foreign_tag + ".xml"    
+    val fileName = sourceDir.getAbsolutePath + "/" + getForeignTag(station) + ".xml"
+    fileList = getForeignTag(station) + ".xml" :: fileList
     serviceIdentification = getServiceInformation(station)
     contacts = getContacts(station)
     fileIdentifier = getFileIdentifier(station)
@@ -120,13 +124,36 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       file.createNewFile
       val writer = new java.io.FileWriter(file)
       XmlHelpers.writeXMLPrettyPrint(doc, writer)
-      logger info "wrote iso file to " + fileName
+      logger info "wrote iso file to " + file.getPath
+      writer.flush
+      writer.close
     } catch {
       case ex: Exception => {
           logger error ex.toString
           ex.printStackTrace()
       }
     }
+  }
+  
+  def writeFileList(sourceName : String) {
+    val sourceDir = new File(isoWriteDirectory + "/" + sourceName)
+    val fileName = sourceDir.getAbsoluteFile + "/list.html"
+    logger info "writing to " + fileName
+    try {
+      val file = new java.io.File(fileName)
+      file.createNewFile
+      val writer = new java.io.FileWriter(file)
+      val list = fileListHtml(fileList)
+      writer.write(list.toString)
+      writer.flush
+      writer.close
+    } catch {
+      case ex: Exception => {
+          logger error ex.toString()
+          ex.printStackTrace()
+      }
+    }
+    
   }
   
   // The below should be overwritten in the subclasses /////////////////////////
@@ -151,6 +178,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   protected def getFileIdentifier(station: LocalStation) : String = {null}
   
   protected def getDataIdentification(station: LocalStation) : DataIdentification = {new DataIdentification(null,null,Nil,null,null)}
+  
+  protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
   
   //////////////////////////////////////////////////////////////////////////////
   
@@ -530,10 +559,26 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           <gmd:EX_TemporalExtent>
             <gmd:extent>
               <gml:TimePeriod id={tpid}>
-                { if (extent.timeBegin != null && extent.timeBegin != "") <gml:beginPosition>{extent.timeBegin}</gml:beginPosition>
-                  else <gml:beginPosition indeterminatePosition="now"/> }
-                { if (extent.timeEnd != null && extent.timeEnd != "") <gml:endPosition>{extent.timeEnd}</gml:endPosition>
-                  else <gml:endPosition indeterminatePosition="now"/> }
+                { if (extent.timeBegin != null && extent.timeBegin != "") {
+                    if (extent.timeBegin.equals("unknown"))
+                      <gml:beginPosition indeterminatePosition="unknown"/>
+                    else
+                      <gml:beginPosition>{extent.timeBegin}</gml:beginPosition>
+                  }
+                  else {
+                    <gml:beginPosition indeterminatePosition="now"/>
+                  }
+                }
+                { if (extent.timeEnd != null && extent.timeEnd != "") {
+                    <gml:endPosition>{extent.timeEnd}</gml:endPosition>
+                  }
+                  else if (extent.timeEnd.equals("unknown")) {
+                    <gml:endPosition indeterminatePosition="unknown"/>
+                  }
+                  else { 
+                    <gml:endPosition indeterminatePosition="now"/> 
+                  }
+                }
               </gml:TimePeriod>
             </gmd:extent>
           </gmd:EX_TemporalExtent>
@@ -606,5 +651,21 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         }
       }
     </gmi:MI_CoverageDescription>
+  }
+  
+  private def fileListHtml(files: List[String]) : scala.xml.Elem = {
+    <html>
+      <body>
+        <p>File List:</p>
+        <ul>
+          {for (file <- files) yield {
+              <li>
+                { file }
+              </li>
+            }
+          }
+        </ul>
+      </body>
+    </html>
   }
 }

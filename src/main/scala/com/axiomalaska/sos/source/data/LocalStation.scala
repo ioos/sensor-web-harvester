@@ -97,4 +97,9 @@ class LocalStation(val localSource:LocalSource,
   def getDescription() = databaseStation.description
     
   def getPlatformType() = databaseStation.platformType
+  
+  def getWmoId() = ""
+  def getHistory() = new java.util.ArrayList[com.axiomalaska.sos.data.HistoryEvent]()
+  def getDocumentation() = new java.util.ArrayList[com.axiomalaska.sos.data.DocumentMember]()
+  def getSponsor() = ""
 }

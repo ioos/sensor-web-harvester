@@ -80,7 +80,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
       (new DatabaseSensor(databasePhenomenon.tag, phenomenon.getName(), station.id),
           List(databasePhenomenon))
     }
-
+    
     return sensors
   }
   
@@ -105,7 +105,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)
-          logger.info("creating new observedProperties " + observedProperty.foreign_tag)
+//          logger.info("creating new observedProperties " + observedProperty.foreign_tag)
           newObservedProperties
         }
       }

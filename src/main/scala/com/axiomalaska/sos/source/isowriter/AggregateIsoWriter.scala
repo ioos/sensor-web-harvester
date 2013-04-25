@@ -20,6 +20,8 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
                          private val rootNetwork: SosNetwork,
                          private val logger: Logger = Logger.getRootLogger()) {
 
+  private var sourceList: List[String] = Nil
+
   def writeISOs() {
     val writers = getSourceWriters()
     
@@ -27,11 +29,16 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
       w => {
         val src = w._1
         val wrt = w._2
+        logger.info("src: " + src.toString + " wrt: " + wrt.toString)
         for (station <- stationQuery.getAllStations(src)) {
           wrt.writeISOFile(new LocalStation(new LocalSource(src), station, stationQuery, rootNetwork))
         }
+        wrt.writeFileList(src.name)
+        sourceList = src.name :: sourceList
       }
     )
+    
+    writeSourceList
   }
   
   private def getSourceWriters() : List[(Source,ISOWriter)] = {
@@ -39,7 +46,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     val dbSources = stationQuery.getAllSource
     val writers = for (src <- sourceSplit) yield src match {
       case "ndbc" => {
-          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("ndbc") ).head
+          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("wmo") ).head
           new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, isoDirectory, overwrite, logger)))
       }
       case "storet" => {
@@ -51,5 +58,34 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     // return list that has all 'None' removed
     val retval = writers.filter( _.isDefined ).map( _.get )
     retval.toList
+  }
+  
+  private def writeSourceList() = {
+    val fileName = isoDirectory + "/sources.html"
+    try {
+      val file = new java.io.File(fileName)
+      file.createNewFile
+      val writer = new java.io.FileWriter(file)
+      writer.write(sourceListHtml.toString)
+      writer.flush
+      writer.close
+    } catch {
+      case ex: Exception => {
+          logger error ex.toString
+          ex.printStackTrace()
+      }
+    }
+  }
+  
+  private def sourceListHtml() : scala.xml.Elem = {
+    <html>
+      <body>
+        <ul>
+          { for (src <- sourceList) yield {
+            <li>{ src }</li>
+          } }
+        </ul>
+      </body>
+    </html>
   }
 }

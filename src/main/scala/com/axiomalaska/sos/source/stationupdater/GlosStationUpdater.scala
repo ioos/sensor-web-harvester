@@ -50,16 +50,22 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private var phenomenaList = stationQuery.getPhenomena
   
+  // default mmisw url
+  private val GLOS_MMISW = "http://mmisw.org/ont/glos/parameter/"
+  private val MAX_FILE_LIMIT = 2500
+  private var filesToMove: List[String] = List()
+  private var filesInMemory: List[scala.xml.Elem] = List()
+  
+  ////////// DEBUG VALs //////////////////////////////////////////
+  private val DEBUG: Boolean = true  // enable to run on local debug test files
+  private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
+  ////////////////////////////////////////////////////////////////
+  
   def update() {
     
     logger.info("Updating GLOS...")
     
     val sourceStationSensors = getSourceStations()
-    
-    logger.info("station count: " + sourceStationSensors.size)
-    for (station <- sourceStationSensors) {
-      logger.info("In update list: " + station._1.name)
-    }
 
     val databaseStations = stationQuery.getAllStations(source)
 
@@ -71,26 +77,28 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     // read ftp for data files for stations
-    try {
-      if (!glos_ftp.isConnected) {
-        glos_ftp.connect(ftp_host, ftp_port)
-        glos_ftp.login(ftp_user, ftp_pass)
-        // check for succesful login
-        if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
-          glos_ftp.disconnect
-          logger.error("FTP connection was refused.")
-        } else {
-          // set to passive mode
-          glos_ftp.enterLocalPassiveMode
-          // set timeouts to 1 min
-          glos_ftp.setControlKeepAliveTimeout(60)
-          glos_ftp.setDataTimeout(60000)
+    if (!DEBUG) {
+      try {
+        if (!glos_ftp.isConnected) {
+          glos_ftp.connect(ftp_host, ftp_port)
+          glos_ftp.login(ftp_user, ftp_pass)
+          // check for succesful login
+          if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
+            glos_ftp.disconnect
+            logger.error("FTP connection was refused.")
+          } else {
+            // set to passive mode
+            glos_ftp.enterLocalPassiveMode
+            // set timeouts to 1 min
+            glos_ftp.setControlKeepAliveTimeout(60)
+            glos_ftp.setDataTimeout(60000)
+          }
         }
-      }
-    } catch {
-      case ex: Exception => {
-          logger.error(ex.toString)
-          return Nil
+      } catch {
+        case ex: Exception => {
+            logger.error(ex.toString)
+            return Nil
+        }
       }
     }
     // read local ISOs for metadata
@@ -102,7 +110,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         // read in the station data
         val station = readStationFromXML(xml)
         // get the obs data, need this for the depth values
-        val dataXML = readInData(station.stationName)
+        if (DEBUG) readInDebugFilesIntoMemory(station.stationName)
+        val dataXML = if (!DEBUG) readInData(station.stationName) else readInDataDebug()
         if (dataXML.ne(null)) {
           val depths = readInDepths(dataXML)
           val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
@@ -183,7 +192,6 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     } yield {
       var oprops: List[ObservedProperty] = Nil
       if (sensorid.equalsIgnoreCase("sea_water_temperature")) {
-        logger.info("index-depth:")
         for ((depth, index) <- orderedDepths.zipWithIndex) {logger.info(index + " - " + depth)}
         val swtsen = for {
           (depth, index) <- orderedDepths.zipWithIndex
@@ -219,6 +227,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
       case "wind_speed" => return Phenomena.instance.WIND_SPEED
       case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
+      case "sun_radiation" => return Phenomena.instance.createHomelessParameter(tag, GLOS_MMISW, "rads")
       case _ => logger.info("Unhandled case: " + tag)
     }
     
@@ -243,6 +252,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "wind_from_direction" => "wdir1"
       case "wind_speed" => "wspd1"
       case "wind_speed_of_gust" => "gust1"
+      case "sun_radiation" => "srad1"
       case _ => ""
     }
   }
@@ -286,6 +296,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   }
 
   private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    logger.info("creating phenomenon: " + dbPhenom.tag)
     stationQuery.createPhenomenon(dbPhenom)
   }
 
@@ -305,5 +316,65 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private def halt() = {
     val z = 0
     val stop = 1 / z
+  }
+  
+   ///////////////////////////////////////////////////////////////
+   ////////               Debug                     //////////////
+   ///////////////////////////////////////////////////////////////
+   
+  private def readInDebugFilesIntoMemory(stationid: String) {
+    val stid: String = if (stationid.contains(":")) {
+      stationid.substring(stationid.lastIndexOf(":")+1)
+    } else {
+      stationid
+    }
+    try {
+      val dir = new File(DEBUG_DIR)
+      var fileCount = 0
+      val fileList = for {
+        file <- dir.listFiles()
+        val currentCount = fileCount
+        if (file.getName.contains(".xml") && file.getName.toLowerCase.contains(stid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
+      } yield {
+        filesToMove = file.getAbsolutePath :: filesToMove
+        fileCount += 1
+        loadFileDebug(file)
+      }
+      filesInMemory = fileList.filter(_.isDefined).map(_.get).toList
+    } catch {
+      case ex: Exception => { ex.printStackTrace() }
+    }
+
+    // remove the files read-in
+    for (rf <- filesToMove) {
+      try {
+        val file = new File(rf)
+        if (!file.delete)
+          logger.warn("Unable to delete file: " + rf)
+      } catch {
+        case ex: Exception => logger.error("Deleting file: rf \n\t" + ex.toString)
+      }
+    }
+  }
+
+  private def loadFileDebug(file: java.io.File) : Option[scala.xml.Elem] = {
+    try {
+      new Some[scala.xml.Elem](scala.xml.XML.loadFile(file))
+    } catch {
+      case ex: Exception => { None }
+    }
+  }
+  
+  private def readInDataDebug() : scala.xml.Elem = {
+    val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    var retval: scala.xml.Elem = null
+    try {
+      for (file <- filesInMemory) {
+        return file
+      }
+    } catch {
+      case ex: Exception => logger.error(ex.toString)
+    }
+    return retval
   }
 }

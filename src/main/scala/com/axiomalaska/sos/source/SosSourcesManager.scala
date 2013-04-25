@@ -6,6 +6,7 @@ import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.sos.data.SosNetworkImp
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import java.util.Calendar
 
 import collection.JavaConversions._
@@ -44,10 +45,17 @@ class SosSourcesManager(
         logger.info("Number of known phenomena: " + stationQuery.getPhenomena.size);
 
       // load phenomenon
-//      val phenomena = stationQuery.getPhenomena
-//      for (phenom <- phenomena) {
-//        Phenomena.instance.createHomelessParameter(phenom.tag.substring(phenom.tag.lastIndexOf("/") + 1), "")
-//      }
+      val phenomena = stationQuery.getPhenomena
+      for (phenom <- phenomena) {
+        try {
+          new LocalPhenomenon(phenom, stationQuery)
+        } catch {
+          case _ => {
+              logger.debug("adding phenomenon to instance: " + phenom.tag)
+              Phenomena.instance.createHomelessParameter(phenom.tag, "")
+          }
+        }
+      }
       
       for (observationUpdater <- random.shuffle(observationUpdaters)) {
         observationUpdater.update(rootNetwork)
