@@ -9,4 +9,6 @@ object SourceId {
 	val USGSWATER = 6
 	val NOAA_WEATHER = 7
 	val NERRS = 8
+        val STORET = 9
+        val GLOS = 10
 }

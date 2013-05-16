@@ -1,15 +1,16 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import org.apache.log4j.Logger
-
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.StationQuery
-
 import scala.collection.mutable
+import scala.collection.JavaConversions._
 
 class StationUpdateTool(private val stationQuery:StationQuery, 
   private val logger: Logger = Logger.getRootLogger()) {
@@ -35,7 +36,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
             logger.info("Updating Station " + databaseStation.name)
           }
 
-          val databaseSenors = stationQuery.getSensors(databaseStation)
+          val databaseSenors = stationQuery.getAllSensors(databaseStation)
           
           val createdSensors = for {
             (sourceSensor, phenomena) <- sourceSensors
@@ -49,7 +50,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
           }
 
           if (createdSensors.nonEmpty) {
-            logger.info("Association Sensors " + createdSensors.map(s => s.tag + ":" + s.depth).mkString(", ") +
+            logger.info("Association Sensors " + createdSensors.map(s => s.tag).mkString(", ") +
               " to Station: " + sourceStation.name)
           }
         }
@@ -62,7 +63,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
             phenomena.foreach(phenomenon =>
               stationQuery.associatePhenomonenToSensor(createdSensor, phenomenon))
           }
-          logger.info("Created new sensors: " + sourceSensors.map(s => s._1.tag + ":" + s._1.depth).mkString(", "))
+          logger.info("Created new sensors: " + sourceSensors.map(s => s._1.tag).mkString(", "))
         }
       }
     }
@@ -70,37 +71,41 @@ class StationUpdateTool(private val stationQuery:StationQuery,
   
   def getSourceSensors(station:DatabaseStation, observedProperties: List[ObservedProperty]): 
   List[(DatabaseSensor, List[DatabasePhenomenon])] = {
-    val set = new mutable.HashSet[(Long, Double)]
+    val set = new mutable.HashSet[Long]
     val sensors = for{observedProperty <- observedProperties
-      val id = (observedProperty.phenomenon_id, observedProperty.depth)
-      if(!set.contains(id))} yield{
-      set += id
-      val phenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
-      val description = if (observedProperty.depth != 0) {
-        phenomenon.name + " with depth " + observedProperty.depth + " m"
-      } else {
-    	phenomenon.name
-      }
-      (new DatabaseSensor(phenomenon.tag, description, station.id, observedProperty.depth),
-          List(phenomenon))
+      if(!set.contains(observedProperty.phenomenon_id))} yield{
+      set += observedProperty.phenomenon_id
+      val databasePhenomenon = stationQuery.getPhenomenon(observedProperty.phenomenon_id)
+      val phenomenon = findPhenomenon(databasePhenomenon)
+      (new DatabaseSensor(databasePhenomenon.tag, phenomenon.getName(), station.id),
+          List(databasePhenomenon))
     }
-
+    
     return sensors
   }
   
+    /*
+     * This is a very slow process for large number of inserts, needs to be rewritten
+     * for instances of large number of insertions. Probably would be best to write
+     * output to a file and then use postgres's COPY method to write file into db.
+     * Also, might want to consider an index on foreign_tag or something.
+     */
   def updateObservedProperties(source: Source,
     sourceObservedProperies: List[ObservedProperty]): List[ObservedProperty] = {
 
     val observedProperties = for(observedProperty <- sourceObservedProperies) yield {
-      stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source) match {
+      stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
+          observedProperty.phenomenon_id, source) match {
         case Some(databaseObservedProperty) => {
-          stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
-          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, source).get
+            // the only thing that changes, is the units string and that really shouldn't change anyways, so just skip the update
+//          stationQuery.updateObservedProperty(databaseObservedProperty, observedProperty)
+//          stationQuery.getObservedProperty(observedProperty.foreign_tag, observedProperty.depth, 
+//              observedProperty.phenomenon_id, source).get
+            databaseObservedProperty
         }
         case None => {
           val newObservedProperties = stationQuery.createObservedProperty(observedProperty)
-          logger.info("creating new observedProperties " + observedProperty.foreign_tag)
-          
+//          logger.info("creating new observedProperties " + observedProperty.foreign_tag)
           newObservedProperties
         }
       }
@@ -109,15 +114,29 @@ class StationUpdateTool(private val stationQuery:StationQuery,
     return observedProperties
   }
   
-  // ---------------------------------------------------------------------------
-  // Private Members
-  // ---------------------------------------------------------------------------
-  
   def createObservedProperty(foreignTag:String, source:Source, 
       foreignUnits:String, phenomenonId:Long, depth:Double = 0):ObservedProperty ={
     
     new ObservedProperty(foreignTag, source.id, foreignUnits,
       phenomenonId, depth)
+  }
+  
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+  
+  private def findPhenomenon(databasePhenomenon:DatabasePhenomenon):Phenomenon = {
+    val option = Phenomena.instance.getAllPhenomena().find(phenomenon =>{
+      val index = phenomenon.getId().lastIndexOf("/") + 1
+      val tag = phenomenon.getId().substring(index)
+      tag == databasePhenomenon.tag
+    })
+    
+    if(option.isEmpty){
+      throw new Exception("Did not find Phenomenon");
+    }
+    
+    option.get
   }
   
   private def isThereAnEqualSensor(originalSensors:List[DatabaseSensor], 
@@ -126,8 +145,7 @@ class StationUpdateTool(private val stationQuery:StationQuery,
        val originalPhenomena = stationQuery.getPhenomena(originalSensor)
        
        (newPhenomena.forall(newPhenomenon => originalPhenomena.exists(_.tag == newPhenomenon.tag)) &&
-       originalPhenomena.forall(originalPhenomenon => newPhenomena.exists(_.tag == originalPhenomenon.tag)) &&
-       originalSensor.depth == newSensor.depth)
+       originalPhenomena.forall(originalPhenomenon => newPhenomena.exists(_.tag == originalPhenomenon.tag)))
     })
   }
   

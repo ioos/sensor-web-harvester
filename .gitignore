@@ -1,13 +1,41 @@
 *.class
+*log*
+*.csv
+*.sql
 
 # Package Files #
+*.jar
+*.gz
 *.war
 *.ear
-*.jar
 *.tar
-*.log
 .cache
 .classpath
 .project
 .settings
 target
+
+# ignored example files
+*example*
+ex_*
+example.properties
+*backup
+epa_*
+*txt
+*log*
+*csv
+glos_metadata_test.xml
+glos_station/*
+glosbuoy_metadata/*
+*gz
+*doc*
+*out*
+waterqualityportal/*
+*idea
+iso/*
+*iml
+*sh
+*bat
+*zip
+*xml
+*.props

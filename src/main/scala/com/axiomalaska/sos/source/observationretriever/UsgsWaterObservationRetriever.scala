@@ -5,11 +5,6 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.TimeZone
 import java.util.Date
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.data.ObservationValues
@@ -23,6 +18,7 @@ import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
 import org.cuahsi.waterML.x11.TsValuesSingleVariableType
 import org.cuahsi.waterML.x11.ValueSingleVariable
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class UsgsWaterObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -41,6 +37,9 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
 
   def getObservationValues(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon, startDate: Calendar): List[ObservationValues] = {
+
+    logger.info("USGS-WATER: Collecting for station - " + station.databaseStation.foreign_tag)
+    
     val observedProperties = stationQuery.getObservedProperties(
       station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
@@ -99,7 +98,7 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
         new HttpPart("endDT", formatedEndDate))
         
     val result =
-      httpSender.sendGetMessage("http://waterservices.usgs.gov/nwis/iv", parts)
+      httpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts)
     
     return result
   }

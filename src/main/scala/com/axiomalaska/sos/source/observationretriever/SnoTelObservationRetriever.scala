@@ -1,15 +1,11 @@
 package com.axiomalaska.sos.source.observationretriever
 
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosPhenomenon
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.ObservationCollection
+
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservationValues
-import com.axiomalaska.sos.ObservationRetriever
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import scala.collection.mutable
@@ -20,8 +16,8 @@ import java.text.SimpleDateFormat
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
-
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class SnoTelObservationRetriever(private val stationQuery: StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -40,6 +36,9 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+
+    logger.info("SNO-TEL: Collecting for station - " + station.databaseStation.foreign_tag)
+    
     val observationValuesCollection =
       createSensorObservationValuesCollection(station, sensor, phenomenon)
 
@@ -63,11 +62,9 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
 
           parseDouble(values(columnIndex), header) match {
             case Some(value) => {
-              observationValuesCollection.find(observationValues => 
-                observationValues.observedProperty.foreign_tag.equalsIgnoreCase(header._1) && 
-                observationValues.observedProperty.depth == header._2) match {
-                case Some(observationValues) 
-                	if(!observationValues.containsDate(calendar)) => {
+              observationValuesCollection.find(observationValues =>
+                isObservationValue(observationValues, header._1, header._2)) match {
+                case Some(observationValues) if (!observationValues.containsDate(calendar)) => {
                   observationValues.addValue(value, calendar)
                 }
                 case _ => //do nothing
@@ -86,6 +83,14 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
   // Private Members
   // ---------------------------------------------------------------------------
 
+  private def isObservationValue(observationValues:ObservationValues, 
+      foreign_tag:String, depth:Double):Boolean ={
+    val areEqual = observationValues.observedProperty.foreign_tag.equalsIgnoreCase(foreign_tag) && 
+    observationValues.observedProperty.depth == depth
+    
+    areEqual
+  }
+  
   private def createSensorObservationValuesCollection(station: LocalStation,
     sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
     val observedProperties = stationQuery.getObservedProperties(
@@ -106,23 +111,24 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
       new HttpPart("format", "copy"),
       new HttpPart("report", "ALL"))
 
-    return httpSender.sendPostMessage(
-      "http://www.wcc.nrcs.usda.gov/nwcc/view", parts)
+    return httpSender.sendPostMessage(SourceUrls.SNOTEL_OBSERVATION_RETRIEVAL, parts)
   }
 
-  private def parseDouble(text: String, headerName: (String, Double)): Option[java.lang.Double] = {
-    if (!text.equalsIgnoreCase("miss'g")) {
+  private def parseDouble(text: String, headerName: (String, Double)): Option[Double] = {
+    val value = if (!text.equalsIgnoreCase("miss'g")) {
       val value = text.toDouble
       if (value == -99.9) {
-        return None
+        None
       } else if (headerName._1 == "SNWD" && value < 0) {
-        return None
+        None
       } else {
-        return Some(text.toDouble)
+        Some(text.toDouble)
       }
     } else {
-      return None
+      None
     }
+    
+    value
   }
 
   private def createDate(dayRawText: String, timeRawText: String): Calendar = {
@@ -143,6 +149,9 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
     return calendar
   }
 
+  /**
+   * return (name, depth)
+   */
   private def createHeaders(headers: Array[String]): List[(String, Double)] = {
     val formatedHeaders = for (originalHeader <- headers) yield {
       val index = originalHeader.indexOf(".")
@@ -161,7 +170,7 @@ class SnoTelObservationRetriever(private val stationQuery: StationQuery,
           0.0
         }
         
-        (base, depth)
+        (base, depth * (-1))
       } else {
         var header = originalHeader.replace(".", "")
         header = header.replace("-", "")

@@ -4,17 +4,9 @@ import java.util.Calendar
 import java.util.TimeZone
 import java.util.Date
 import java.text.SimpleDateFormat
-
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-
 import org.jsoup.Jsoup
-
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosPhenomenon
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.data.LocalStation
@@ -22,8 +14,8 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.StationQuery
-
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.source.SourceUrls
 
 class RawsObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -45,6 +37,8 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+
+    logger.info("RAWS: Collecting for station - " + station.databaseStation.foreign_tag)
 
     val data = getRawData(station, startDate)
     
@@ -170,7 +164,7 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
       new HttpPart("WeHou", "24"))
 
     val results = httpSender.sendPostMessage(
-      "http://www.raws.dri.edu/cgi-bin/wea_list2.pl", parts)
+        SourceUrls.RAWS_OBSERVATION_RETRIEVAL, parts)
 
     return results;
   }
