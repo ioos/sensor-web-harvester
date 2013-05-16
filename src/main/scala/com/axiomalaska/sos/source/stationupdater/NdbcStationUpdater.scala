@@ -1,26 +1,26 @@
 package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.sos.tools.HttpSender
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.data.Location
 
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.SourceId
-import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 
 import org.apache.log4j.Logger
 
-import org.jsoup.nodes.Document
 import org.jsoup.Jsoup
 
 /**
@@ -150,8 +150,11 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
+    logger info "checking lat/lon for station " + station.tag
+    logger info station.latitude + " - " + station.longitude
     val stationLocation = new Location(station.latitude, station.longitude)
     geoTools.isStationWithinRegion(stationLocation, boundingBox)
+    true
   }
 
   private def createSourceStation(foreignId: String): Option[DatabaseStation] = {
@@ -213,122 +216,71 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     id match {
       //The direction from which the wind waves at the wind wave period (WWPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees.
       case "WWD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.DEGREES, 
-            SensorPhenomenonIds.WIND_WAVE_DIRECTION))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_TO_DIRECTION, id)
       }
       //The direction from which the swell waves at the swell wave period (SWPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees.
       case "SwD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.DEGREES, 
-            SensorPhenomenonIds.SWELL_WAVE_DIRECTION))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION, id)
       }
       //Wind Wave Period is the time (in seconds) that it takes successive wind wave crests or troughs to pass a fixed point.
      case "WWP" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.SECONDS, 
-            SensorPhenomenonIds.WIND_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD, id)
       }
      //Wind Wave Height is the vertical distance (meters) between any wind wave crest and the succeeding wind wave trough (independent of swell waves).
      case "WWH" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.METERS, 
-            SensorPhenomenonIds.WIND_WAVE_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT, id)
       }
      //Swell Period is the time (usually measured in seconds) that it takes successive swell wave crests or troughs pass a fixed point.
      case "SwP" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.SECONDS, 
-            SensorPhenomenonIds.SWELL_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD, id)
      }
      //Swell height is the vertical distance (meters) between any swell crest and the succeeding swell wave trough.
      case "SwH" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.METERS, 
-            SensorPhenomenonIds.SWELL_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT, id)
      }
       //Wind direction (the direction the wind is coming from in degrees clockwise from true N) during the same period used for WSPD.
       case "WDIR" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.DEGREES, 
-            SensorPhenomenonIds.WIND_DIRECTION))
+        getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, id)
       }
       //Wind speed (m/s) averaged over an eight-minute period for buoys and a two-minute period for land stations. Reported Hourly. 
       case "WSPD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.METER_PER_SECONDS, 
-            SensorPhenomenonIds.WIND_SPEED))
+        getObservedProperty(Phenomena.instance.WIND_SPEED, id)
       }
       //Peak 5 or 8 second gust speed (m/s) measured during the eight-minute or two-minute period. The 5 or 8 second period can be determined by payload,
       case "GST" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.METER_PER_SECONDS, 
-            SensorPhenomenonIds.WIND_GUST))
+        getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, id)
       }
       //Significant wave height (meters) is calculated as the average of the highest one-third of all of the wave heights during the 20-minute sampling period. 
       case "WVHT" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.METERS, 
-            SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT, id)
       }
       //Dominant wave period (seconds) is the period with the maximum wave energy.
       case "DPD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.SECONDS, 
-            SensorPhenomenonIds.DOMINANT_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.DOMINANT_WAVE_PERIOD, id)
       }
       //Average wave period (seconds) of all waves during the 20-minute period.
       case "APD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.SECONDS, 
-            SensorPhenomenonIds.AVERAGE_WAVE_PERIOD))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_MEAN_PERIOD, id)
       }
       //The direction from which the waves at the dominant period (DPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees. 
       case "MWD" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.DEGREES, 
-            SensorPhenomenonIds.DOMINANT_WAVE_DIRECTION))
+        getObservedProperty(Phenomena.instance.SEA_SURFACE_DOMINANT_WAVE_TO_DIRECTION, id)
       }
       //Sea level pressure (hPa). 
       case "PRES" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.HECTOPASCAL, 
-            SensorPhenomenonIds.BAROMETRIC_PRESSURE)) 
+        getObservedProperty(Phenomena.instance.createHomelessParameter("sea_level_pressure", Units.HECTOPASCAL), id)
       }
       //Air temperature (Celsius). 
       case "ATMP" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS, 
-            SensorPhenomenonIds.AIR_TEMPERATURE))
+        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id)
       }
       //Sea surface temperature (Celsius).
       case "WTMP" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS, 
-            SensorPhenomenonIds.SEA_WATER_TEMPERATURE))
+        getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, id)
       }
       //Dewpoint temperature taken at the same height as the air temperature measurement.
       case "DEWP" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS, 
-            SensorPhenomenonIds.DEW_POINT))
+        getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, id)
       }
       //Station visibility (nautica miles). Note that buoy stations are limited to reports from 0 to 1.6 nmi.
       case "VIS" => {
@@ -343,10 +295,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       }
       //The water level in feet above or below Mean Lower Low Water (MLLW).
       case "TIDE" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.FEET, 
-            SensorPhenomenonIds.WATER_LEVEL))
+        getObservedProperty(Phenomena.instance.WATER_SURFACE_HEIGHT_ABOVE_REFERENCE_DATUM, id)
       }
       case _ => {
         logger.debug("[" + source.name + "] observed property: " + id +
@@ -354,5 +303,23 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
         return None
       }
     }
+  }
+  
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
+    }
+    None
+  }
+    
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    stationQuery.createPhenomenon(dbPhenom)
   }
 }

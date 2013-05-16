@@ -2,16 +2,9 @@ package com.axiomalaska.sos.source.observationretriever
 
 import java.util.Calendar
 import java.util.TimeZone
-import java.util.Date
 import java.text.SimpleDateFormat
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-import org.jsoup.Jsoup
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
@@ -40,6 +33,8 @@ class NerrsObservationRetriever(private val stationQuery:StationQuery,
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+
+    logger.info("NERRS: Collecting for station - " + station.databaseStation.foreign_tag)
     
     val observationValuesCollection = 
       createSensorObservationValuesCollection(station, sensor, phenomenon)

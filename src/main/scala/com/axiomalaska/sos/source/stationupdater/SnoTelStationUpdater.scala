@@ -1,31 +1,32 @@
 package com.axiomalaska.sos.source.stationupdater
 
+import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.StationQuery
+import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
-import com.axiomalaska.sos.source.data.DatabasePhenomenon
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import com.axiomalaska.sos.source.Units
-import com.axiomalaska.sos.tools.HttpSender
-import com.axiomalaska.sos.tools.HttpPart
-import com.axiomalaska.sos.data.Location
+import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.SourceUrls
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.tools.HttpPart
+import com.axiomalaska.sos.tools.HttpSender
 import java.util.zip.ZipFile
 import scala.collection.JavaConversions._
 import scala.xml.Node
-import scala.xml.Elem
 import scala.collection.mutable
 import scala.xml.XML
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
-import com.axiomalaska.sos.source.SourceUrls
 
 case class SnotelSensor(observedpropertylabel: String,
   observedpropertylongcode: String, observedpropertyshortcode: String,
@@ -396,5 +397,23 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
         return None
       }
     }
+  }
+  
+  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
+    try {
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
+      if (localPhenom.databasePhenomenon.id < 0) {
+        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
+      }
+      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
+    } catch {
+      case ex: Exception => {}
+    }
+    None
+}
+
+  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
+    stationQuery.createPhenomenon(dbPhenom)
   }
 }

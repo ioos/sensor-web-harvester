@@ -1,15 +1,11 @@
 package com.axiomalaska.sos.source.observationretriever
 
-import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.ObservationCollection
+
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservationValues
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 import scala.collection.mutable
 import scala.collection.JavaConversions._
@@ -39,6 +35,9 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+
+    logger.info("NOOA-WEATHER: Collecting for station - " + station.databaseStation.foreign_tag)
+    
     val rawData =
       httpSender.sendGetMessage(SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL +
         station.databaseStation.foreign_tag + ".html")

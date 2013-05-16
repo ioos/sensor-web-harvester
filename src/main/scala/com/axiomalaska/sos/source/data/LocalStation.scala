@@ -6,13 +6,14 @@ import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.StationQuery
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.data.SosSource
 import scala.collection.mutable
 
 class LocalStation(val localSource:LocalSource, 
     val databaseStation: DatabaseStation,
   private val stationQuery: StationQuery,
   private val rootNetwork:SosNetwork) extends SosStation {
+
+  private var networks: java.util.List[SosNetwork] = new java.util.ArrayList()
 
   /**
    * A list of phenomena that this station has readings for
@@ -55,13 +56,35 @@ class LocalStation(val localSource:LocalSource,
         network => new LocalNetwork(network))
     val combinedNetworks = rootNetwork :: sourceNetworks ::: stationNetworks
     val set = new mutable.HashSet[String]
+    // fill in set with items in local network list
+    for {
+      network <- networks
+      val networkId = network.getSourceId + network.getId
+      if (!set.contains(networkId))
+    } {
+      set += networkId
+    }
+    // get networks from DB
     for {
       network <- sourceNetworks ::: stationNetworks
       val networkId = network.getSourceId + network.getId
       if (!set.contains(networkId))
-    } yield {
+    } {
       set += networkId
-      network
+      addNetwork(network)
+    }
+    // return combo of DB and local networks
+    networks
+  }
+  
+  def addNetwork(network: SosNetwork) = {
+    networks.add(network)
+  }
+  
+  def setNetworks(nets: java.util.List[SosNetwork]) {
+    networks.clear
+    for (net <- nets) {
+      networks.add(net)
     }
   }
 
@@ -74,4 +97,9 @@ class LocalStation(val localSource:LocalSource,
   def getDescription() = databaseStation.description
     
   def getPlatformType() = databaseStation.platformType
+  
+  def getWmoId() = ""
+  def getHistory() = new java.util.ArrayList[com.axiomalaska.sos.data.HistoryEvent]()
+  def getDocumentation() = new java.util.ArrayList[com.axiomalaska.sos.data.DocumentMember]()
+  def getSponsor() = ""
 }
