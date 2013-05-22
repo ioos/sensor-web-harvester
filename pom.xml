@@ -10,7 +10,7 @@
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
     <encoding>UTF-8</encoding>
-    <scala.version>2.9.1</scala.version>
+    <scala.version>2.10.0</scala.version>
   </properties>
 
   <repositories>
@@ -35,8 +35,8 @@
     </dependency>
     <dependency>
       <groupId>org.scalatest</groupId>
-      <artifactId>scalatest</artifactId>
-      <version>1.2</version>
+      <artifactId>scalatest_2.10</artifactId>
+      <version>1.9.1</version>
       <scope>test</scope>
     </dependency>
     <dependency>
@@ -50,9 +50,9 @@
       <version>1.5.2</version>
     </dependency>
     <dependency>
-      <groupId>org.squeryl</groupId>
-      <artifactId>squeryl_2.9.1</artifactId>
-      <version>0.9.5</version>
+        <groupId>org.squeryl</groupId>
+        <artifactId>squeryl_2.10</artifactId>
+        <version>0.9.5-6</version>
     </dependency>
     <dependency>
       <groupId>postgresql</groupId>
