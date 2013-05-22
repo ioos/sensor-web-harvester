@@ -1,17 +1,10 @@
 package com.axiomalaska.sos.source.observationretriever
 
 import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.SosStation
 import java.util.Calendar
-import com.axiomalaska.sos.data.ObservationCollection
-import com.axiomalaska.sos.data.SosSensor
 import com.axiomalaska.sos.source.data.LocalStation
-import com.axiomalaska.sos.source.data.DatabaseSensor
-import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import java.text.SimpleDateFormat
 import com.axiomalaska.sos.tools.HttpSender
-import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import java.util.TimeZone
@@ -41,6 +34,8 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery,
 
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
       phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+
+    logger.info("NDBC: Collecting for station - " + station.databaseStation.foreign_tag)
     
     val data = httpSender.downloadReadFile("http://www.ndbc.noaa.gov/data/5day2/" + 
         station.databaseStation.foreign_tag + "_5day.txt")

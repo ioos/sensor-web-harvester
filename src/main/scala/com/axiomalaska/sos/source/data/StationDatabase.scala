@@ -126,6 +126,8 @@ class DatabaseSensor(val tag: String, val description:String, val station_id:Lon
     StationDatabase.stationSensorAssociation.right(this)
 }
 
+// I know that we are suppose to move away from this, but I can't find any other way of inserting a phenom into the DB, will continue
+// to use this until something new is available
 class DatabasePhenomenon(val tag:String) extends KeyedEntity[Long]{
   val id: Long = -1
 

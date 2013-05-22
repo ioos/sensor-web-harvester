@@ -1,5 +1,6 @@
 package com.axiomalaska.sos.source
 
+import org.apache.log4j.Logger
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.SessionFactory
 import org.squeryl.Session
@@ -49,10 +50,12 @@ trait StationQuery{
   def createSource(name: String, tag:String): Source
   def getSource(id:Long):Source
   def getStation(id:Long): DatabaseStation
+  def getStation(foreign_tag:String): Option[DatabaseStation]
   def getSource(station:DatabaseStation):Source
   def createStation(station: DatabaseStation): DatabaseStation
   def getAllPhenomena():List[DatabasePhenomenon]
   def getPhenomena(sensor:DatabaseSensor):List[DatabasePhenomenon]
+  def getPhenomena():List[DatabasePhenomenon]
   def getObservedProperties(station: DatabaseStation,
     sensor: DatabaseSensor, phenomenon:DatabasePhenomenon):List[ObservedProperty]
   def updateStation(originalStation: DatabaseStation, newStation: DatabaseStation)
@@ -63,6 +66,7 @@ trait StationQuery{
     newObservedProperty: ObservedProperty)
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
   def getPhenomenon(id:Long):DatabasePhenomenon 
+  def getPhenomenon(tag:String):DatabasePhenomenon
   def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
@@ -78,13 +82,15 @@ private class StationQueryImp(url:String,
   Class.forName("org.postgresql.Driver")
   
   private val session = createSession()
+  
+  private val logger = Logger.getRootLogger()
 
   SessionFactory.concreteFactory = Some(() => session)
   
   // ---------------------------------------------------------------------------
   // StationQuery Members
   // ---------------------------------------------------------------------------
-  
+
   def getObservedProperty(source: Source): List[ObservedProperty] ={
     using(session){
       source.observedProperties.toList
@@ -93,7 +99,12 @@ private class StationQueryImp(url:String,
   
   def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon ={
     using(session){
-      StationDatabase.phenomena.insert(phenomenon)
+      // only insert if it doesn't exist... ??
+      val inPhenomenaList = StationDatabase.phenomena.toList.filter(p => p.tag.equalsIgnoreCase(phenomenon.tag))
+      if (inPhenomenaList.isEmpty)
+        StationDatabase.phenomena.insert(phenomenon)
+      else
+        inPhenomenaList.head
     }
   }
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor ={
@@ -105,19 +116,25 @@ private class StationQueryImp(url:String,
   }
   
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon) {
-    using(session) {
-      sensor.phenomena.associate(phenonomen)
+    try {
+      using(session) {
+        sensor.phenomena.associate(phenonomen)
+      }
+    } catch {
+      case ex: Exception => { logger.warn(ex.toString) }
     }
   }
   
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty = {
+    val obsProp = if (observedProperty.foreign_units != null) observedProperty else new ObservedProperty(observedProperty.foreign_tag, observedProperty.source_id, "none", observedProperty.phenomenon_id, observedProperty.depth)
     using(session) {
-      StationDatabase.observedProperties.insert(observedProperty)
+      StationDatabase.observedProperties.insert(obsProp)
     }
   }
   
   def updateObservedProperty(databaseObservedProperty: ObservedProperty,
     newObservedProperty: ObservedProperty) {
+    val foreign_units = if (newObservedProperty.foreign_units != null) newObservedProperty.foreign_units else "none"
     using(session) {
       update(StationDatabase.observedProperties)(s =>
         where(s.foreign_tag === databaseObservedProperty.foreign_tag and
@@ -202,6 +219,12 @@ private class StationQueryImp(url:String,
     }
   }
   
+  def getStation(foreign_tag: String): Option[DatabaseStation] = {
+    using(session) {
+      return StationDatabase.stations.where(station => station.foreign_tag === foreign_tag).headOption
+    }
+  }
+  
   def createStation(station: DatabaseStation): DatabaseStation = {
     using(session) {
       return StationDatabase.stations.insert(station)
@@ -248,6 +271,19 @@ private class StationQueryImp(url:String,
   def getPhenomenon(id:Long):DatabasePhenomenon ={
     using(session) {
       StationDatabase.phenomena.lookup(id).get
+    }
+  }
+  
+  def getPhenomenon(tag:String):DatabasePhenomenon = {
+    using (session) {
+      val headOpt = StationDatabase.phenomena.where(phen => phen.tag === tag).head
+      headOpt
+    }
+  }
+  
+  def getPhenomena():List[DatabasePhenomenon] = {
+    using(session) {
+      StationDatabase.phenomena.toList
     }
   }
   

@@ -1,11 +1,7 @@
 package com.axiomalaska.sos.source.observationretriever
 
 import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.ObservationRetriever
-import com.axiomalaska.sos.data.SosSensor
-import com.axiomalaska.sos.data.SosStation
 import java.util.Calendar
-import com.axiomalaska.sos.data.ObservationCollection
 import com.axiomalaska.sos.source.data.LocalStation
 import net.opengis.ows.x11.ExceptionReportDocument
 import net.opengis.om.x10.CompositeObservationDocument
@@ -19,9 +15,7 @@ import net.opengis.gml.x32.TimeInstantType
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
-import com.axiomalaska.sos.source.data.ObservedProperty
 import scala.collection.JavaConversions._
-import com.axiomalaska.sos.source.data.SensorPhenomenonIds
 import org.apache.log4j.Logger
 import com.axiomalaska.phenomena.Phenomenon
 
@@ -34,6 +28,7 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
 
   private val sosRawDataRetriever = new SosRawDataRetriever()
+  private var phenomena = stationQuery.getAllPhenomena
   protected val serviceUrl:String
   
   // ---------------------------------------------------------------------------
@@ -85,77 +80,81 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
   private def getSensorForeignId(phenomenon: Phenomenon):String = {
     val localPhenomenon = phenomenon.asInstanceOf[LocalPhenomenon]
     
-    localPhenomenon.databasePhenomenon.id match{
-      case SensorPhenomenonIds.BAROMETRIC_PRESSURE =>{
-        "http://mmisw.org/ont/cf/parameter/air_pressure"
-      }
-      case SensorPhenomenonIds.AIR_TEMPERATURE =>{
-        "http://mmisw.org/ont/cf/parameter/air_temperature"
-      }
-      case SensorPhenomenonIds.SEA_WATER_TEMPERATURE =>{
-        "http://mmisw.org/ont/cf/parameter/sea_water_temperature"
-      }
-      case SensorPhenomenonIds.CURRENT_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/currents"
-      }
-      case SensorPhenomenonIds.CURRENT_SPEED =>{
-        "http://mmisw.org/ont/cf/parameter/currents"
-      }
-      case SensorPhenomenonIds.WATER_LEVEL_PREDICTIONS =>{
-        "http://mmisw.org/ont/cf/parameter/sea_surface_height_amplitude_due_to_equilibrium_ocean_tide"
-      }
-      case SensorPhenomenonIds.WATER_LEVEL =>{
-        "http://mmisw.org/ont/cf/parameter/water_surface_height_above_reference_datum"
-      }
-      case SensorPhenomenonIds.WIND_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/winds"
-      }
-      case SensorPhenomenonIds.WIND_GUST =>{
-        "http://mmisw.org/ont/cf/parameter/winds"
-      }
-      case SensorPhenomenonIds.WIND_SPEED =>{
-        "http://mmisw.org/ont/cf/parameter/winds"
-      }
-      case SensorPhenomenonIds.WIND_GUST_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/winds"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_PERIOD =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.WIND_WAVE_HEIGHT =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.SWELL_PERIOD =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.SWELL_HEIGHT =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.SWELL_WAVE_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.DOMINANT_WAVE_DIRECTION =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.DOMINANT_WAVE_PERIOD =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.AVERAGE_WAVE_PERIOD =>{
-        "http://mmisw.org/ont/cf/parameter/waves"
-      }
-      case SensorPhenomenonIds.SALINITY =>{
-        "http://mmisw.org/ont/cf/parameter/sea_water_salinity"
-      }
-      case SensorPhenomenonIds.WIND_VERTICAL_VELOCITY =>{
-        "http://mmisw.org/ont/cf/parameter/winds"
-      }
-    }
+    val phenom = phenomena.foldLeft("")((ret,phen) => if (phen.id == localPhenomenon.databasePhenomenon.id) localPhenomenon.databasePhenomenon.tag else ret)
+    
+    return phenom
+    
+//    localPhenomenon.databasePhenomenon.id match{
+//      case SensorPhenomenonIds.BAROMETRIC_PRESSURE =>{
+//        "http://mmisw.org/ont/cf/parameter/air_pressure"
+//      }
+//      case SensorPhenomenonIds.AIR_TEMPERATURE =>{
+//        "http://mmisw.org/ont/cf/parameter/air_temperature"
+//      }
+//      case SensorPhenomenonIds.SEA_WATER_TEMPERATURE =>{
+//        "http://mmisw.org/ont/cf/parameter/sea_water_temperature"
+//      }
+//      case SensorPhenomenonIds.CURRENT_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/currents"
+//      }
+//      case SensorPhenomenonIds.CURRENT_SPEED =>{
+//        "http://mmisw.org/ont/cf/parameter/currents"
+//      }
+//      case SensorPhenomenonIds.WATER_LEVEL_PREDICTIONS =>{
+//        "http://mmisw.org/ont/cf/parameter/sea_surface_height_amplitude_due_to_equilibrium_ocean_tide"
+//      }
+//      case SensorPhenomenonIds.WATER_LEVEL =>{
+//        "http://mmisw.org/ont/cf/parameter/water_surface_height_above_reference_datum"
+//      }
+//      case SensorPhenomenonIds.WIND_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/winds"
+//      }
+//      case SensorPhenomenonIds.WIND_GUST =>{
+//        "http://mmisw.org/ont/cf/parameter/winds"
+//      }
+//      case SensorPhenomenonIds.WIND_SPEED =>{
+//        "http://mmisw.org/ont/cf/parameter/winds"
+//      }
+//      case SensorPhenomenonIds.WIND_GUST_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/winds"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_PERIOD =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.WIND_WAVE_HEIGHT =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_PERIOD =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_HEIGHT =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.SWELL_WAVE_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.DOMINANT_WAVE_DIRECTION =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.DOMINANT_WAVE_PERIOD =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.SIGNIFICANT_WAVE_HEIGHT =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.AVERAGE_WAVE_PERIOD =>{
+//        "http://mmisw.org/ont/cf/parameter/waves"
+//      }
+//      case SensorPhenomenonIds.SALINITY =>{
+//        "http://mmisw.org/ont/cf/parameter/sea_water_salinity"
+//      }
+//      case SensorPhenomenonIds.WIND_VERTICAL_VELOCITY =>{
+//        "http://mmisw.org/ont/cf/parameter/winds"
+//      }
+//    }
   }
   
   private def buildSensorObservationValues(
