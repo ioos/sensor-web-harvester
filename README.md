@@ -54,7 +54,7 @@ The metadata database is used to collect the stations’ metadata in order to al
 placed into an SOS. The sensor metadata database must be created using the provided metadata database backup
 database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be
 filled later. To install the backup database perform the following steps:
-* Download the sensor_metadata_database.tar file from https://github.com/axiomalaska/sensor-web-harvester/downloads.
+* Download the sensor_metadata_database.tar file from https://github.com/axiomalaska/sensor-web-harvester/download.
 * Using pgAdmin, create a database.
 * right-click on this newly created database and select “Restore”.
 * Select the sensor_metadata_database.tar file for the “Filename” text field.
@@ -75,7 +75,7 @@ jdbc:postgresql://localhost:5432/sensor-metadata
 Running the SOS Injector
 -----------
 The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
-[Downloads folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads) on Github. 
+[Downloads folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/download) on Github. 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update. The network root is the default network in the SOS that contains all the stations. This network is different for each SOS. For example for AOOS the defaut network is urn:ioos:network:aoos:all. The properties file requires the following variables:
 * database_url - the URL where the metadata database can be found (recorded in the above section “Metadata Database”). Example: jdbc:postgresql://localhost:5432/sensor-metadata
@@ -135,7 +135,7 @@ Example of a properties file:
     network_root_id = all
     network_root_source_id = aoos
 
-An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads Folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads).
+An example of a properties file named  “example_sos.properties” is also provided on Github at the [Downloads Folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/download).
 
 Writing Custom Java Code
 -----------
