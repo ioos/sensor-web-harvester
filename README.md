@@ -42,7 +42,7 @@ The following are the requirements to run this project:
 Metadata Database
 -----------------
 The metadata database is used to collect the stations’ metadata in order to allow observations to be pulled and placed into an SOS. The sensor metadata database must be created using the provided metadata database backup database. This backup database contains all of the phenomena’s and sources’ information, and other tables to be filled later. To install the backup database perform the following steps:
-* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/tree/master/downloads.
+* Download sensor_metadata_database_\[version\].backup from https://github.com/axiomalaska/sensor-web-harvester/tree/master/download.
 
 Then restore the backup to a PostgreSQL database.
 
