@@ -14,6 +14,9 @@ import com.axiomalaska.sos.source.StationQuery
 import org.apache.log4j.Logger
 import webservices2.RequestsServiceLocator
 import org.w3c.dom.ls.DOMImplementationLS
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
+import org.joda.time.format.DateTimeFormat
 
 class NerrsObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -24,15 +27,17 @@ class NerrsObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
   
   private val httpSender = new HttpSender()
+  private val gmtTimeZone = DateTimeZone.forID("US/Alaska")
   private val dateFormat = new SimpleDateFormat("MM/dd/yyyy")
-  private val dateParser = new SimpleDateFormat("MM/dd/yyyy HH:mm")
-  
+  private val gmtTimeFormatter = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm")
+            .withZone(gmtTimeZone)
+            
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] ={
 
     logger.info("NERRS: Collecting for station - " + station.databaseStation.foreign_tag)
     
@@ -41,13 +46,13 @@ class NerrsObservationRetriever(private val stationQuery:StationQuery,
 
     getXml(station, startDate, observationValuesCollection) match {
       case Some(xml) => {
-        var priorCalendar:Calendar = null
+        var priorCalendar:DateTime = null
         for { row <- (xml \\ "data") } {
           val rawDate = (row \\ "utcStamp").text
           val calendar = createDate(rawDate)
           if (priorCalendar == null || !priorCalendar.equals(calendar)) {
             priorCalendar = calendar
-            if (calendar.after(startDate)) {
+            if (calendar.isAfter(startDate)) {
               for {
                 observationValues <- observationValuesCollection
                 val param = observationValues.observedProperty.foreign_tag
@@ -73,26 +78,10 @@ class NerrsObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
+            
+  private def createDate(rawText: String) = gmtTimeFormatter.parseDateTime(rawText)
   
-  private def createDate(rawText: String): Calendar = {
-    val date = dateParser.parse(rawText)
-    val calendar = Calendar.getInstance(TimeZone
-      .getTimeZone("US/Alaska"))
-    calendar.set(Calendar.YEAR, date.getYear() + 1900)
-    calendar.set(Calendar.MONTH, date.getMonth())
-    calendar.set(Calendar.DAY_OF_MONTH, date.getDate())
-    calendar.set(Calendar.HOUR_OF_DAY, date.getHours())
-    calendar.set(Calendar.MINUTE, date.getMinutes())
-    calendar.set(Calendar.SECOND, 0)
-    calendar.set(Calendar.MILLISECOND, 0)
-
-    // The time is not able to be changed from the timezone if this is not set. 
-    calendar.getTime()
-
-    return calendar
-  }
-  
-  private def getXml(station: LocalStation, startDate: Calendar, 
+  private def getXml(station: LocalStation, startDate: DateTime, 
       observationValues: List[ObservationValues]):Option[scala.xml.Elem]={
     try {
       val locator = new RequestsServiceLocator()
@@ -100,7 +89,7 @@ class NerrsObservationRetriever(private val stationQuery:StationQuery,
       val requests = locator.getRequestsCfc()
 
       val stationCode = station.databaseStation.foreign_tag
-      val minDate = dateFormat.format(startDate.getTime())
+      val minDate = dateFormat.format(startDate.toDate())
       val maxDate = dateFormat.format(Calendar.getInstance().getTime())
       val param = observationValues.map(_.observedProperty.foreign_tag).mkString(",")
 

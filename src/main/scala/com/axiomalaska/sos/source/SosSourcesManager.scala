@@ -5,11 +5,11 @@ import scala.util.Random
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.data.SosNetworkImp
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import java.util.Calendar
-
 import collection.JavaConversions._
+import org.n52.sos.ioos.asset.AssetResolver
+import org.n52.sos.ioos.asset.NetworkAsset
 
 /**
  * This class manages updating the SOS with all the stations from the metadata database
@@ -26,48 +26,23 @@ class SosSourcesManager(
 	private val databasePassword:String, 
 	private val sosUrl:String, 
 	private val publisherInfo:PublisherInfo, 
-        private val sources: String,
-	private val rootNetwork:SosNetwork,
-	private val logger: Logger = Logger.getRootLogger()) {
-
+    private val sources: String) {
+  
+  private val LOGGER = Logger.getLogger(getClass())
   private val random = new Random(Calendar.getInstance.getTime.getTime)
   
   def updateSos() {
-    
-    val factory = new ObservationUpdaterFactory()
+    val factory = new SosInjectorFactory()
     val queryBuilder = new StationQueryBuilder(
       databaseUrl, databaseUser, databasePassword)
 
     queryBuilder.withStationQuery(stationQuery => {
-      val observationUpdaters = factory.buildAllSourceObservationUpdaters(
-        sosUrl, stationQuery, publisherInfo, sources.toLowerCase, rootNetwork, logger)
-
-      // load phenomenon
-      val phenomena = stationQuery.getPhenomena
-      for (phenom <- phenomena) {
-        try {
-          new LocalPhenomenon(phenom, stationQuery)
-        } catch {
-          case _ => {
-              logger.debug("adding phenomenon to instance: " + phenom.tag)
-              Phenomena.instance.createHomelessParameter(phenom.tag, "")
-          }
-        }
-      }
+      val sosInjectors = factory.buildAllSourceSosInjectors(
+        sosUrl, stationQuery, publisherInfo, sources.toLowerCase)
       
-      for (observationUpdater <- random.shuffle(observationUpdaters)) {
-        observationUpdater.update(rootNetwork)
+      for (sosInjector <- random.shuffle(sosInjectors)) {
+        sosInjector.update()
       }
     })
-  }
-  
-  private def getSourceNetwork(sourceName: String) : SosNetworkImp = {
-    val network = new SosNetworkImp()
-    network.setDescription(sourceName + " networked stations")
-    network.setId("network-" + sourceName)
-    network.setSourceId(sourceName)
-    network.setShortName(sourceName + " stations")
-    network.setLongName("stations in the " + sourceName + " network")
-    return network
   }
 }

@@ -8,11 +8,11 @@ import java.util.Calendar
 
 class AggregateStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox, 
-  private val sources: String,
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val sources: String) extends StationUpdater {
 
   private val random = new Random(Calendar.getInstance.getTime.getTime)
-  
+  private val LOGGER = Logger.getLogger(getClass())
+    
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -21,7 +21,7 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
     val stationUpdaters = getStationUpdaters()
   
     for(stationUpdater <- random.shuffle(stationUpdaters)){
-      logger.info("----- Starting updating source " + stationUpdater.name + " ------")
+      LOGGER.info("----- Starting updating source " + stationUpdater.name + " ------")
       stationUpdater.update()
     }
   }
@@ -35,57 +35,57 @@ class AggregateStationUpdater(private val stationQuery: StationQuery,
   private def getStationUpdaters():List[StationUpdater] = {
     var retval: List[StationUpdater] = List()
     if (sources.contains("all")) {
-      logger info "adding all sources"
-      return List(new GlosStationUpdater(stationQuery, boundingBox, logger),
-              new StoretStationUpdater(stationQuery, boundingBox, logger),
-              new HadsStationUpdater(stationQuery, boundingBox, logger),
-              new NdbcStationUpdater(stationQuery, boundingBox, logger),
-              new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger),
-              new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger),
-              new RawsStationUpdater(stationQuery, boundingBox, logger),
-              new SnoTelStationUpdater(stationQuery, boundingBox, logger),
-              new NerrsStationUpdater(stationQuery, boundingBox, logger),
-              new UsgsWaterStationUpdater(stationQuery, boundingBox, logger))
+      LOGGER info "adding all sources"
+      return List(new GlosStationUpdater(stationQuery, boundingBox),
+              new StoretStationUpdater(stationQuery, boundingBox),
+              new HadsStationUpdater(stationQuery, boundingBox),
+              new NdbcStationUpdater(stationQuery, boundingBox),
+              new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox),
+              new NoaaWeatherStationUpdater(stationQuery, boundingBox),
+              new RawsStationUpdater(stationQuery, boundingBox),
+              new SnoTelStationUpdater(stationQuery, boundingBox),
+              new NerrsStationUpdater(stationQuery, boundingBox),
+              new UsgsWaterStationUpdater(stationQuery, boundingBox))
     }
     if (sources.contains("glos")) {
-      logger.info("adding GLOS updater")
-      retval = new GlosStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding GLOS updater")
+      retval ::= new GlosStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("storet")) {
-      logger.info("adding STORET updater")
-      retval = new StoretStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding STORET updater")
+      retval ::= new StoretStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("hads")) {
-      logger.info("adding HADS updater")
-      retval = new HadsStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding HADS updater")
+      retval ::= new HadsStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("ndbc")) {
-      logger.info("adding NDBC updater")
-      retval = new NdbcSosStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding NDBC updater")
+      retval ::= new NdbcSosStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("noaanoscoops")) {
-      logger.info("adding NOAA-NOSCOOPS updater")
-      retval = new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding NOAA-NOSCOOPS updater")
+      retval ::= new NoaaNosCoOpsStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("noaaweather")) {
-      logger.info("adding NOAA-WEATHER updater")
-      retval = new NoaaWeatherStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding NOAA-WEATHER updater")
+      retval ::= new NoaaWeatherStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("raws")) {
-      logger.info("adding RAWS updater")
-      retval = new RawsStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding RAWS updater")
+      retval ::= new RawsStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("snotel")) {
-      logger.info("adding SNOTEL updater")
-      retval = new SnoTelStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding SNOTEL updater")
+      retval ::= new SnoTelStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("nerrs")) {
-      logger.info("adding NERRS updater")
-      retval = new NerrsStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding NERRS updater")
+      retval ::= new NerrsStationUpdater(stationQuery, boundingBox)
     }
     if (sources.contains("usgswater")) {
-      logger.info("adding USGS-WATER updater")
-      retval = new UsgsWaterStationUpdater(stationQuery, boundingBox, logger) :: retval
+      LOGGER.info("adding USGS-WATER updater")
+      retval ::= new UsgsWaterStationUpdater(stationQuery, boundingBox)
     }
     return retval
   }

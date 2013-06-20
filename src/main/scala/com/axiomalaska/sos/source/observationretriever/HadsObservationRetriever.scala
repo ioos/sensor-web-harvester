@@ -14,27 +14,34 @@ import java.util.TimeZone
 import java.text.SimpleDateFormat
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTimeZone
 
-class HadsObservationRetriever(private val stationQuery:StationQuery, 
-    private val logger: Logger = Logger.getRootLogger()) 
+class HadsObservationRetriever(private val stationQuery:StationQuery) 
 	extends ObservationValuesCollectionRetriever {
 
+  
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
+  private val LOGGER = Logger.getLogger(getClass())
   private val httpSender = new HttpSender()
-  private val parseDate = new SimpleDateFormat("yyyy-MM-dd HH:mm")
-  
+  private val gmtTimeZone = DateTimeZone.forID("GMT")
+  private val gmtTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm")
+            .withZone(gmtTimeZone)
+            
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
   
   def getObservationValues(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): 
+    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: DateTime): 
     List[ObservationValues] = {
       
-    logger.info("HADS: Collecting for station - " + station.databaseStation.foreign_tag)
+    LOGGER.info("HADS: Collecting for station - " + 
+        station.databaseStation.foreign_tag)
 
     val parts = List[HttpPart](
       new HttpPart("state", "nil"),
@@ -51,7 +58,7 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
         createSensorObservationValuesCollection(station, sensor, phenomenon)
 
       for { observationValues <- observationValuesCollections } {
-        collectValues(result, observationValues, startDate, Calendar.getInstance)
+        collectValues(result, observationValues, startDate, DateTime.now())
       }
 
       observationValuesCollections
@@ -64,8 +71,8 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
   // Private Members
   // ---------------------------------------------------------------------------
   
-  private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
-    phenomenon: LocalPhenomenon): List[ObservationValues] = {
+  private def createSensorObservationValuesCollection(station: LocalStation, 
+      sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
     val observedProperties = stationQuery.getObservedProperties(
       station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
@@ -75,55 +82,37 @@ class HadsObservationRetriever(private val stationQuery:StationQuery,
   }
   
   private def collectValues(data: String, observationValues: ObservationValues,
-    startDate: Calendar, endDate: Calendar) {
+    startDate: DateTime, endDate: DateTime) {
     
     val pattern = new Regex(observationValues.observedProperty.foreign_tag
       + """\|(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\|(-?\d+.\d+)\|  \|""")
 
     for (patternMatch <- pattern.findAllIn(data)) {
       val pattern(rawDate, value) = patternMatch
-      val calendar = createDate(rawDate)
-      if (calendar.after(startDate) && calendar.before(endDate)) {
+      val calendar = gmtTimeFormatter.parseDateTime(rawDate)
+      if (calendar.isAfter(startDate) && calendar.isBefore(endDate)) {
 
         observationValues.addValue(value.toDouble, calendar)
       }
     }
   }
-
-  private def createDate(rawDate: String): Calendar = {
-    val date = parseDate.parse(rawDate);
-
-    val calendar = Calendar.getInstance(TimeZone.getTimeZone("GMT"))
-    calendar.set(Calendar.YEAR, date.getYear() + 1900)
-    calendar.set(Calendar.MONTH, date.getMonth())
-    calendar.set(Calendar.DAY_OF_MONTH, date.getDate())
-    calendar.set(Calendar.HOUR_OF_DAY, date.getHours())
-    calendar.set(Calendar.MINUTE, date.getMinutes())
-    calendar.set(Calendar.SECOND, 0)
-    
-    // The time is not able to be changed from the 
-    //setTimezone if this is not set. Java Error
-    calendar.getTime()
-
-    return calendar
-  }
   
-  private def calculatedSinceDay(startDate: Calendar):String ={
-    val currentDate = Calendar.getInstance()
-    val copyStartDate = startDate.clone().asInstanceOf[Calendar]
+  private def calculatedSinceDay(startDate: DateTime):String ={
+    val currentDate:DateTime = DateTime.now()
+    val copyStartDate:DateTime = startDate.toDateTime()
     var days = 0
-    while(copyStartDate.before(currentDate) && days < 6){
+    while(copyStartDate.isBefore(currentDate) && days < 6){
       days += 1
-      copyStartDate.add(Calendar.DAY_OF_MONTH, 1)
+      copyStartDate.plusDays(1)
     }
 
     val sinceday = days match {
       case 1 => {
-        val copyStartDate = startDate.clone().asInstanceOf[Calendar]
+        val copyStartDate = startDate.toDateTime()
         var hours = 0
-        while (copyStartDate.before(currentDate)) {
+        while (copyStartDate.isBefore(currentDate)) {
           hours += 1
-          copyStartDate.add(Calendar.HOUR_OF_DAY, 1)
+          copyStartDate.plusDays(1)
         }
         hours * -1
       }

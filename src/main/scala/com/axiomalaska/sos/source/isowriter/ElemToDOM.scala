@@ -32,8 +32,9 @@ object XmlHelpers {
   }
 }
 
-class NodeExtras(n: Node, logger: Logger = Logger.getRootLogger()) {
+class NodeExtras(n: Node) {
   
+  private val LOGGER = Logger.getLogger(getClass())
   private var writeNS: Boolean = true
   
   protected def toJdkNode(node: Node, doc: org.w3c.dom.Document): org.w3c.dom.Node = {
@@ -81,18 +82,19 @@ class NodeExtras(n: Node, logger: Logger = Logger.getRootLogger()) {
   }
   
   private def checkScope(ns: scala.xml.NamespaceBinding) : Unit = {
-    logger info "namespace: " + ns.prefix + " = " + ns.uri
+    LOGGER info "namespace: " + ns.prefix + " = " + ns.uri
     if (!ns.equals(TopScope))
       checkScope(ns.parent)
   }
 }
 
-class ElemExtras(e: Elem, logger: Logger) extends NodeExtras(e, logger) {
+class ElemExtras(e: Elem) extends NodeExtras(e) {
 //  override def toJdkNode(node:Node, doc: org.w3c.dom.Document) =
 //    super.toJdkNode(node, doc).asInstanceOf[org.w3c.dom.Element]
   
   def toJdkDoc = {
-    val doc = XmlHelpers.docBuilder.getDOMImplementation.createDocument(null, null, null)
+    val doc = XmlHelpers.docBuilder.getDOMImplementation.createDocument(
+        null, null, null)
     doc.appendChild(toJdkNode(e,doc))
     doc
   }

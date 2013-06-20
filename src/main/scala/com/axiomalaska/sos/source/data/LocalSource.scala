@@ -4,23 +4,14 @@ import com.axiomalaska.sos.data.SosSource
 
 class LocalSource(val source:Source) extends SosSource {
 
-    def getId() = source.tag
-    
-	def getName() = source.name
-
-	def getCountry() = source.country
-
-	def getEmail() = source.email
-
-	def getWebAddress() = source.webAddress
-
-	def getOperatorSector() = source.operatorSector
-	
-	def getAddress() = source.address
-	
-	def getCity() = source.city
-	
-	def getState() = source.state
-	
-	def getZipcode() = source.zipcode
+    setId(source.tag)
+    setName(source.name)
+    setCountry(source.country)
+    setEmail(source.email)
+    setWebAddress(source.webAddress)
+    setOperatorSector(source.operatorSector)
+    setAddress(source.address)
+    setCity(source.city)
+    setState(source.state)
+    setZipcode(source.zipcode)
 }

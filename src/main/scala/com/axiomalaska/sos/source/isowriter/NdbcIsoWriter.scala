@@ -15,12 +15,13 @@ import org.apache.log4j.Logger
 class NdbcIsoWriter(private val stationQuery:StationQuery, 
     private val templateFile: String,
     private val isoDirectory: String,
-    private val overwrite: Boolean,
-    private val logger: Logger = Logger.getRootLogger()) extends ISOWriterImpl(stationQuery, templateFile, isoDirectory, overwrite, logger) {
+    private val overwrite: Boolean) 
+    extends ISOWriterImpl(stationQuery, templateFile, isoDirectory, overwrite) {
 
   private val httpSender = new HttpSender()
   private val dateParser = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  
+  private val LOGGER = Logger.getLogger(getClass())
+    
   private val ndbcDSURL = "http://sdftest.ndbc.noaa.gov/sos/server.php?request=GetCapabilities&service=SOS&Sections=Contents"
   private val ndbcGetCapsFile = isoDirectory + "/ndbc_getcaps_section.xml"
   private val ndbcSOSName = "National Data Buoy Center SOS"
@@ -39,7 +40,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     ndbcGetCaps = readInGetCapsXML(true)
     // failed to initialize if we did not read in the get caps file
     if (ndbcGetCaps == null) {
-      logger error "Could not read the ndbc get capabilities document either locally or remotely!"
+      LOGGER error "Could not read the ndbc get capabilities document either locally or remotely!"
       return false
     }
     true
@@ -71,7 +72,8 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     // create a service identification for SOS
     val citation = new ServiceIdentificationCitation(ndbcSOSName,ndbcOrgName,ndbcRole)
     val ops = getServiceIdOps(station)
-    List(new ServiceIdentification(getStationAbstract(station),ndbcSOSName,station.getId,citation,getExtent(station),ops))
+    List(new ServiceIdentification(getStationAbstract(station),
+        ndbcSOSName,station.getId,citation,getExtent(station),ops))
   }
   
   /*
@@ -92,7 +94,8 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     val phone = "(228) 688-2805"
     val webID = "ndbc"
     val role = "distributor"
-    List(new Contact(null,ndbcOrgName,phone,source.getAddress,source.getCity,source.getState,source.getZipcode,source.getEmail,webID,source.getWebAddress,role))
+    List(new Contact(null,ndbcOrgName,phone,source.getAddress,source.getCity,
+        source.getState,source.getZipcode,source.getEmail,webID,source.getWebAddress,role))
   }
   
   override def getFileIdentifier(station: LocalStation) : String = {
@@ -125,15 +128,17 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     val temporals = getStationTemporalExtents(station)
     val begin = if (temporals._1 != null) formatDateTime(temporals._1) else ""
     val end = if (temporals._2 != null) formatDateTime(temporals._2) else ""
-    new ServiceIdentificationExtent(station.getLocation.getLatitude.toString, station.getLocation.getLongitude.toString,begin,end)
+    new ServiceIdentificationExtent(station.getLocation.getY().toString, 
+        station.getLocation.getX().toString,begin,end)
   }
   
   private def getStationAbstract(station: LocalStation) : String = {
     val stid = station.getId.toLowerCase.replace("wmo:", "")
-    logger.info(stid)
+    LOGGER.info(stid)
     val retval = for {
       obsoff <- ndbcGetCaps \\ "ObservationOffering"
-      val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)
+      val attrs = obsoff.attributes.filter(a => a.value.filter(
+          v => v.text.toLowerCase.contains(stid)).nonEmpty)
       if (attrs.nonEmpty)
     } yield {
       (obsoff \ "description").text.trim
@@ -145,7 +150,8 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
     val stid = station.getId.toLowerCase.replace("wmo:", "")
     val retval = for {
       obsoff <- ndbcGetCaps \\ "ObservationOffering"
-      val attrs = obsoff.attributes.filter(a => a.value.filter(v => v.text.toLowerCase.contains(stid)).nonEmpty)
+      val attrs = obsoff.attributes.filter(a => a.value.filter(
+          v => v.text.toLowerCase.contains(stid)).nonEmpty)
       if (attrs.nonEmpty)
     } yield {
       val begintime = (obsoff \ "time" \ "TimePeriod" \ "beginPosition").text.trim
@@ -167,8 +173,10 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   private def getServiceIdOps(station: LocalStation) : List[ServiceIdentificationOperations] = {
     List(
       new ServiceIdentificationOperations("SOS Get Capabilities",ndbcGetCapsUrl,"SOS",ndbcSOSName),
-      new ServiceIdentificationOperations("SOS Describe Sensor",ndbcDescSenUrl + station.databaseStation.foreign_tag.toLowerCase,"SOS",ndbcSOSName),
-      new ServiceIdentificationOperations("SOS Get Observation",ndbcGetObsUrl + station.databaseStation.foreign_tag.toLowerCase,"SOS",ndbcSOSName)
+      new ServiceIdentificationOperations("SOS Describe Sensor",ndbcDescSenUrl + 
+          station.databaseStation.foreign_tag.toLowerCase,"SOS",ndbcSOSName),
+      new ServiceIdentificationOperations("SOS Get Observation",ndbcGetObsUrl + 
+          station.databaseStation.foreign_tag.toLowerCase,"SOS",ndbcSOSName)
     )
   }
   
@@ -180,13 +188,13 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
         if (fxml != null && fxml.nonEmpty)
           return fxml
       } catch {
-        case ex: Exception => logger warn ex.toString
+        case ex: Exception => LOGGER warn ex.toString
       }
     }
     
     // no file, get the get caps
-    logger info "Could not or would not load local ndbc get caps file, requesting remote copy"
-    val response = httpSender.sendGetMessage(ndbcDSURL)
+    LOGGER info "Could not or would not load local ndbc get caps file, requesting remote copy"
+    val response = HttpSender.sendGetMessage(ndbcDSURL)
     if (response != null) {
       val xml = loadXMLFromString(response.toString)
       xml match {
@@ -196,6 +204,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
           // return it
           return xml
         }
+        case None => //TODO::What do we do here
       }
     }
     
@@ -208,7 +217,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
       Some(scala.xml.XML.loadString(stringToLoad))
     } catch{
       case ex: Exception => {
-          logger.error("Unable to load string into xml: " + stringToLoad + "\n" + ex.toString)
+          LOGGER.error("Unable to load string into xml: " + stringToLoad + "\n" + ex.toString)
           None
       }
     }

@@ -1,13 +1,15 @@
 package com.axiomalaska.sos.source
 
 import org.apache.log4j.Logger
-import com.axiomalaska.sos.data.Location
-import com.axiomalaska.sos.data.PublisherInfoImp
-import com.axiomalaska.sos.data.SosNetworkImp
 import java.io.File
 import java.util.Calendar
 import javax.naming.ConfigurationException
 import org.apache.commons.configuration.PropertiesConfiguration
+import com.axiomalaska.sos.data.SosNetwork
+import org.n52.sos.ioos.asset.NetworkAsset
+import org.n52.sos.ioos.asset.AssetResolver
+import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.sos.data.PublisherInfo
 
 case class Properties(val sosUrl: String,
       val country: String,
@@ -23,19 +25,15 @@ case class Properties(val sosUrl: String,
       val eastLon: Double,
       val sources: String,
       val isoTemplate: String,
-      val isoLocation: String,
-      val rootNetworkId: String,
-      val rootNetworkSourceId: String,
-      val rootNetworkDescription: String,
-      val rootNetworkName: String
+      val isoLocation: String
       )
 
 object Main {
 
   private var overWrite: Boolean = true
+  private val LOGGER = Logger.getLogger(getClass())
   
   def main(args: Array[String]) {
-    val logger = Logger.getRootLogger()
     var timerBegin: Calendar = null
     if (args.size > 2) {
       for {
@@ -43,11 +41,11 @@ object Main {
         if (index > 1)
       } {
         if (arg.equalsIgnoreCase("-timer")) {
-          logger info "USING: Timer"
+          LOGGER info "USING: Timer"
           timerBegin = Calendar.getInstance
         } else if (arg.equalsIgnoreCase("-nooverwrite")) {
           // set a flag to not overwrite (when writing isos)
-          logger info "USING: Will not overwrite existing files"
+          LOGGER info "USING: Will not overwrite existing files"
           overWrite = false
         }
       }
@@ -58,131 +56,86 @@ object Main {
 
       val properties = createProperties(propertiesFilePath)
       if (tag == "-metadata") {
-        updateMetadata(properties, logger)
+        updateMetadata(properties)
       } else if (tag == "-updatesos") {
-        updateSos(properties, logger)
+        updateSos(properties)
       } else if (tag == "-writeiso") {
-        writeISOFiles(properties, logger)
+        writeISOFiles(properties)
       } else{
-    	logger.info("Must be a -metadata [properties file] \n" + 
+    	LOGGER.info("Must be a -metadata [properties file] \n" + 
           "or -updatesos [properties file]\n" + 
           "or -writeiso [properties file]")
       }
     }
     else{
-    	logger.info("Must be a -metadata [properties file] \n" + 
+    	LOGGER.info("Must be a -metadata [properties file] \n" + 
           "or -updatesos [properties file]\n" + 
           "or -writeiso [properties file]")
     }
     
     if (timerBegin != null) {
       val elapsedTime = (Calendar.getInstance.getTimeInMillis - timerBegin.getTimeInMillis) / 1000L
-      logger.info("Total Elapsed Time for harvesting (in secs): " + elapsedTime)
+      LOGGER.info("Total Elapsed Time for harvesting (in secs): " + elapsedTime)
    }
   }
   
-  private def updateMetadata(properties:PropertiesConfiguration, logger: Logger){
-//      val databaseUrl = properties.getString("database_url")
-//      val databaseUsername = properties.getString("database_username")
-//      val databasePassword = properties.getString("database_password")
-//      val northLat = properties.getDouble("north_lat")
-//      val southLat = properties.getDouble("south_lat")
-//      val westLon = properties.getDouble("west_lon")
-//      val eastLon = properties.getDouble("east_lon")
-//      var sources = "all"
-//      
-//      if (properties.containsKey("sources"))
-//        sources = properties.getString("sources")
-//        
+  private def updateMetadata(properties:PropertiesConfiguration){   
     val propertiesRead = readProperties(properties)
       
-    logger.info("Database URL: " + propertiesRead.databaseUrl)
-    logger.info("Database Username: " + propertiesRead.databaseUsername)
-    logger.info("Database Password: " + propertiesRead.databasePassword)
+    LOGGER.info("Database URL: " + propertiesRead.databaseUrl)
+    LOGGER.info("Database Username: " + propertiesRead.databaseUsername)
+    LOGGER.info("Database Password: " + propertiesRead.databasePassword)
 
-    logger.info("North Lat: " + propertiesRead.northLat)
-    logger.info("South Lat: " + propertiesRead.southLat)
-    logger.info("West Lon: " + propertiesRead.westLon)
-    logger.info("East Lon: " + propertiesRead.eastLon)
+    LOGGER.info("North Lat: " + propertiesRead.northLat)
+    LOGGER.info("South Lat: " + propertiesRead.southLat)
+    LOGGER.info("West Lon: " + propertiesRead.westLon)
+    LOGGER.info("East Lon: " + propertiesRead.eastLon)
 
-    logger.info("Sources Used: " + propertiesRead.sources)
+    LOGGER.info("Sources Used: " + propertiesRead.sources)
 
-    val southWestCorner = new Location(propertiesRead.southLat, propertiesRead.westLon)
-    val northEastCorner = new Location(propertiesRead.northLat, propertiesRead.eastLon)
+    
+    val southWestCorner = GeomHelper.createLatLngPoint(propertiesRead.southLat, 
+        propertiesRead.westLon)
+    val northEastCorner = GeomHelper.createLatLngPoint(propertiesRead.northLat, 
+        propertiesRead.eastLon)
     val boundingBox = BoundingBox(southWestCorner, northEastCorner)
     val metadataDatabaseManager = new MetadataDatabaseManager(
-      propertiesRead.databaseUrl, propertiesRead.databaseUsername, propertiesRead.databasePassword,
-      boundingBox, propertiesRead.sources.toLowerCase, logger)
+      propertiesRead.databaseUrl, propertiesRead.databaseUsername, 
+      propertiesRead.databasePassword,
+      boundingBox, propertiesRead.sources.toLowerCase)
 
     metadataDatabaseManager.update()
   }
   
-  private def updateSos(properties:PropertiesConfiguration, logger: Logger){
-//      val sosUrl = properties.getString("sos_url")
-//      val databaseUrl = properties.getString("database_url")
-//      val databaseUsername = properties.getString("database_username")
-//      val databasePassword = properties.getString("database_password")
-//      val country = properties.getString("publisher_country", "country")
-//      val email = properties.getString("publisher_email", "email")
-//      val name = properties.getString("publisher_name", "name")
-//      val webAddress = properties.getString("publisher_web_address", "web_address")
-//      var sources: String = "all"
-//      
-//      if (properties.containsKey("sources"))
-//        sources = properties.getString("sources")
-      
+  private def updateSos(properties:PropertiesConfiguration){
     val propertiesRead = readProperties(properties)
-      
-    logger.info("SOS URL: " + propertiesRead.sosUrl)
-    logger.info("Database URL: " + propertiesRead.databaseUrl)
-    logger.info("Database Username: " + propertiesRead.databaseUsername)
-    logger.info("Database Password: " + propertiesRead.databasePassword)
-    logger.info("country: " + propertiesRead.country)
-    logger.info("email: " + propertiesRead.email)
-    logger.info("name: " + propertiesRead.name)
-    logger.info("webAddress: " + propertiesRead.webAddress)
-    logger.info("Root Network Id: " + propertiesRead.rootNetworkId)
-    logger.info("Root Network Source Id: " + propertiesRead.rootNetworkSourceId)
 
-    val publisherInfo = new PublisherInfoImp()
+    val publisherInfo = new PublisherInfo()
     publisherInfo.setCountry(propertiesRead.country)
     publisherInfo.setEmail(propertiesRead.email)
     publisherInfo.setName(propertiesRead.name)
     publisherInfo.setWebAddress(propertiesRead.webAddress)
 
-    val rootNetwork = new SosNetworkImp();
-    rootNetwork.setId(propertiesRead.rootNetworkId);
-    rootNetwork.setSourceId(propertiesRead.rootNetworkSourceId);
-    rootNetwork.setDescription(propertiesRead.rootNetworkDescription)
-    rootNetwork.setLongName(propertiesRead.rootNetworkName)
-    rootNetwork.setShortName(propertiesRead.rootNetworkName)
-
     val sosManager = new SosSourcesManager(propertiesRead.databaseUrl,
-      propertiesRead.databaseUsername, propertiesRead.databasePassword, propertiesRead.sosUrl, publisherInfo, propertiesRead.sources,
-      rootNetwork, logger);
+      propertiesRead.databaseUsername, propertiesRead.databasePassword, 
+      propertiesRead.sosUrl, publisherInfo, propertiesRead.sources)
 
     sosManager.updateSos();
   }
   
-  private def writeISOFiles(properties: PropertiesConfiguration, logger: Logger) = {
+  private def writeISOFiles(properties: PropertiesConfiguration) = {
     val propertiesRead = readProperties(properties)
     
-    logger.info("Sources used: " + propertiesRead.sources)
-    logger.info("ISO Template: " + propertiesRead.isoTemplate)
-    logger.info("ISO Write Location: " + propertiesRead.isoLocation)
-    logger.info("Database URL: " + propertiesRead.databaseUrl)
-    logger.info("Database Username: " + propertiesRead.databaseUsername)
-    logger.info("Database Password: " + propertiesRead.databasePassword)
+    val publisherInfo = new PublisherInfo()
+    publisherInfo.setCountry(propertiesRead.country)
+    publisherInfo.setEmail(propertiesRead.email)
+    publisherInfo.setName(propertiesRead.name)
+    publisherInfo.setWebAddress(propertiesRead.webAddress)
     
-    val rootNetwork = new SosNetworkImp()
-    rootNetwork.setId(propertiesRead.rootNetworkId)
-    rootNetwork.setSourceId(propertiesRead.rootNetworkSourceId)
-    rootNetwork.setDescription(propertiesRead.rootNetworkDescription)
-    rootNetwork.setLongName(propertiesRead.rootNetworkName)
-    rootNetwork.setShortName(propertiesRead.rootNetworkName)
-    
-    val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
-                                           propertiesRead.databaseUsername, propertiesRead.databasePassword, overWrite, rootNetwork, logger)
+    val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, 
+        propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
+        propertiesRead.databaseUsername, propertiesRead.databasePassword, 
+        overWrite, publisherInfo)
     
     isoManager.writeISOs()
   }
@@ -196,24 +149,32 @@ object Main {
     val email = properties.getString("publisher_email", "email")
     val name = properties.getString("publisher_name", "name")
     val webAddress = properties.getString("publisher_web_address", "web_address")
-    var sources: String = "all"
+    val sources = properties.getString("sources", "all")
     val northLat = properties.getDouble("north_lat")
     val southLat = properties.getDouble("south_lat")
     val westLon = properties.getDouble("west_lon")
     val eastLon = properties.getDouble("east_lon")
     val isoTemplate = properties.getString("iso_template")
     val isoLocation = properties.getString("iso_write_location")
-    val rootNetworkId = properties.getString("root_network", "network-all")
-    val rootNetworkSourceId = properties.getString("root_network_source", "all")
-    val rootNetworkDescription = properties.getString("root_network_description", "All stations")
-    val rootNetworkName = properties.getString("root_network_long_name", "network all")
-
-    if (properties.containsKey("sources"))
-      sources = properties.getString("sources")
       
-    return new Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
-                          databasePassword,northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation,
-                          rootNetworkId,rootNetworkSourceId,rootNetworkDescription,rootNetworkName)
+    LOGGER.info("sosUrl: " + sosUrl)
+    LOGGER.info("databaseUrl: " + databaseUrl)
+    LOGGER.info("databaseUsername: " + databaseUsername)
+    LOGGER.info("country: " + country)
+    LOGGER.info("email: " + email)
+    LOGGER.info("name: " + name)
+    LOGGER.info("webAddress" + webAddress)
+    LOGGER.info("sources: " + sources)
+    LOGGER.info("northLat: " + northLat)
+    LOGGER.info("southLat: " + southLat)
+    LOGGER.info("westLon: " + westLon)
+    LOGGER.info("eastLon: " + eastLon)
+    LOGGER.info("isoTemplate: " + isoTemplate)
+    LOGGER.info("isoLocation: " + isoLocation)
+    
+    Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
+                          databasePassword,northLat,southLat,westLon,eastLon,
+                          sources,isoTemplate,isoLocation)
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

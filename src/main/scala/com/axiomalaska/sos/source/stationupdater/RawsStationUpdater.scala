@@ -11,7 +11,6 @@ import org.jsoup.nodes.Document
 import scala.collection.JavaConversions._
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
@@ -25,19 +24,19 @@ import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.SourceUrls
+import com.axiomalaska.sos.tools.GeomHelper
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
-
-  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
+  
+  private val LOGGER = Logger.getLogger(getClass())
+  private val stationUpdater = new StationUpdateTool(stationQuery)
   private val foreignIdParser = """/cgi-bin/rawMAIN\.pl\?(.*)""".r
   private val labelParser = """.*<strong>(.*)</strong>.*""".r
-//  private val latLongParser = """(-?\d+). (\d+)' (\d+).\""".r
   private val latLongParser = """(-?\d+). (\d+)' (\d+).""".r
   private val yearFormatDate = new SimpleDateFormat("yy")
   private val monthFormatDate = new SimpleDateFormat("MM")
@@ -69,27 +68,28 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
     val stations = createStations
     val size = stations.length - 1
-    logger.info(stations.size + " stations unfiltered")
+    LOGGER.info(stations.size + " stations unfiltered")
     val stationSensorsCollection = for {
       (station, index) <- stations.zipWithIndex
-      if (withInBoundingBox(station))
+      val location = GeomHelper.createLatLngPoint(station.latitude, station.longitude)
+      if (geoTools.isStationWithinRegion(location, boundingBox))
       val sourceObservedProperties = getSourceObservedProperties(station, source)
       val databaseObservedProperties = 
         stationUpdater.updateObservedProperties(source, sourceObservedProperties)
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if (sensors.nonEmpty)
     } yield {
-      logger.debug("[" + index + " of " + size + "] station: " + station.name)
+      LOGGER.debug("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
 
-    logger.info("Finished processing " + stationSensorsCollection.size + " stations")
+    LOGGER.info("Finished processing " + stationSensorsCollection.size + " stations")
 
     return stationSensorsCollection
   }
   
   private def getStateStationElements(stateUrl:String): List[String] = {
-    val rawData = httpSender.sendGetMessage(stateUrl)
+    val rawData = HttpSender.sendGetMessage(stateUrl)
     if (rawData != null) {
       val mainDoc = Jsoup.parse(rawData);
 
@@ -107,7 +107,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   
   private def createStations():List[DatabaseStation] ={
     val stationForeignIds = getAllStationForeignIds
-    logger.info("Processing " + stationForeignIds.size + " stations")
+    LOGGER.info("Processing " + stationForeignIds.size + " stations")
 
     getAllStationForeignIds.flatMap(createStation)
   }
@@ -126,7 +126,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   
   private def getRawsRegionUrls():List[String] =
     List(
-        "http://www.raws.dri.edu/aklst.html", 
+        "http://www.raws.dri.edu/aklst.html",
         "http://www.raws.dri.edu/azlst.html",
         "http://www.raws.dri.edu/ncalst.html",
         "http://www.raws.dri.edu/ccalst.html", 
@@ -173,7 +173,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         "http://www.raws.dri.edu/va_wvlst.html")
 
   private def createStation(foreignId: String): Option[DatabaseStation] = {
-    val response = httpSender.sendGetMessage(
+    val response = HttpSender.sendGetMessage(
         SourceUrls.RAWS_STATION_INFORMATION + foreignId)
 
     if (response != null) {
@@ -183,11 +183,11 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       val lat = getLatitude(siteDoc)
       val lon = getLongitude(siteDoc)
 
-      logger.info("Processed station: " + label)
+      LOGGER.info("Processed station: " + label)
       return Some(new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, "", 
           "FIXED MET STATION", source.id, lat, lon))
     } else {
-      logger.info("response not found ------------------------")
+      LOGGER.info("response not found ------------------------")
       None
     }
   }
@@ -221,11 +221,6 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
     val long: Double = (-1) * (degree.toDouble + minute.toDouble / 60 + second.toDouble / 60 / 60)
 
     return long
-  }
-
-  private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    val stationLocation = new Location(station.latitude, station.longitude)
-    return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
 
   private def getSensorNames(foreignId: String): List[String] = {
@@ -282,98 +277,101 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   private def getObservedProperty(station: DatabaseStation, id: String): Option[ObservedProperty] = {
     id match {
       case "Precipitation" => {
-        getObservedProperty(Phenomena.instance.PRECIPITATION_ACCUMULATED, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.PRECIPITATION_ACCUMULATED, id, 
+            Units.MILLIMETERS, source))
       }
       case "AverageRelativeHumidity" => {
-        getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_AVERAGE, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.RELATIVE_HUMIDITY_AVERAGE, id, Units.PERCENT, source))
       }
       case "MaximumRelativeHumidity" => {
-        getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_MAXIMUM, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.RELATIVE_HUMIDITY_MAXIMUM, id, Units.PERCENT, source))
       }
       case "MinimumRelativeHumidity" => {
-        getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_MINIMUM, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.RELATIVE_HUMIDITY_MINIMUM, id, Units.PERCENT, source))
       }
       case "BarometricPressure" => {
-        getObservedProperty(Phenomena.instance.AIR_PRESSURE, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.AIR_PRESSURE, id, Units.MILLI_BAR, source))
       }
       case "DewPointTemp" => {
-        getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.DEW_POINT_TEMPERATURE, id, Units.CELSIUS, source))
       }
       case "MeanWindSpeed" => {
-        getObservedProperty(Phenomena.instance.WIND_SPEED, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_SPEED, 
+            id, Units.METER_PER_SECONDS, source))
       }
       case "MaximumWindGust" => {
-        getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.WIND_SPEED_OF_GUST, id, Units.METER_PER_SECONDS, source))
       }
       case "MeanWindDirection" => {
-        getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.WIND_FROM_DIRECTION, id, Units.DEGREES, source))
       }
       case "AverageAirTemperature" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_AVERAGE, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.AIR_TEMPERATURE_AVERAGE, id, Units.CELSIUS, source))
       }
       case "AirTemperature" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
+            id, Units.CELSIUS, source))
       }
       case "AIRTEMP.1FOOT" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, -0.3048))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
+            id, Units.CELSIUS, -0.3048, source))
       }
       case "AIRTEMP.3FOOT" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, -0.9144))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
+            id, Units.CELSIUS, -0.9144, source))
       }
       case "AIRTEMP.8FOOT" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, -2.4384))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
+            id, Units.CELSIUS, -2.4384, source))
       }
       case "AIRTEMP.15FOOT" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.AIR_TEMPERATURE, -4.572))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
+            id, Units.CELSIUS, -4.572, source))
       }
       case "MaximumAirTemperature" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM, 
+            id, Units.CELSIUS, source))
       }
       case "MinimumAirTemperature" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MINIMUM, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MINIMUM, 
+            id, Units.CELSIUS, source))
       }
       case "AveFuelTemp" => {
-        getObservedProperty(Phenomena.instance.FUEL_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.FUEL_TEMPERATURE, 
+            id, Units.CELSIUS, source))
       }
       case "BatteryVoltage" => {
-        getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE, 
+            id, Units.VOLTAGE, source))
       }
       case "FuelMoistureAverage" => {
-        getObservedProperty(Phenomena.instance.FUEL_MOISTURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.FUEL_MOISTURE, 
+            id, Units.PERCENT, source))
       }
       case "AverageSoilTemperature4Inches" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.1016))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
+            id, Units.CELSIUS, -0.1016, source))
       }
       case "AverageSoilTemperature20Inches" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -0.508))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
+            id, Units.CELSIUS, -0.508, source))
       }
       // The name is correct with the Y
       case "AverageSoilYemperature40Inches" => {
-        return new Some[ObservedProperty](
-          stationUpdater.createObservedProperty(id,
-            source, Units.CELSIUS,
-            SensorPhenomenonIds.GROUND_TEMPERATURE_OBSERVED, -1.016))
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
+            id, Units.CELSIUS, -1.016, source))
       }
       case "SoilTemperatureSensor1" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("ground_temperature_observed", Units.CELSIUS), id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
+            id, Units.CELSIUS, source))
       }
       case "SoilTemperauter2ndSensor" => {
         return None
@@ -382,16 +380,20 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return None
       }
       case "SolarRadiation" => {
-        getObservedProperty(Phenomena.instance.SOLAR_RADIATION, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOLAR_RADIATION, 
+            id, Units.WATT_PER_METER_SQUARED, source))
       }
       case "SnowDepth" => {
-        getObservedProperty(Phenomena.instance.SNOW_DEPTH, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SNOW_DEPTH, 
+            id, Units.MILLIMETERS, source))
       }
       case "SnowPillow" => {
-        getObservedProperty(Phenomena.instance.SNOW_PILLOW, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SNOW_PILLOW, 
+            id, Units.MILLIMETERS, source))
       }
       case "SOILMOISTURE%" => {
-        getObservedProperty(Phenomena.instance.SOIL_MOISTURE_PERCENT, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_MOISTURE_PERCENT, 
+            id, Units.PERCENT, source))
       }
       case "TimeofDay" => {
         return None
@@ -466,32 +468,10 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
         return None
       }
       case _ => {
-        logger.debug("[" + source.name + "] observed property: " + id +
+        LOGGER.debug("[" + source.name + "] observed property: " + id +
           " is not processed correctly.")
         return None
       }
     }
-  }
-  
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
-    getObservedProperty(phenomenon, foreignTag, 0)
-  }
-  
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, depth: Double) : Option[ObservedProperty] = {
-    try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
-      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
-      }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id, depth))
-    } catch {
-      case ex: Exception => {}
-    }
-    None
-  }
-
-  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    stationQuery.createPhenomenon(dbPhenom)
   }
 }

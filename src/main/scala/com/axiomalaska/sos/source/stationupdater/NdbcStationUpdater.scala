@@ -3,8 +3,6 @@ package com.axiomalaska.sos.source.stationupdater
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
-import com.axiomalaska.sos.data.Location
-
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.SourceId
@@ -15,26 +13,25 @@ import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.Units
-
 import scala.collection.mutable
 import scala.collection.JavaConversions._
-
 import org.apache.log4j.Logger
-
 import org.jsoup.Jsoup
+import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.sos.source.data.PhenomenaFactory
 
 /**
  * Currently not being used. It was replaced by the NdbcSosStationUpdater
  */
 class NdbcStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
-  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
+  private val LOGGER = Logger.getLogger(getClass())
+  private val stationUpdater = new StationUpdateTool(stationQuery)
   private val source = stationQuery.getSource(SourceId.NDBC)
   private val httpSender = new HttpSender()
   private val locationParser = """.*<strong>Location:</strong> (\d*\.\d*)N (\d*\.\d*)W<br />.*""".r
@@ -44,6 +41,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   private val latParser = """var stnlat = (.*?);""".r
   private val lonParser = """var stnlon = (.*?);""".r
   private val nameParser = """Station.*?[<a.*?<//a>.*?]?-\s*(.*)""".r
+  private val phenomenaFactory = new PhenomenaFactory()
   
   // ---------------------------------------------------------------------------
   // Public Members
@@ -68,7 +66,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     val foreignIds = getAllForeignIds()
 
     val size = foreignIds.length - 1
-    logger.info("Total number of staitons: " + foreignIds.length)
+    LOGGER.info("Total number of staitons: " + foreignIds.length)
     val stationSensorsCollection = for {(foreignId, index) <- foreignIds.zipWithIndex
       station <- createSourceStation(foreignId)
       if (withInBoundingBox(station))
@@ -78,10 +76,10 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
       if(sensors.nonEmpty)
     } yield{
-      logger.debug("[" + index + " of " + size + "] station: " + station.name)
+      LOGGER.debug("[" + index + " of " + size + "] station: " + station.name)
       (station, sensors)
     }
-    logger.info("finished with stations")
+    LOGGER.info("finished with stations")
     
     return stationSensorsCollection
   }
@@ -95,7 +93,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
   
   private def getSensorNames(foreignId: String): List[String] = {
-    val textResult = httpSender.sendGetMessage(
+    val textResult = HttpSender.sendGetMessage(
         "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt")
         
     val sensorNames = mutable.Set.empty[String]
@@ -121,9 +119,9 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       }
     }
 
-    if (httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/realtime2/" + foreignId + ".spec")) {
+    if (HttpSender.doesUrlExist("http://www.ndbc.noaa.gov/data/realtime2/" + foreignId + ".spec")) {
 
-      val specResult = httpSender.sendGetMessage(
+      val specResult = HttpSender.sendGetMessage(
         "http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.spec")
       if (specResult != null) {
         for (patternMatch <- specParser.findAllIn(specResult)) {
@@ -150,15 +148,15 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    logger info "checking lat/lon for station " + station.tag
-    logger info station.latitude + " - " + station.longitude
-    val stationLocation = new Location(station.latitude, station.longitude)
+    LOGGER info "checking lat/lon for station " + station.tag
+    LOGGER info station.latitude + " - " + station.longitude
+    val stationLocation = GeomHelper.createLatLngPoint(station.latitude, station.longitude)
     geoTools.isStationWithinRegion(stationLocation, boundingBox)
     true
   }
 
   private def createSourceStation(foreignId: String): Option[DatabaseStation] = {
-    val result = httpSender.sendGetMessage(
+    val result = HttpSender.sendGetMessage(
       "http://www.ndbc.noaa.gov/station_page.php?station=" + foreignId)
 
     if (result != null) {
@@ -177,7 +175,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
         }
       }
 
-      logger.info("Processing station: " + name)
+      LOGGER.info("Processing station: " + name)
       Some(new DatabaseStation(name, foreignId, foreignId, "", 
           "BUOY", source.id, lat.toDouble, lon.toDouble))
     } else {
@@ -186,7 +184,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def getAllForeignIds(): List[String] = {
-    val result = httpSender.sendGetMessage("http://www.ndbc.noaa.gov/to_station.shtml")
+    val result = HttpSender.sendGetMessage("http://www.ndbc.noaa.gov/to_station.shtml")
 
     if (result != null) {
       val doc = Jsoup.parse(result)
@@ -197,12 +195,12 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
 
       val foreignIds = preElement.children.map(_.text).toList
 
-      logger.info("Processing foreign IDs")
+      LOGGER.info("Processing foreign IDs")
       val filterForeignIds = for {
         foreignId <- foreignIds
-        if (httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
+        if (HttpSender.doesUrlExist("http://www.ndbc.noaa.gov/data/5day2/" + foreignId + "_5day.txt"))
       } yield {
-        logger.info("Processing foreign ID: " + foreignId)
+        LOGGER.info("Processing foreign ID: " + foreignId)
         foreignId
       }
       filterForeignIds
@@ -216,71 +214,74 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
     id match {
       //The direction from which the wind waves at the wind wave period (WWPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees.
       case "WWD" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_TO_DIRECTION, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.SEA_SURFACE_WIND_WAVE_TO_DIRECTION, id, Units.DEGREES, source))
       }
       //The direction from which the swell waves at the swell wave period (SWPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees.
       case "SwD" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION, id, Units.DEGREES, source))
       }
       //Wind Wave Period is the time (in seconds) that it takes successive wind wave crests or troughs to pass a fixed point.
      case "WWP" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD, id, Units.SECONDS, source))
       }
      //Wind Wave Height is the vertical distance (meters) between any wind wave crest and the succeeding wind wave trough (independent of swell waves).
      case "WWH" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT, id, Units.METERS, source))
       }
      //Swell Period is the time (usually measured in seconds) that it takes successive swell wave crests or troughs pass a fixed point.
      case "SwP" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD, id, Units.SECONDS, source))
      }
      //Swell height is the vertical distance (meters) between any swell crest and the succeeding swell wave trough.
      case "SwH" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT, id, Units.METERS, source))
      }
       //Wind direction (the direction the wind is coming from in degrees clockwise from true N) during the same period used for WSPD.
       case "WDIR" => {
-        getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, id, Units.DEGREES, source))
       }
       //Wind speed (m/s) averaged over an eight-minute period for buoys and a two-minute period for land stations. Reported Hourly. 
       case "WSPD" => {
-        getObservedProperty(Phenomena.instance.WIND_SPEED, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_SPEED, id, Units.METER_PER_SECONDS, source))
       }
       //Peak 5 or 8 second gust speed (m/s) measured during the eight-minute or two-minute period. The 5 or 8 second period can be determined by payload,
       case "GST" => {
-        getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST, id, Units.METER_PER_SECONDS, source))
       }
       //Significant wave height (meters) is calculated as the average of the highest one-third of all of the wave heights during the 20-minute sampling period. 
       case "WVHT" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT, id, Units.METERS, source))
       }
       //Dominant wave period (seconds) is the period with the maximum wave energy.
       case "DPD" => {
-        getObservedProperty(Phenomena.instance.DOMINANT_WAVE_PERIOD, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.DOMINANT_WAVE_PERIOD, id, Units.SECONDS, source))
       }
       //Average wave period (seconds) of all waves during the 20-minute period.
       case "APD" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_MEAN_PERIOD, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_WAVE_MEAN_PERIOD, id, Units.SECONDS, source))
       }
       //The direction from which the waves at the dominant period (DPD) are coming. The units are degrees from true North, increasing clockwise, with North as 0 (zero) degrees and East as 90 degrees. 
       case "MWD" => {
-        getObservedProperty(Phenomena.instance.SEA_SURFACE_DOMINANT_WAVE_TO_DIRECTION, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_SURFACE_DOMINANT_WAVE_TO_DIRECTION, id, Units.DEGREES, source))
       }
       //Sea level pressure (hPa). 
       case "PRES" => {
-        getObservedProperty(Phenomena.instance.createHomelessParameter("sea_level_pressure", Units.HECTOPASCAL), id)
+        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "sea_level_pressure"
+        Some(stationUpdater.getObservedProperty(
+            phenomenaFactory.findCustomPhenomenon(url), id, Units.HECTOPASCAL, source))
       }
       //Air temperature (Celsius). 
       case "ATMP" => {
-        getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, id, Units.CELSIUS, source))
       }
       //Sea surface temperature (Celsius).
       case "WTMP" => {
-        getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE, id, Units.CELSIUS, source))
       }
       //Dewpoint temperature taken at the same height as the air temperature measurement.
       case "DEWP" => {
-        getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, id)
+        Some(stationUpdater.getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, id, Units.CELSIUS, source))
       }
       //Station visibility (nautica miles). Note that buoy stations are limited to reports from 0 to 1.6 nmi.
       case "VIS" => {
@@ -295,10 +296,11 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       }
       //The water level in feet above or below Mean Lower Low Water (MLLW).
       case "TIDE" => {
-        getObservedProperty(Phenomena.instance.WATER_SURFACE_HEIGHT_ABOVE_REFERENCE_DATUM, id)
+        Some(stationUpdater.getObservedProperty(
+            Phenomena.instance.WATER_SURFACE_HEIGHT_ABOVE_REFERENCE_DATUM, id, Units.FEET, source))
       }
       case _ => {
-        logger.debug("[" + source.name + "] observed property: " + id +
+        LOGGER.debug("[" + source.name + "] observed property: " + id +
           " is not processed correctly.")
         return None
       }
@@ -307,7 +309,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   
   private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
     try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId))
+      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId, phenomenon.getUnit().getName()))
       var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
       if (localPhenom.databasePhenomenon.id < 0) {
         localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))

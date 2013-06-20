@@ -66,7 +66,7 @@ trait StationQuery{
     newObservedProperty: ObservedProperty)
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty
   def getPhenomenon(id:Long):DatabasePhenomenon 
-  def getPhenomenon(tag:String):DatabasePhenomenon
+  def getPhenomenon(tag:String):Option[DatabasePhenomenon]
   def createPhenomenon(phenomenon:DatabasePhenomenon):DatabasePhenomenon
   def createSensor(databaseStation: DatabaseStation, sensor:DatabaseSensor):DatabaseSensor
   def associatePhenomonenToSensor(sensor: DatabaseSensor, phenonomen: DatabasePhenomenon)
@@ -126,7 +126,13 @@ private class StationQueryImp(url:String,
   }
   
   def createObservedProperty(observedProperty: ObservedProperty): ObservedProperty = {
-    val obsProp = if (observedProperty.foreign_units != null) observedProperty else new ObservedProperty(observedProperty.foreign_tag, observedProperty.source_id, "none", observedProperty.phenomenon_id, observedProperty.depth)
+    val obsProp = if (observedProperty.foreign_units != null) {
+      observedProperty 
+    } else {
+        new ObservedProperty(observedProperty.foreign_tag, 
+            observedProperty.source_id, "none", 
+            observedProperty.phenomenon_id, observedProperty.depth)
+    }
     using(session) {
       StationDatabase.observedProperties.insert(obsProp)
     }
@@ -134,7 +140,10 @@ private class StationQueryImp(url:String,
   
   def updateObservedProperty(databaseObservedProperty: ObservedProperty,
     newObservedProperty: ObservedProperty) {
-    val foreign_units = if (newObservedProperty.foreign_units != null) newObservedProperty.foreign_units else "none"
+    val foreign_units = if (newObservedProperty.foreign_units != null) {
+      newObservedProperty.foreign_units
+    } else "none"
+        
     using(session) {
       update(StationDatabase.observedProperties)(s =>
         where(s.foreign_tag === databaseObservedProperty.foreign_tag and
@@ -221,7 +230,8 @@ private class StationQueryImp(url:String,
   
   def getStation(foreign_tag: String): Option[DatabaseStation] = {
     using(session) {
-      return StationDatabase.stations.where(station => station.foreign_tag === foreign_tag).headOption
+      return StationDatabase.stations.where(station => 
+        station.foreign_tag === foreign_tag).headOption
     }
   }
   
@@ -274,10 +284,9 @@ private class StationQueryImp(url:String,
     }
   }
   
-  def getPhenomenon(tag:String):DatabasePhenomenon = {
+  def getPhenomenon(tag:String):Option[DatabasePhenomenon] = {
     using (session) {
-      val headOpt = StationDatabase.phenomena.where(phen => phen.tag === tag).head
-      headOpt
+      StationDatabase.phenomena.where(phen => phen.tag === tag).headOption
     }
   }
   

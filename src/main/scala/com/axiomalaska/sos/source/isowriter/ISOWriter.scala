@@ -67,11 +67,10 @@ case class Dimension(val name: String,
 class ISOWriterImpl(private val stationQuery: StationQuery,
     private val templateFile: String,
     private val isoWriteDirectory: String,
-    private val overwrite: Boolean,
-    private val logger: Logger = Logger.getRootLogger()) extends ISOWriter {
+    private val overwrite: Boolean) extends ISOWriter {
 
   private val currentDate = Calendar.getInstance
-  
+  private val LOGGER = Logger.getLogger(getClass())
   private var lstation: LocalStation = null
   private var serviceIdentification: List[ServiceIdentification] = Nil
   private var contacts: List[Contact] = Nil
@@ -91,7 +90,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     if (!sourceDir.exists) {
       if (!sourceDir.mkdir)
         if (!sourceDir.mkdirs)
-          logger error "Could not make directory " + sourceDir.getAbsolutePath + " !!!"
+          LOGGER error "Could not make directory " + sourceDir.getAbsolutePath + " !!!"
     }
     
     if (!overwrite) {
@@ -99,14 +98,14 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       val files = sourceDir.listFiles
       for (tfile <- files) {
         if (tfile.getName.toLowerCase.contains(getForeignTag(station))) {
-          logger info "Skipping: " + getForeignTag(station)
+          LOGGER info "Skipping: " + getForeignTag(station)
           return
         }
       }
     }
     
     if (!initialSetup(station)) {
-      logger error "Could not setup for iso writer"
+      LOGGER error "Could not setup for iso writer"
       return
     }
     
@@ -119,17 +118,17 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     dimensions = getSensorTagsAndNames(station).map(d => new Dimension(d._2,d._1))
     val outNode = writeISOOutput
     try {
-      val doc = new ElemExtras(outNode, logger).toJdkDoc
+      val doc = new ElemExtras(outNode).toJdkDoc
       val file = new java.io.File(fileName)
       file.createNewFile
       val writer = new java.io.FileWriter(file)
       XmlHelpers.writeXMLPrettyPrint(doc, writer)
-      logger info "wrote iso file to " + file.getPath
+      LOGGER info "wrote iso file to " + file.getPath
       writer.flush
       writer.close
     } catch {
       case ex: Exception => {
-          logger error ex.toString
+          LOGGER error ex.toString
           ex.printStackTrace()
       }
     }
@@ -138,7 +137,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   def writeFileList(sourceName : String) {
     val sourceDir = new File(isoWriteDirectory + "/" + sourceName)
     val fileName = sourceDir.getAbsoluteFile + "/list.html"
-    logger info "writing to " + fileName
+    LOGGER info "writing to " + fileName
     try {
       val file = new java.io.File(fileName)
       file.createNewFile
@@ -149,7 +148,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       writer.close
     } catch {
       case ex: Exception => {
-          logger error ex.toString()
+          LOGGER error ex.toString()
           ex.printStackTrace()
       }
     }
@@ -188,7 +187,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
       Some(scala.xml.XML.loadFile(new File(templateFile)))
     } catch{
       case ex: Exception => {
-          logger error "Unable to load file into xml: " + templateFile + "\n" + ex.toString
+          LOGGER error "Unable to load file into xml: " + templateFile + "\n" + ex.toString
           None
       }
     }

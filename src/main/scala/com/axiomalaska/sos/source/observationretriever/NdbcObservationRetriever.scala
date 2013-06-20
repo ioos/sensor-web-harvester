@@ -10,34 +10,34 @@ import com.axiomalaska.sos.source.data.LocalPhenomenon
 import java.util.TimeZone
 import com.axiomalaska.sos.source.data.ObservationValues
 import scala.collection.JavaConversions._
-
 import org.apache.log4j.Logger
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 /***
  * Currently not used. Has been replace with the NDBC SOS retriever
  */
-class NdbcObservationRetriever(private val stationQuery:StationQuery, 
-    private val logger: Logger = Logger.getRootLogger())
+class NdbcObservationRetriever(private val stationQuery:StationQuery)
 	extends ObservationValuesCollectionRetriever {
   
   private val valueParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\n""".r
   private val specParser = """(\d{4})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\d{2})\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\s+(\S+)\n""".r
   
+  private val LOGGER = Logger.getLogger(getClass())
   private val directionParser = """.*\((\d*).*\).*""".r
   private val valueNoUnitsParser = """(\d*.?\d*).*?""".r
-  private val parseDate = new SimpleDateFormat("HHmm 'GMT' MM/dd/yy")
-  private val httpSender = new HttpSender()
+  private val gmtTimeZone = DateTimeZone.forID("GMT")
   
   // ---------------------------------------------------------------------------
   // ObservationRetriever Members
   // ---------------------------------------------------------------------------
 
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] = {
 
-    logger.info("NDBC: Collecting for station - " + station.databaseStation.foreign_tag)
+    LOGGER.info("NDBC: Collecting for station - " + station.databaseStation.foreign_tag)
     
-    val data = httpSender.downloadReadFile("http://www.ndbc.noaa.gov/data/5day2/" + 
+    val data = HttpSender.downloadReadFile("http://www.ndbc.noaa.gov/data/5day2/" + 
         station.databaseStation.foreign_tag + "_5day.txt")
          
     val observationValuesCollection = 
@@ -47,8 +47,9 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery,
       val valueParser(year, month, day, hour, min, wdir, wspd, gst, wvht, dpd, apd,
         mwd, pres, atmp, wtmp, dewp, vis, ptdy, tide) = matchingPattern
       
-      val date = createDate(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt)
-      if (date.after(startDate)) {
+      val date = new DateTime(year.toInt, month.toInt, day.toInt, 
+            hour.toInt, min.toInt, 0, gmtTimeZone)
+      if (date.isAfter(startDate)) {
         for (observationValue <- observationValuesCollection) {
           observationValue.observedProperty.foreign_tag match {
             case "WDIR" if (validValue(wdir)) => {
@@ -88,15 +89,17 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery,
     }
 
     if (shouldReadWaveFile(station)) {
-      val specResults = httpSender.downloadReadFile(
+      val specResults = HttpSender.downloadReadFile(
         "http://www.ndbc.noaa.gov/data/5day2/" + station.databaseStation.foreign_tag + "_5day.spec")
 
       for (matchingPattern <- specParser.findAllIn(specResults.replace("2011", ";2011"))) {
         val specParser(year, month, day, hour, min, wvht, swh, swp, wwh,
           wwp, swd, wwd, steepness, apd, mwd) = matchingPattern
 
-        val date = createDate(year.toInt, month.toInt, day.toInt, hour.toInt, min.toInt)
-        if (date.after(startDate)) {
+        val date = new DateTime(year.toInt, month.toInt, day.toInt, 
+            hour.toInt, min.toInt, 0, gmtTimeZone)
+        
+        if (date.isAfter(startDate)) {
           for (observationValues <- observationValuesCollection) {
             observationValues.observedProperty.foreign_tag match {
 //              case "WVHT" if (validValue(wvht)) => {
@@ -147,7 +150,8 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery,
       phenomenon.databasePhenomenon)
 
     for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
+      new ObservationValues(observedProperty, sensor, 
+          phenomenon, observedProperty.foreign_units)
     }
   }
   
@@ -176,22 +180,9 @@ class NdbcObservationRetriever(private val stationQuery:StationQuery,
     }
   }
   
-  private def createDate(year: Int, month: Int, day: Int, hour: Int, min: Int): Calendar = {
-    val calendar = Calendar.getInstance(TimeZone.getTimeZone("UTC"))
-    calendar.set(Calendar.YEAR, year)
-    calendar.set(Calendar.MONTH, month - 1)
-    calendar.set(Calendar.DAY_OF_MONTH, day)
-    calendar.set(Calendar.HOUR_OF_DAY, hour)
-    calendar.set(Calendar.MINUTE, min)
-    calendar.set(Calendar.SECOND, 0)
-
-    // The time is not able to be changed from the timezone if this is not set. 
-    calendar.getTime()
-
-    return calendar
-  }
-  
   private def shouldReadWaveFile(station:LocalStation):Boolean ={
-    httpSender.doesUrlExists("http://www.ndbc.noaa.gov/data/5day2/" + station.databaseStation.foreign_tag + "_5day.spec")
+    HttpSender.doesUrlExist(
+        "http://www.ndbc.noaa.gov/data/5day2/" + 
+        station.databaseStation.foreign_tag + "_5day.spec")
   }
 }

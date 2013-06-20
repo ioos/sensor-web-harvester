@@ -22,14 +22,14 @@ import java.io.ByteArrayOutputStream
 import java.io.File
 import org.apache.commons.net.ftp.FTPClient
 import scala.collection.mutable
+import com.axiomalaska.sos.source.data.PhenomenaFactory
 
 //case class GlosStation (stationName: String, stationId: String, stationDesc: String, lat: Double, lon: Double)
 
 case class GLOSStation (stationName: String, stationId: String, stationDesc: String, platformType: String, lat: Double, lon: Double)
 
 class GlosStationUpdater (private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   val name = "GLOS"
   
@@ -39,31 +39,32 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private val ftp_user = "asa"
   private val ftp_pass = "AGSLaos001"
   private val glos_ftp: FTPClient = new FTPClient()
-  
+  private val LOGGER = Logger.getLogger(getClass())
+    
   private val temp_file = "platform.csv"
   private val glos_metadata_folder = "glosbuoy_metadata/"
-
+    
+  private val phenomenaFactory = new PhenomenaFactory()
+  
   private val source = stationQuery.getSource(SourceId.GLOS)
-  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
-  private val httpSender = new HttpSender()
+  private val stationUpdater = new StationUpdateTool(stationQuery)
   private var stationList: List[String] = Nil
   
   private var phenomenaList = stationQuery.getPhenomena
   
   // default mmisw url
-  private val GLOS_MMISW = "http://mmisw.org/ont/glos/parameter/"
   private val MAX_FILE_LIMIT = 2500
   private var filesToMove: List[String] = List()
   private var filesInMemory: List[scala.xml.Elem] = List()
   
   ////////// DEBUG VALs //////////////////////////////////////////
-  private val DEBUG: Boolean = true  // enable to run on local debug test files
+  private val DEBUG: Boolean = false  // enable to run on local debug test files
   private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
   ////////////////////////////////////////////////////////////////
   
   def update() {
     
-    logger.info("Updating GLOS...")
+    LOGGER.info("Updating GLOS...")
     
     val sourceStationSensors = getSourceStations()
 
@@ -71,7 +72,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
     
-    logger.info("Finished updating GLOS")
+    LOGGER.info("Finished updating GLOS")
     
   }
   
@@ -85,7 +86,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
           // check for succesful login
           if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
             glos_ftp.disconnect
-            logger.error("FTP connection was refused.")
+            LOGGER.error("FTP connection was refused.")
           } else {
             // set to passive mode
             glos_ftp.enterLocalPassiveMode
@@ -96,28 +97,30 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         }
       } catch {
         case ex: Exception => {
-            logger.error(ex.toString)
+            LOGGER.error(ex.toString)
             return Nil
         }
       }
     }
     // read local ISOs for metadata
     val dir = new File(glos_metadata_folder)
-    logger.info(dir.listFiles.length + " files in directory")
+    LOGGER.info(dir.listFiles.length + " files in directory")
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
         val readin = scala.io.Source.fromFile(file)
         val xml = scala.xml.XML.loadString(readin.mkString)
-//        logger.info("read in xml:\n" + xml)
+//        LOGGER.info("read in xml:\n" + xml)
         // read in the station data
         val station = readStationFromXML(xml)
         // get the obs data, need this for the depth values
         if (DEBUG) readInDebugFilesIntoMemory(station.stationName)
-        logger.info(filesInMemory.size + " files for station")
+        LOGGER.info(filesInMemory.size + " files for station")
         val dataXML = if (!DEBUG) readInData(station.stationName) else readInDataDebug()
         if (dataXML.ne(null)) {
-          logger.info("reading xml file for station: " + station.stationName)
+          LOGGER.info("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
-          val stationDB = new DatabaseStation(station.stationName, station.stationId, station.stationId, station.stationDesc, station.platformType, SourceId.GLOS, station.lat, station.lon)
+          val stationDB = new DatabaseStation(station.stationName, station.stationId, 
+              station.stationId, station.stationDesc, station.platformType, 
+              SourceId.GLOS, station.lat, station.lon)
           val sensors = readInSensors((xml \ "contentInfo"), stationDB, depths)
           if (sensors.nonEmpty)
             (stationDB, sensors)
@@ -142,7 +145,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
                   retval = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
                   return retval
                 } catch {
-                  case ex: Exception => logger.error("Could not open file: " + file.getName + "\n" + ex.toString)
+                  case ex: Exception => 
+                    LOGGER.error("Could not open file: " + file.getName + "\n" + ex.toString)
                 }
                 retval = null
             }
@@ -153,9 +157,9 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         }
       }
     } catch {
-      case ex: Exception => logger.error(ex.toString)
+      case ex: Exception => LOGGER.error(ex.toString)
     }
-    logger.info("could not find a data xml for " + stationid)
+    LOGGER.info("could not find a data xml for " + stationid)
     return retval
   }
   
@@ -185,7 +189,9 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     return retval
   }
   
-  private def readInSensors(stationxml : scala.xml.NodeSeq, station : DatabaseStation, depths: List[Double]) : List[(DatabaseSensor, List[(DatabasePhenomenon)])] = {
+  private def readInSensors(stationxml : scala.xml.NodeSeq, 
+      station : DatabaseStation, depths: List[Double]) : 
+      List[(DatabaseSensor, List[(DatabasePhenomenon)])] = {
     val orderedDepths = depths.reverse
     val sensors = for {
       sensor <- (stationxml \\ "MD_Band")
@@ -195,7 +201,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     } yield {
       var oprops: List[ObservedProperty] = Nil
       if (sensorid.equalsIgnoreCase("sea_water_temperature")) {
-        for ((depth, index) <- orderedDepths.zipWithIndex) {logger.info(index + " - " + depth)}
+        for ((depth, index) <- orderedDepths.zipWithIndex) {LOGGER.info(index + " - " + depth)}
         val swtsen = for {
           (depth, index) <- orderedDepths.zipWithIndex
           if (depth >= 0)
@@ -218,7 +224,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
-    logger.info("looking for tag: " + tag)
+    LOGGER.info("looking for tag: " + tag)
     tag.toLowerCase match {
       case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
       case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
@@ -231,8 +237,11 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
       case "wind_speed" => return Phenomena.instance.WIND_SPEED
       case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
-      case "sun_radiation" => return Phenomena.instance.createHomelessParameter(tag, GLOS_MMISW, "rads")
-      case _ => logger.info("Unhandled case: " + tag)
+      case "sun_radiation" => {
+        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "rads"
+        return phenomenaFactory.findCustomPhenomenon(url)
+      }
+      case _ => LOGGER.info("Unhandled case: " + tag)
     }
     
     return null
@@ -261,47 +270,28 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     }
   }
   
-  private def getObservedProperties(name: String, desc: String, depths: List[Double]) : List[ObservedProperty] = {
+  private def getObservedProperties(name: String, desc: String, 
+      depths: List[Double]) : List[ObservedProperty] = {
     val properties = for {
       (dpth,index) <- depths.zipWithIndex
       val phenom = findPhenomenon(name)
       val foreignTag = getForeignTagFromName(name, index)
       if (phenom.ne(null) && !foreignTag.equals(""))
     } yield {
-      getObservedProperty(phenom, foreignTag, desc, name, dpth)
+      stationUpdater.getObservedProperty(phenom, foreignTag, phenom.getUnit().toString(), dpth, source)
     }
-    properties.filter(_.isDefined).map(_.get)
+    properties
   }
   
-  private def getObservedProperties(name: String, desc: String, depth: Double, index: Integer) : List[ObservedProperty] = {
+  private def getObservedProperties(name: String, desc: String, 
+      depth: Double, index: Integer) : List[ObservedProperty] = {
      val phenom = findPhenomenon(name)
      val foreignTag = getForeignTagFromName(name, index)
      if (phenom != null && !foreignTag.equals(""))
-       List(getObservedProperty(phenom, foreignTag, desc, name, depth).get)
+       List(stationUpdater.getObservedProperty(phenom, 
+           foreignTag, phenom.getUnit().toString(), depth, source))
      else
        Nil
-  }
-    
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, desc: String, name: String, depth: Double) : Option[ObservedProperty] = {
-    val index = phenomenon.getId().lastIndexOf("/") + 1
-    val tag = phenomenon.getId().substring(index)
-    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag),stationQuery)
-    var dbId = -1L
-    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0) {
-      dbId = insertPhenomenon(new DatabasePhenomenon(tag), phenomenon.getUnit.getSymbol, phenomenon.getName, phenomenon.getId).id
-    } else {
-      dbId = localPhenomenon.getDatabasePhenomenon.id
-    }
-    if (dbId < 0) {
-      logger.warn("dbId of -1: " + foreignTag)
-      return None
-    }
-    return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag,source,phenomenon.getUnit.getSymbol,dbId,depth))
-  }
-
-  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    logger.info("creating phenomenon: " + dbPhenom.tag)
-    stationQuery.createPhenomenon(dbPhenom)
   }
 
   private def readStationFromXML(xml : scala.xml.Node) : GLOSStation = {
@@ -314,7 +304,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val platformType = "BUOY"
     if (desc.length > 254) 
       desc = desc.slice(0, 252) + "..."
-    logger.info("read in station: " + name)
+    LOGGER.info("read in station: " + name)
     new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
   }
   
@@ -334,7 +324,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       val fileList = for {
         file <- dir.listFiles()
         val currentCount = fileCount
-        if (file.getName.contains(".xml") && file.getName.toLowerCase.contains(stid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
+        if (file.getName.contains(".xml") && 
+            file.getName.toLowerCase.contains(stid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
       } yield {
         filesToMove = file.getAbsolutePath :: filesToMove
         fileCount += 1
@@ -362,7 +353,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         return file
       }
     } catch {
-      case ex: Exception => logger.error(ex.toString)
+      case ex: Exception => LOGGER.error(ex.toString)
     }
     return retval
   }

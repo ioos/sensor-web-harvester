@@ -10,18 +10,18 @@ import net.opengis.ogc.BinaryTemporalOpType
 import net.opengis.sos.x10.GetObservationDocument
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.tools.HttpSender
-
 import org.apache.log4j.Logger
+import org.joda.time.DateTime
 
-class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
+class SosRawDataRetriever() {
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
-  private val httpSender = new HttpSender()
-  
+  private val LOGGER = Logger.getLogger(getClass())
+    
   def getRawData(serviceUrl:String, 
       stationPostFixName:String, observedProperty:String, 
-      startDate: Calendar, endDate: Calendar): String = {
+      startDate: DateTime, endDate: DateTime): String = {
 
-    logger.info("SNO-RAW: Collecting for station - " + stationPostFixName)
+    LOGGER.info("SNO-RAW: Collecting for station - " + stationPostFixName)
     
     val copyStartDate = getDateObjectInGMTTime(startDate)
     val copyEndDate = getDateObjectInGMTTime(endDate)
@@ -96,7 +96,7 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     request = request.replace("gml=\"http://www.opengis.net/gml\"",
       "gml=\"http://www.opengis.net/gml/3.2\"");
 
-    val results = httpSender.sendPostMessage(serviceUrl, request);
+    val results = HttpSender.sendPostMessage(serviceUrl, request);
 
     return results;
   }
@@ -143,7 +143,7 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
     request = request.replace("gml=\"http://www.opengis.net/gml\"",
       "gml=\"http://www.opengis.net/gml/3.2\"");
 
-    val results = httpSender.sendPostMessage(serviceUrl, request);
+    val results = HttpSender.sendPostMessage(serviceUrl, request);
 
     return results;
   }
@@ -152,8 +152,8 @@ class SosRawDataRetriever(private val logger: Logger = Logger.getRootLogger()) {
   // Private Members
   // ---------------------------------------------------------------------------
 
-  private def getDateObjectInGMTTime(calendar:Calendar):Date={
-    val copyCalendar = calendar.clone().asInstanceOf[Calendar]
+  private def getDateObjectInGMTTime(calendar:DateTime):Date={
+    val copyCalendar = calendar.toCalendar(null)
     copyCalendar.setTimeZone(TimeZone.getTimeZone("GMT"))
     val localCalendar = Calendar.getInstance()
     localCalendar.set(Calendar.YEAR, copyCalendar.get(Calendar.YEAR))

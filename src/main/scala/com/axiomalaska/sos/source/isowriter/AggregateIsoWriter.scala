@@ -11,17 +11,18 @@ import com.axiomalaska.sos.source.data.LocalSource
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.Source
 import org.apache.log4j.Logger
+import com.axiomalaska.sos.data.PublisherInfo
 
 class AggregateIsoWriter(private val stationQuery: StationQuery,
                          private val templateFile: String,
                          private val isoDirectory: String,
                          private val sources: String,
                          private val overwrite: Boolean = true,
-                         private val rootNetwork: SosNetwork,
-                         private val logger: Logger = Logger.getRootLogger()) {
+                         private val publisherInfo: PublisherInfo) {
 
   private var sourceList: List[String] = Nil
-
+  private val LOGGER = Logger.getLogger(getClass())
+  
   def writeISOs() {
     val writers = getSourceWriters()
     
@@ -29,9 +30,10 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
       w => {
         val src = w._1
         val wrt = w._2
-        logger.info("src: " + src.toString + " wrt: " + wrt.toString)
+        LOGGER.info("src: " + src.toString + " wrt: " + wrt.toString)
         for (station <- stationQuery.getAllStations(src)) {
-          wrt.writeISOFile(new LocalStation(new LocalSource(src), station, stationQuery, rootNetwork))
+          wrt.writeISOFile(new LocalStation(new LocalSource(src), station, 
+              stationQuery))
         }
         wrt.writeFileList(src.name)
         sourceList = src.name :: sourceList
@@ -47,11 +49,13 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     val writers = for (src <- sourceSplit) yield src match {
       case "ndbc" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("wmo") ).head
-          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, isoDirectory, overwrite, logger)))
+          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, 
+              isoDirectory, overwrite)))
       }
       case "storet" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("storet") ).head
-          new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, isoDirectory, overwrite, logger)))
+          new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, 
+              isoDirectory, overwrite)))
       }
       case _ => None
     }
@@ -71,7 +75,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
       writer.close
     } catch {
       case ex: Exception => {
-          logger error ex.toString
+          LOGGER error ex.toString
           ex.printStackTrace()
       }
     }

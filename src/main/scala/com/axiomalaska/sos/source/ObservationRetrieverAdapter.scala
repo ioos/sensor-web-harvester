@@ -13,19 +13,20 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import com.axiomalaska.phenomena.Phenomenon
+import org.joda.time.DateTime
+import com.axiomalaska.sos.tools.GeomHelper
 
-class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever, 
-    private val logger: Logger = Logger.getRootLogger()) 
+class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever) 
 	extends ObservationRetriever{
 
   // ---------------------------------------------------------------------------
   // ObservationRetriever Members
   // ---------------------------------------------------------------------------
   
-  override def getObservationCollection( station:SosStation, 
-	sensor:SosSensor, phenomenon:Phenomenon, startDate:Calendar): java.util.List[ObservationCollection] = {
+  override def getObservationCollection(
+      sensor:SosSensor, phenomenon:Phenomenon, startDate:DateTime): java.util.List[ObservationCollection] = {
 
-    val observationValuesCollection = (station, sensor, phenomenon) match {
+    val observationValuesCollection = (sensor.getStation(), sensor, phenomenon) match {
       case (localStation: LocalStation, localSensor: LocalSensor, localPhenomenon: LocalPhenomenon) => {
     	  retriever.getObservationValues(localStation, localSensor, localPhenomenon, startDate)
       }
@@ -33,7 +34,7 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
     }
     
     for(observationValuesCollection <- observationValuesCollection.filter(_.getDates.size > 0)) yield{
-      createObservationCollection(station, observationValuesCollection)
+      createObservationCollection(sensor.getStation(), observationValuesCollection)
     }
   }
 
@@ -48,17 +49,21 @@ class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever
     val convertedObservationValues = unitsConverter.convert(observationValues)
 
     val observationCollection = new ObservationCollection()
-    observationCollection.setObservationDates(convertedObservationValues.getDates)
-    observationCollection.setObservationValues(convertedObservationValues.getValues)
+    
+    for{(dateTime, value) <- convertedObservationValues.getDates.zip(convertedObservationValues.getValues)}{
+      observationCollection.addObservationValue(dateTime, value)
+    }
+
     observationCollection.setPhenomenon(observationValues.phenomenon)
     observationCollection.setSensor(observationValues.sensor)
-    observationCollection.setStation(station)
     
     if(observationValues.observedProperty.depth != 0.0){
-      observationCollection.setDepth(observationValues.observedProperty.depth)
+      observationCollection.setGeometry(
+          GeomHelper.createLatLngPoint(station.getLocation().getY(), 
+              station.getLocation().getX(), observationValues.observedProperty.depth * (-1)))
     }
     else{
-      observationCollection.setDepth(null)
+      observationCollection.setGeometry(station.getLocation())
     }
 
     observationCollection

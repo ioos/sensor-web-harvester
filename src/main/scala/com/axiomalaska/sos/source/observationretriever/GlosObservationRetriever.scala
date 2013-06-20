@@ -22,6 +22,8 @@ import java.util.Calendar
 import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
 
 object GlosObservationRetriever {
   private var filesInMemory: List[scala.xml.Elem] = Nil
@@ -34,8 +36,8 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   import GlosObservationRetriever._  
   
   private val httpSender = new HttpSender()
-  private val dateParser = new SimpleDateFormat("MM/dd/yyyy HH:mm:ss")
-  
+  private val dateParser = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss")
+            
   private val source = stationQuery.getSource(SourceId.GLOS)
   private val stationList = stationQuery.getAllStations(source)
   
@@ -59,7 +61,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   ////////////////////////////////////////////////////////////////
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-    phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+    phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] = {
 
     logger.info("GLOS: Collecting for station - " + station.databaseStation.foreign_tag)
     
@@ -79,19 +81,17 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     // iterate through the files on the server, match their station text to the station name
     // then get date of the file and check it against the startDate
     // finally iterate over the observation values and match the tags to what the file has, adding data to that observationValue
-    val sttag = if (station.databaseStation.foreign_tag.contains(":")) station.databaseStation.foreign_tag.substring(station.databaseStation.foreign_tag.lastIndexOf(":")+1) else station.databaseStation.foreign_tag
+    val sttag = if (station.databaseStation.foreign_tag.contains(":")) station.databaseStation.foreign_tag.substring(
+        station.databaseStation.foreign_tag.lastIndexOf(":")+1) else station.databaseStation.foreign_tag
     val stationXMLList = getMatchedStations(sttag)
     for (stationXML <- stationXMLList) {
       for {
         message <- (stationXML \\ "message")
         val reportDate = {
           val dateStr = (message \ "date").text
-          val date = dateParser.parse(dateStr)
-          val calendar = Calendar.getInstance
-          calendar.setTimeInMillis(date.getTime)
-          calendar
+          dateParser.parseDateTime(dateStr)
         }
-        if(reportDate.after(startDate))
+        if(reportDate.isAfter(startDate))
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
@@ -174,26 +174,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
 
     for (observedProperty <- observedProperties) yield {
-      new ObservationValues(observedProperty, sensor, phenomenonFromTag(phenomenon), observedProperty.foreign_units)
-    }
-  }
-  
-  private def phenomenonFromTag(lphenom : LocalPhenomenon) : Phenomenon = {
-    val tag = lphenom.getTag.toLowerCase
-    tag match {
-      case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
-      case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
-      case "dew_point_temperature" => return Phenomena.instance.DEW_POINT_TEMPERATURE
-      case "relative_humidity" => return Phenomena.instance.RELATIVE_HUMIDITY
-      case "sea_surface_wave_significant_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
-      case "sea_surface_wind_wave_period" => return Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD
-      case "sea_water_temperature" => return Phenomena.instance.SEA_WATER_TEMPERATURE
-      case "wave_height" => return Phenomena.instance.SEA_SURFACE_WAVE_SIGNIFICANT_HEIGHT
-      case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
-      case "wind_speed" => return Phenomena.instance.WIND_SPEED
-      case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
-      case "sun_radiation" => return Phenomena.instance.createHomelessParameter(tag, GLOS_MMISW, "rads")
-      case _ => return lphenom
+      new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
   
@@ -281,7 +262,8 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
       val fileList = for {
         file <- dir.listFiles()
         val currentCount = fileCount
-        if (file.getName.contains(".xml") && file.getName.toLowerCase.contains(stationid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
+        if (file.getName.contains(".xml") && 
+            file.getName.toLowerCase.contains(stationid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
       } yield {
         filesToMove = file.getAbsolutePath :: filesToMove
         fileCount += 1

@@ -22,12 +22,12 @@ import org.apache.log4j.Logger
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
 
 class StoretStationUpdater (private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   private val source = stationQuery.getSource(SourceId.STORET)
-  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
+  private val stationUpdater = new StationUpdateTool(stationQuery)
   private val httpSender = new HttpSender()
+  private val LOGGER = Logger.getLogger(getClass())
   
   private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
   private val stationURL = "http://www.waterqualitydata.us/Station/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
@@ -48,12 +48,16 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   }
   
   
-  private def getSourceStations(bbox: BoundingBox) : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  private def getSourceStations(bbox: BoundingBox) : 
+  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     try {
       // create the station request url by adding the bounding box
-      val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getLongitude + "," + bbox.southWestCorner.getLatitude + "," + bbox.northEastCorner.getLongitude + "," + bbox.northEastCorner.getLatitude
+      val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getX + "," + 
+    		  bbox.southWestCorner.getY + "," + bbox.northEastCorner.getX + "," + 
+    		  bbox.northEastCorner.getY
+      
       // try downloading the file ... this failed, now just load it into memory
-      val response = httpSender.sendGetMessage(requestURL)
+      val response = HttpSender.sendGetMessage(requestURL)
       if (response != null) {
         val splitResponse = response.toString split '\n'
         val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
@@ -69,16 +73,16 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
           val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
           if(sensors.nonEmpty)
         } yield {
-          logger.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
+          LOGGER.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
           (station, sensors)
         }
         // filter out duplicate stations
         return retval.groupBy(_._1).map(_._2.head).toList
       } else {
-        logger error "response to " + requestURL + " was null"
+        LOGGER error "response to " + requestURL + " was null"
       }
     } catch {
-      case ex: Exception => logger error ex.toString; ex.printStackTrace()
+      case ex: Exception => LOGGER error ex.toString; ex.printStackTrace()
     }
     
     Nil
@@ -111,8 +115,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
     if (!resultResponse._1.equalsIgnoreCase(station.foreign_tag)) {
       try {
-        val request = resultURL + "&siteid=" + station.foreign_tag + "&organization=" + organization.head
-        val response = httpSender.sendGetMessage(request)
+        val request = resultURL + "&siteid=" + 
+        station.foreign_tag + "&organization=" + organization.head
+        val response = HttpSender.sendGetMessage(request)
         if (response != null) {
           val splitResponse = response.mkString.split('\n')
           val removeFirstRow = splitResponse.filter(!_.contains("OrganizationIdentifier")).toList
@@ -120,7 +125,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         }
       } catch {
         case ex: Exception => {
-            logger error ex.toString
+            LOGGER error ex.toString
             ex.printStackTrace()
             resultResponse = ("",Nil)
         }
@@ -129,27 +134,25 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     
     if (resultResponse._2 == Nil)
       return Nil
-    
+
     val phenomena = getPhenomenaNameUnitDepths(resultResponse._2)
     val proplistlist = for {
-      phenomenon <- phenomena
-      if (!phenomenon._1.contains("text"))
+      (name, units, depths) <- phenomena
+      if (!name.contains("text"))
+      depth <- depths
     } yield {
-      for {
-        depth <- phenomenon._3
-        observedProp <- getObservedProperty(matchPhenomenaToName(phenomenon._1, fixUnitsString(phenomenon._2)), phenomenon._1, depth)
-      } yield {
-        observedProp
-      }
+      stationUpdater.getObservedProperty(
+        matchPhenomenaToName(name, fixUnitsString(units)),
+        name, depth, source)
     }
-  
-    proplistlist.flatten
+
+    proplistlist
   }
   
   private def filterCSV(csv: List[String]) : List[String] = {
       var inQuote: Boolean = false
       csv.map( l => {
-//        logger.info("Line before filter:\n" + l)
+//        LOGGER.info("Line before filter:\n" + l)
         val newString = for (ch <- l) yield ch match {
           case '"' if (!inQuote) => { inQuote = true; '\1' }
           case ',' if (inQuote) => '\0'
@@ -157,7 +160,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
           case default => default
         }
         val ns = newString.filter(_ != '\1')
-//        logger.info("line after filter:\n" + ns)
+//        LOGGER.info("line after filter:\n" + ns)
         ns
       } )
   }
@@ -229,27 +232,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
   }
   
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String, depth: String) : Option[ObservedProperty] = {
-    val index = phenomenon.getId().lastIndexOf("/") + 1
-    val tag = phenomenon.getId().substring(index)
-    val units = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-    var dbId = -1L
-    var localPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag), stationQuery)
-    if (localPhenomenon.getDatabasePhenomenon == null || localPhenomenon.getDatabasePhenomenon.id < 0) {
-      dbId = insertPhenomenon(new DatabasePhenomenon(tag), units, phenomenon.getName, phenomenon.getId).id
-    } else {
-      dbId = localPhenomenon.getDatabasePhenomenon.id
-    }
-    if (dbId < 0) {
-      logger.warn("dbId of -1: " + foreignTag)
-    }
-    return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, units, dbId, 0d))
-  }
-  
-  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    stationQuery.createPhenomenon(dbPhenom)
-  }
-  
   private def getPhenomenaNameUnitDepths(station: List[String]) : List[(String,String,List[String])] = {
     // go through the results and get the names of all lines w/o 'Non-detect'
     val splitLines = station filter { !_.contains("Non-detect") } map { _.split(",") }
@@ -304,7 +286,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         return java.lang.Double.parseDouble(lat)
       } catch {
         case ex: Exception => {
-            logger error ex.toString
+            LOGGER error ex.toString
         }
       }
       Double.NaN
@@ -317,7 +299,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       try {
         return java.lang.Double.parseDouble(lon)
       } catch {
-        case ex: Exception => logger error ex.toString
+        case ex: Exception => LOGGER error ex.toString
       }
       Double.NaN
   }

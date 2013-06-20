@@ -7,7 +7,6 @@ import com.axiomalaska.sos.source.stationupdater.NdbcStationUpdater
 import com.axiomalaska.sos.tools.HttpSender
 import org.jsoup.Jsoup
 import scala.collection.JavaConversions._
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
 import com.axiomalaska.sos.source.stationupdater.NoaaNosCoOpsStationUpdater
 import com.axiomalaska.sos.source.stationupdater.NoaaWeatherStationUpdater
@@ -18,14 +17,12 @@ import javax.measure.unit.NonSI
 import javax.measure.unit.SI
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.source.observationretriever.SnoTelObservationRetriever
-import com.axiomalaska.sos.ObservationUpdater
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.StationRetriever
 import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.observationretriever.NoaaWeatherObservationRetriever
 import com.axiomalaska.sos.source.data.LocalSource
-import com.axiomalaska.sos.data.PublisherInfoImp
 import com.axiomalaska.sos.source.stationupdater.NerrsStationUpdater
 import webservices2.RequestsServiceLocator
 import org.w3c.dom.ls.DOMImplementationLS
@@ -39,10 +36,17 @@ import org.apache.log4j.BasicConfigurator
 import com.axiomalaska.sos.ObservationSubmitter
 import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.stationupdater.NdbcSosStationUpdater
-import com.axiomalaska.sos.data.SosNetworkImp
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.data.SosNetwork
+import com.axiomalaska.sos.tools.GeomHelper
+import org.n52.sos.ioos.asset.NetworkAsset
+import com.axiomalaska.sos.source.stationupdater.GlosStationUpdater
+import com.axiomalaska.phenomena.UnitResolver
+import com.axiomalaska.sos.source.data.PhenomenaFactory
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.sos.source.stationupdater.StoretStationUpdater
+//import com.axiomalaska.sos.example.CnfaicSosInjectorFactory
 
 @Test
 class AppTest {
@@ -51,66 +55,99 @@ class AppTest {
    * Eureka, CA to East of Yuma, AZ
    */
   def califorinaBoundingBox():BoundingBox ={
-    BoundingBox(new Location(32.6666, -124.1245), 
-        new Location(40.7641, -114.0830))
+    BoundingBox(GeomHelper.createLatLngPoint(32.6666, -124.1245), 
+        GeomHelper.createLatLngPoint(40.7641, -114.0830))
   }
   
   def randomBoundingBox():BoundingBox ={
-    BoundingBox(new Location(39.0, -77.1), 
-        new Location(39.1, -77.0))
+    BoundingBox(GeomHelper.createLatLngPoint(39.0, -77.1), 
+        GeomHelper.createLatLngPoint(39.1, -77.0))
   }
 
   /**
    * johnmarks
    */
   def johnmarksBoundingBox():BoundingBox ={
-    BoundingBox(new Location(39.0, -80.0), 
-        new Location(40.0, -74.0))
+    BoundingBox(GeomHelper.createLatLngPoint(39.0, -80.0), 
+        GeomHelper.createLatLngPoint(40.0, -74.0))
   }
   
   /**
    * All
    */
   def worldBoundingBox():BoundingBox ={
-    BoundingBox(new Location(-85, -179.0), 
-        new Location(85.0, 179.0))
+    BoundingBox(GeomHelper.createLatLngPoint(-85, -179.0), 
+        GeomHelper.createLatLngPoint(85.0, 179.0))
   }
   
   def alaskaBoundingBox():BoundingBox ={
-    BoundingBox(new Location(40, -179.0), 
-        new Location(85.0, -140.0))
+    BoundingBox(GeomHelper.createLatLngPoint(40, -179.0), 
+        GeomHelper.createLatLngPoint(85.0, -140.0))
   }
   
   @Test
   def testOK() = assertTrue(true)
-
+  
 //  @Test
-//  def updateSos() {
-//    val factory = new ObservationUpdaterFactory()
+//  def testStreamFlow(){
+//    val phenomenaFactory = new PhenomenaFactory()
+//    
+//    val streamFlow = 
+//      phenomenaFactory.findCustomPhenomenon(Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_flow")
+//      
+//    println(streamFlow.getUnit().getSymbol())
+//  }
+  
+//  @Test
+//  def updateStationsInDatabase(){
 //    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
-//      "postgres", "postgres")
-//
-//    val publisherInfo = new PublisherInfoImp()
-//
-//    publisherInfo.setCountry("USA")
-//    publisherInfo.setEmail("lance@axiomalaska.com")
-//    publisherInfo.setName("AOOS")
-//    publisherInfo.setWebAddress("http://www.aoos.org")
-//
-//    val rootNetwork = new SosNetworkImp()
-//    rootNetwork.setId("all")
-//    rootNetwork.setSourceId("aoos")
-//    rootNetwork.setDescription("All AOOS stations")
-//    rootNetwork.setLongName("All AOOS stations")
-//    rootNetwork.setShortName("All")
+//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
+//        "sensoruser", "sensor")
 //    
 //    queryBuilder.withStationQuery(stationQuery => {
-//      val observationUpdater = factory.buildRawsObservationUpdater(
-//        "http://staging1.axiom:8080/52n-sos-ioos-dev/sos", stationQuery, publisherInfo, rootNetwork)
-//
-//      observationUpdater.update(rootNetwork)
+//      val stationUpdater = new StoretStationUpdater(stationQuery, alaskaBoundingBox)
+//      stationUpdater.update()
 //    })
+//  }
+//  
+//  @Test
+//  def updateSos() {
+//    val publisherInfo = new PublisherInfo()
+//    publisherInfo.setCountry("usa")
+//    publisherInfo.setEmail("none@aol.com")
+//    publisherInfo.setName("test")
+//    publisherInfo.setWebAddress("www.ioos.gov")
+//
+//    val databaseUrl = "jdbc:postgresql://localhost:5432/sensor_metadata_database"
+//    val databaseUser = "postgres"
+//    val databasePassword = "postgres"
+//    val sosUrl = "http://staging1.axiom:8080/52n-sos-ioos/sos/pox"
+//    
+//    val factory = new SosInjectorFactory()
+//    val queryBuilder = new StationQueryBuilder(
+//      databaseUrl, databaseUser, databasePassword)
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val sosInjector = factory.buildUsgsWaterSosInjector(
+//        sosUrl, stationQuery, publisherInfo)
+//        
+//      sosInjector.update()
+//    })
+//  }
+
+//  @Test
+//  def updateSos2() {
+//    val pi = new PublisherInfo();
+//    pi.setCode("test");
+//    pi.setCountry("test");
+//    pi.setEmail("no@no.com");
+//    pi.setName("test");
+//    pi.setWebAddress("http://test.com");
+//
+//    val sosInjector = CnfaicSosInjectorFactory.buildCnfaicSosInjector(
+//      "http://staging1.axiom:8080/52n-sos-ioos/sos/pox", pi);
+//
+//    sosInjector.update();
 //  }
 
 //  @Test
@@ -198,18 +235,6 @@ class AppTest {
 //        retriever.getObservationValues(station, sensor, phenomenon, startDate)
 //    })
 //  }
-  
-//  @Test
-//  def updateStationsInDatabase(){
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
-//        "sensoruser", "sensor")
-//    
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new RawsStationUpdater(stationQuery, alaskaBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
 
 //  @Test
 //  def pullStationsNerrs(){
@@ -292,20 +317,20 @@ class AppTest {
     cal.get(Calendar.MINUTE)
   }
   
-  private class StationRetriever2(
-    private val stationQuery: StationQuery, rootNetwork:SosNetwork) extends StationRetriever {
-
-    override def getStations(): java.util.List[SosStation] = {
-      val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
-      val sosSource = new LocalSource(source)
-      for {
-        station <- stationQuery.getAllStations(source)
-//        if (station.tag == "KBAN")
-      } yield {
-        new LocalStation(sosSource, station, stationQuery, rootNetwork)
-      }
-    }
-  }
+//  private class StationRetriever2(
+//    private val stationQuery: StationQuery, rootNetwork:SosNetwork) extends StationRetriever {
+//
+//    override def getStations(): java.util.List[SosStation] = {
+//      val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
+//      val sosSource = new LocalSource(source)
+//      for {
+//        station <- stationQuery.getAllStations(source)
+////        if (station.tag == "KBAN")
+//      } yield {
+//        new LocalStation(sosSource, station, stationQuery, rootNetwork)
+//      }
+//    }
+//  }
   
   private def findPhenomenonIdName(id:Long):String ={
     id match{

@@ -2,7 +2,6 @@ package com.axiomalaska.sos.source.stationupdater
 
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.source.BoundingBox
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
@@ -16,19 +15,21 @@ import com.axiomalaska.sos.source.data.SourceId
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
+import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.sos.source.Units
 
 class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends StationUpdater {
+  private val boundingBox: BoundingBox) extends StationUpdater {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
 
-  private val stationUpdater = new StationUpdateTool(stationQuery, logger)
+  private val stationUpdater = new StationUpdateTool(stationQuery)
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.NOAA_WEATHER)
+  private val LOGGER = Logger.getLogger(getClass())
 
   // ---------------------------------------------------------------------------
   // Public Members
@@ -36,8 +37,8 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
 
   def update() {
     val sourceObservedProperies = getSourceObservedProperties()
-    
-    val observedProperties = 
+
+    val observedProperties =
       stationUpdater.updateObservedProperties(source, sourceObservedProperies)
 
     val sourceStationSensors = getSourceStations(observedProperties)
@@ -46,29 +47,30 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
-  
+
   val name = "NOAA Weather"
-  
+
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
 
-  private def getSourceStations(observedProperties:  List[ObservedProperty]):
-	  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  private def getSourceStations(observedProperties: List[ObservedProperty]): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
-    val stationSensorsCollection = for {station <- getStations()
-      val sensors = stationUpdater.getSourceSensors(station, observedProperties)} yield {
+    val stationSensorsCollection = for {
+      station <- getStations()
+      val sensors = stationUpdater.getSourceSensors(station, observedProperties)
+    } yield {
       (station, sensors)
     }
 
-    logger.info("Finished with processing " + stationSensorsCollection.size + " stations")
+    LOGGER.info("Finished with processing " + stationSensorsCollection.size + " stations")
 
     stationSensorsCollection
   }
-  
-  private def getStations():List[DatabaseStation] ={
-    val data = httpSender.sendGetMessage(
-        SourceUrls.NOAA_WEATHER_COLLECTION_OF_STATIONS)
+
+  private def getStations(): List[DatabaseStation] = {
+    val data = HttpSender.sendGetMessage(
+      SourceUrls.NOAA_WEATHER_COLLECTION_OF_STATIONS)
 
     if (data != null) {
       val stations = for {
@@ -77,8 +79,8 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
         if (rows.size > 8)
         val station = createStation(rows)
         if (withInBoundingBox(station))
-        if (httpSender.doesUrlExists(
-            SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL + 
+        if (HttpSender.doesUrlExist(
+          SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL +
             station.foreign_tag + ".html"))
       } yield { station }
 
@@ -95,87 +97,66 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
     val longitudeRaw = rows(8)
     val latitude = parseLatitude(latitudeRaw)
     val longitude = parseLongitude(longitudeRaw)
-    
-    logger.info("Processing station: " + label)
+
+    LOGGER.info("Processing station: " + label)
     new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, "",
       "FIXED MET STATION", source.id, latitude, longitude)
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    val stationLocation = new Location(station.latitude, station.longitude)
+    val stationLocation = GeomHelper.createLatLngPoint(station.latitude, station.longitude)
     return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
-  
-  private def parseLatitude(rawLatitude:String):Double = {
+
+  private def parseLatitude(rawLatitude: String): Double = {
     val latitudeHem = rawLatitude.last
     val latSplit = rawLatitude.dropRight(1).split("-")
-    
-    val lat = latSplit.size match{
+
+    val lat = latSplit.size match {
       case 2 => {
-        latSplit(0).toDouble + latSplit(1).toDouble/60
+        latSplit(0).toDouble + latSplit(1).toDouble / 60
       }
       case 3 => {
-        latSplit(0).toDouble + latSplit(1).toDouble/60 + latSplit(2).toDouble/60/60
+        latSplit(0).toDouble + latSplit(1).toDouble / 60 + latSplit(2).toDouble / 60 / 60
       }
     }
-    
-    latitudeHem match{
+
+    latitudeHem match {
       case 'N' => lat
-      case 'S' => (-1)*lat
+      case 'S' => (-1) * lat
       case _ => lat
     }
   }
-  
-  private def parseLongitude(rawLongitude:String):Double = {
+
+  private def parseLongitude(rawLongitude: String): Double = {
     val longitudeHem = rawLongitude.last
     val lonSplit = rawLongitude.dropRight(1).split("-")
-    
-    val lonValue = lonSplit.size match{
+
+    val lonValue = lonSplit.size match {
       case 2 => {
-        (lonSplit(0).toDouble + lonSplit(1).toDouble/60)
+        (lonSplit(0).toDouble + lonSplit(1).toDouble / 60)
       }
       case 3 => {
-        (lonSplit(0).toDouble + lonSplit(1).toDouble/60 +  + lonSplit(2).toDouble/60/60)
+        (lonSplit(0).toDouble + lonSplit(1).toDouble / 60 + +lonSplit(2).toDouble / 60 / 60)
       }
     }
-    
-    longitudeHem match{
+
+    longitudeHem match {
       case 'E' => lonValue
-      case 'W' => (-1)*lonValue
-      case _ => (-1)*lonValue
+      case 'W' => (-1) * lonValue
+      case _ => (-1) * lonValue
     }
   }
-  
-//  private def getSourceObservedProperties() = List(
-//    stationUpdater.createObservedProperty("Temperature", source,
-//       Units.FAHRENHEIT, SensorPhenomenonIds.AIR_TEMPERATURE),
-//    stationUpdater.createObservedProperty("Dew Point", source,
-//      Units.FAHRENHEIT, SensorPhenomenonIds.DEW_POINT),
-//    stationUpdater.createObservedProperty("Wind Speed", source, 
-//        Units.MILES_PER_HOUR, SensorPhenomenonIds.WIND_SPEED),
-//    stationUpdater.createObservedProperty("Wind Direction",
-//      source, Units.DEGREES, SensorPhenomenonIds.WIND_DIRECTION),
-//    stationUpdater.createObservedProperty("Pressure",
-//      source, Units.INCHES_OF_MERCURY, SensorPhenomenonIds.BAROMETRIC_PRESSURE))
-//      
-    private def getSourceObservedProperties() = List(
-      getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, "Temperature"),
-      getObservedProperty(Phenomena.instance.DEW_POINT_TEMPERATURE, "Dew Point"),
-      getObservedProperty(Phenomena.instance.WIND_SPEED, "Wind Speed"),
-      getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION, "Wind Direction"),
-      getObservedProperty(Phenomena.instance.AIR_PRESSURE, "Pressure"))
     
-    private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : ObservedProperty = {
-      val index = phenomenon.getId().lastIndexOf("/") + 1
-      val tag = phenomenon.getId().substring(index)
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(tag),stationQuery)
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, phenomenon.getUnit.getSymbol, phenomenon.getId, phenomenon.getName))
-      }
-      stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id)
-    }
-    
-    private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-      stationQuery.createPhenomenon(dbPhenom)
-    }
+  private def getSourceObservedProperties() = List(
+    stationUpdater.getObservedProperty(
+      Phenomena.instance.AIR_TEMPERATURE, "Temperature", Units.FAHRENHEIT, source),
+    stationUpdater.getObservedProperty(
+      Phenomena.instance.DEW_POINT_TEMPERATURE, "Dew Point", Units.FAHRENHEIT, source),
+    stationUpdater.getObservedProperty(
+      Phenomena.instance.WIND_SPEED, "Wind Speed", Units.MILES_PER_HOUR, source),
+    stationUpdater.getObservedProperty(
+      Phenomena.instance.WIND_FROM_DIRECTION, "Wind Direction", Units.DEGREES, source),
+    stationUpdater.getObservedProperty(
+      Phenomena.instance.AIR_PRESSURE, "Pressure", Units.INCHES_OF_MERCURY, source))
 }

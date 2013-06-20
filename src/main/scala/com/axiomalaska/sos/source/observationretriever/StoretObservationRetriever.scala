@@ -15,41 +15,47 @@ import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
 import java.text.SimpleDateFormat
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
+import org.joda.time.format.DateTimeFormat
 
 object StoretObservationRetriever {
   private var storedStationResponse: (String,List[String]) = ("",Nil)
 }
 
-class StoretObservationRetriever(private val stationQuery:StationQuery, 
-    private val logger: Logger = Logger.getRootLogger())
+class StoretObservationRetriever(private val stationQuery:StationQuery)
 	extends ObservationValuesCollectionRetriever {
     import StoretObservationRetriever._
+    private val LOGGER = Logger.getLogger(getClass())
           
+    private val dateParser = DateTimeFormat.forPattern("MM/dd/yyyyHH:mm:ssz")
     private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&mimeType=csv"
-    private val httpSender = new HttpSender()
-    private val dateParser = new SimpleDateFormat("MM/dd/yyyyHH:mm:ssz")
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-    phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] = {
+    phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] = {
  
-    logger.info("STORET: Collecting for station - " + station.databaseStation.foreign_tag + " - observation - " + phenomenon.databasePhenomenon.tag)
+    LOGGER.info("STORET: Collecting for station - " + 
+        station.databaseStation.foreign_tag + " - observation - " + 
+        phenomenon.databasePhenomenon.tag)
       
     // request info for the station
     getStationResponse(station, startDate)
     
     if (storedStationResponse._2.isEmpty) {
-      logger info "No result for " + station.databaseStation.foreign_tag
+      LOGGER info "No result for " + station.databaseStation.foreign_tag
       return Nil
     }
       
-    val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
+    val observationValuesCollection = 
+      createSensorObservationValuesCollection(station, sensor, phenomenon)
       
     // iterate through observation values, getting values for each phenomenon
     for (observationValue <- observationValuesCollection) {
       val timeandvalues = getValuesDateDepths(observationValue.phenomenon.getName)
       for {
         addto <- timeandvalues
-        if (observationValue.observedProperty.depth == addto._3 && !observationValue.containsDate(addto._1))
+        if (observationValue.observedProperty.depth == addto._3 && 
+            !observationValue.containsDate(addto._1))
       } {
         observationValue.addValue(addto._2, addto._1)
       }
@@ -58,34 +64,36 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     observationValuesCollection.filter(_.getValues.size > 0)
   }
     
-  private def getStationResponse(station: LocalStation, startDate: Calendar) = {
+  private def getStationResponse(station: LocalStation, startDate: DateTime) = {
     // check to see if it is in our stored station retriever
     if (!storedStationResponse._1.equals(station.getId)) {
-      logger info "Sending request for station " + station.databaseStation.foreign_tag
+      LOGGER info "Sending request for station " + station.databaseStation.foreign_tag
       // make request
       val siteid = station.databaseStation.foreign_tag
       val org = siteid.split("-").head
       // get date for latest mm-dd-yyyy (month is 0 index, so increment by 1, day is incremented to prevent repeat data
-      val date = (startDate.get(Calendar.MONTH) + 1) + "-" + (startDate.get(Calendar.DAY_OF_MONTH) + 1) + "-" + startDate.get(Calendar.YEAR)
+      val date = startDate.monthOfYear() + "-" + (startDate.getDayOfMonth() + 1) + "-" + startDate.getYear()
       // add in above to formulate request
       val request = resultURL + "&organization=" + org + "&siteid=" + siteid + "&startDateLo=" + date
       try {
-        val response = httpSender.sendGetMessage(request)
+        val response = HttpSender.sendGetMessage(request)
         // TEST File below
   //      val response = scala.io.Source.fromFile("../Result.csv", "UTF-8").mkString
         if (response != null) {
           // add the filtered response to our stored request
           val splitResponse = response.mkString.split('\n')
-          val removeFirstRow = splitResponse.toList.filter(s => !s.contains("OrganizationIdentifier")).filter(p => p.contains(station.databaseStation.foreign_tag))
+          val removeFirstRow = splitResponse.toList.filter(
+              s => !s.contains("OrganizationIdentifier")).filter(
+                  p => p.contains(station.databaseStation.foreign_tag))
           storedStationResponse = (station.getId,removeFirstRow)
         } else {
-          logger warn "Response in getting station info was null"
+          LOGGER warn "Response in getting station info was null"
           storedStationResponse = ("",Nil)
         }
       }
       catch {
         case ex: Exception => {
-            logger error ex.toString
+            LOGGER error ex.toString
             storedStationResponse = ("",Nil)
         }
       }
@@ -105,19 +113,23 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     } }
   }
   
-  private def getValuesDateDepths(phenom: String) : List[(Calendar, Double, Double)] = {
+  private def getValuesDateDepths(phenom: String) : List[(DateTime, Double, Double)] = {
     // get a grouping of the characteristic names (index 31)
     val indexedLines = storedStationResponse._2.filter(!_.contains("Non-detect")).map(_.split("\t")).map(_.zipWithIndex)
     // uggh, so i need like 6 indices from the info (3 of which are combined into one);
     // index 1: date-time, index 2: name, index 3: value, index 4: depth
-    val valMap = indexedLines.map( s => s.foldLeft("","","","")((storedTuple,nextIndex) => nextIndex._2 match {
-          case 6|7 => (storedTuple._1+nextIndex._1,storedTuple._2,storedTuple._3,storedTuple._4)
-          case 8 => if (nextIndex._1 == null || nextIndex._1.equals("")) (storedTuple._1+"UTC",storedTuple._2,storedTuple._3,storedTuple._4) else (storedTuple._1+nextIndex._1,storedTuple._2,storedTuple._3,storedTuple._4)
-          case 31 => (storedTuple._1,nextIndex._1,storedTuple._3,storedTuple._4)
-          case 33 => (storedTuple._1,storedTuple._2,nextIndex._1,storedTuple._4)
-          case 12 => (storedTuple._1,storedTuple._2,storedTuple._3,nextIndex._1)
-          case _ => storedTuple
-        }))
+    val valMap = indexedLines.map(s => s.foldLeft("", "", "", "")((storedTuple, nextIndex) => nextIndex._2 match {
+      case 6 | 7 => (storedTuple._1 + nextIndex._1, storedTuple._2, storedTuple._3, storedTuple._4)
+      case 8 => if (nextIndex._1 == null || nextIndex._1.equals("")) { 
+        (storedTuple._1 + "UTC", storedTuple._2, storedTuple._3, storedTuple._4) 
+        } else { 
+          (storedTuple._1 + nextIndex._1, storedTuple._2, storedTuple._3, storedTuple._4) 
+        }
+      case 31 => (storedTuple._1, nextIndex._1, storedTuple._3, storedTuple._4)
+      case 33 => (storedTuple._1, storedTuple._2, nextIndex._1, storedTuple._4)
+      case 12 => (storedTuple._1, storedTuple._2, storedTuple._3, nextIndex._1)
+      case _ => storedTuple
+    }))
     // group-by on the name; first have to convert the name to how it would look on the server
     val grouped = valMap.groupBy( n => getDBNameForPhenomenon(n._2) )
     // ok now just match and return the dates/values
@@ -129,8 +141,8 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
     // 5. map over the group in 4. to get a new tuple of explicit datetime/values and return it as a list
     // 6. filter out any null calendar objects
     grouped.filter(g => g._1.equalsIgnoreCase(phenom)).flatMap(_._2.map(tuple => {
-        logger.info("Processing:  " + tuple._1 + ", " + tuple._2 + ", " + tuple._3 + ", " + tuple._4)
-        var datetime: Calendar = null
+        LOGGER.info("Processing:  " + tuple._1 + ", " + tuple._2 + ", " + tuple._3 + ", " + tuple._4)
+        var datetime: DateTime = null
         var value: Double = 0.0
         var depth: Double = 0.0
         try {
@@ -143,7 +155,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
           value = java.lang.Double.parseDouble(tuple._3)
         } catch {
           case ex: Exception => {
-              logger error ex.toString
+              LOGGER error ex.toString
               value = Double.NaN
           }
         }
@@ -221,14 +233,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery,
       new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
-  
-  private def parseDateString(rawString : String) : Calendar = {
-    val date = dateParser.parse(rawString)
-    val calendar = Calendar.getInstance
-    calendar.setTimeInMillis(date.getTime)
-    
-    calendar.getTime()
-    
-    return calendar
-  }
+            
+  private def parseDateString(rawString : String) = 
+    dateParser.parseDateTime(rawString)
 }

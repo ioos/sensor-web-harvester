@@ -52,7 +52,8 @@ object UnitsConverter {
       case ("UMHOS/CM", "S.M-1") => new UmhosPerCmToSPerMUnitsConverter()
       case ("UMOL/MOL", "KG.M-3") => new UmolPerMolToKgramPerMeterCubieConverter()
       case ("WATT", "W.M-2") => new NameConverter("W.M-2")
-        case _ => new NullUnitsConverter()
+      case ("feet3 s-1", "m3 s-1") => new CubicFeetPerSecondToCubicMeterPerSecondConverter()
+      case _ => new NullUnitsConverter()
       }
   }
   
@@ -72,6 +73,21 @@ private class UmhosPerCmToMsPerMUnitsConverter extends UnitsConverter {
     
     for ((value, date) <- observationValues.getDatesAndValues()) {
       copySensorObservationValues.addValue(value/10, date)
+    }
+
+    return copySensorObservationValues
+  }
+}
+
+private class CubicFeetPerSecondToCubicMeterPerSecondConverter extends UnitsConverter {
+  def convert(observationValues: ObservationValues): ObservationValues = {
+
+    val copySensorObservationValues =  new ObservationValues(observationValues.observedProperty, 
+        observationValues.sensor, observationValues.phenomenon, "m3 s-1")
+
+    for ((value, date) <- observationValues.getDatesAndValues()) {
+      val convertedValue = value * 0.0283168466
+      copySensorObservationValues.addValue(convertedValue, date)
     }
 
     return copySensorObservationValues

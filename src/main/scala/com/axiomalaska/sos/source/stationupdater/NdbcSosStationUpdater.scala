@@ -9,9 +9,8 @@ import net.opengis.sos.x10.CapabilitiesDocument
 import com.axiomalaska.sos.source.SourceUrls
 
 class NdbcSosStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends 
-  SosStationUpdater(stationQuery, boundingBox, logger) {
+  private val boundingBox: BoundingBox) extends 
+  SosStationUpdater(stationQuery, boundingBox) {
 
   // ---------------------------------------------------------------------------
   // StationUpdater Members
@@ -48,7 +47,7 @@ class NdbcSosStationUpdater(private val stationQuery: StationQuery,
         </GetCapabilities>
           
     val httpSender = new HttpSender()
-    val results = httpSender.sendPostMessage(serviceUrl, request.toString);
+    val results = HttpSender.sendPostMessage(serviceUrl, request.toString);
 
     if(results != null){
     	Some(CapabilitiesDocument.Factory.parse(results))

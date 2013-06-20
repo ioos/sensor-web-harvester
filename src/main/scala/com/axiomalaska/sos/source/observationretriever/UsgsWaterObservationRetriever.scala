@@ -19,6 +19,8 @@ import org.cuahsi.waterML.x11.TsValuesSingleVariableType
 import org.cuahsi.waterML.x11.ValueSingleVariable
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
 class UsgsWaterObservationRetriever(private val stationQuery:StationQuery, 
     private val logger: Logger = Logger.getRootLogger())
@@ -27,8 +29,7 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
-  
-  private val httpSender = new HttpSender()
+
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
 
   // ---------------------------------------------------------------------------
@@ -36,7 +37,7 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
 
   def getObservationValues(station: LocalStation, sensor: LocalSensor,
-    phenomenon: LocalPhenomenon, startDate: Calendar): List[ObservationValues] = {
+    phenomenon: LocalPhenomenon, startDate: DateTime): List[ObservationValues] = {
 
     logger.info("USGS-WATER: Collecting for station - " + station.databaseStation.foreign_tag)
     
@@ -69,20 +70,19 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
   
   def getRawData(station: LocalStation,
-    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar): String = {
+    sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: DateTime): String = {
 
     val observedProperties = stationQuery.getObservedProperties(
         station.databaseStation, sensor.databaseSensor, phenomenon.databasePhenomenon)
     
     val parameterCd = observedProperties.map(_.foreign_tag).mkString(",")
         
-    val endDate = Calendar.getInstance
+    val endDate = DateTime.now()
     
-    val thrityDayBefore = endDate.clone().asInstanceOf[Calendar]
-    thrityDayBefore.add(Calendar.DAY_OF_MONTH, -30)
+    val thrityDayBefore = DateTime.now().minusDays(30)
     
     val (formatedStartDate, formatedEndDate) = 
-      if(startDate.before(thrityDayBefore)){
+      if(startDate.isBefore(thrityDayBefore)){
     	(formatDate.format(getDateObjectInGMT(thrityDayBefore)), 
     	    formatDate.format(getDateObjectInGMT(endDate)))
     }
@@ -98,14 +98,17 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
         new HttpPart("endDT", formatedEndDate))
         
     val result =
-      httpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts)
+      HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts, false)
     
     return result
   }
   
-  private def createSensorObservationValuesCollection(tsValuesSingleVariableType:TsValuesSingleVariableType, 
-      observedProperties:List[ObservedProperty], variableCode:String, noDataValue:Double, 
-      sensor: LocalSensor, phenomenon: LocalPhenomenon, startDate: Calendar):Option[ObservationValues] = {
+  private def createSensorObservationValuesCollection(
+      tsValuesSingleVariableType:TsValuesSingleVariableType, 
+      observedProperties:List[ObservedProperty], 
+      variableCode:String, noDataValue:Double, 
+      sensor: LocalSensor, phenomenon: LocalPhenomenon, 
+      startDate: DateTime):Option[ObservationValues] = {
 
     val observedProperty =
       observedProperties.find(_.foreign_tag == variableCode) match {
@@ -121,7 +124,7 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
       val calendar = createDate(valueSingleVariable)
       val value = valueSingleVariable.getBigDecimalValue().doubleValue()
       if (noDataValue != value)
-      if (calendar.after(startDate))
+      if (calendar.isAfter(startDate))
     } {
       observationValues.addValue(value, calendar)
     }
@@ -129,8 +132,8 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
     Some(observationValues)
   }
   
-  private def getDateObjectInGMT(calendar:Calendar):Date={
-    val copyCalendar = calendar.clone().asInstanceOf[Calendar]
+  private def getDateObjectInGMT(calendar:DateTime):Date={
+    val copyCalendar = calendar.toCalendar(null)
     copyCalendar.setTimeZone(TimeZone.getTimeZone("GMT"))
     val localCalendar = Calendar.getInstance()
     localCalendar.set(Calendar.YEAR, copyCalendar.get(Calendar.YEAR))
@@ -142,25 +145,17 @@ class UsgsWaterObservationRetriever(private val stationQuery:StationQuery,
     
     // The time is not able to be changed from the 
     //setTimezone if this is not set. Java Error
-    calendar.getTime()
+    localCalendar.getTime()
     
     return localCalendar.getTime()
   }
   
-  private def createDate(valueSingleVariable: ValueSingleVariable): Calendar = {
+  private def createDate(valueSingleVariable: ValueSingleVariable): DateTime = {
     val vsCalendar = valueSingleVariable.getDateTime()
-    val calendar = Calendar.getInstance(vsCalendar.getTimeZone())
-    calendar.set(Calendar.YEAR, vsCalendar.get(Calendar.YEAR))
-    calendar.set(Calendar.MONTH, vsCalendar.get(Calendar.MONTH))
-    calendar.set(Calendar.DAY_OF_MONTH, vsCalendar.get(Calendar.DAY_OF_MONTH))
-    calendar.set(Calendar.HOUR_OF_DAY, vsCalendar.get(Calendar.HOUR_OF_DAY))
-    calendar.set(Calendar.MINUTE, vsCalendar.get(Calendar.MINUTE))
-    calendar.set(Calendar.SECOND, 0)
-    
-    // The time is not able to be changed from the 
-    //setTimezone if this is not set. Java Error
-    calendar.getTime()
 
-    return calendar
+    return new DateTime(vsCalendar.get(Calendar.YEAR), 
+        vsCalendar.get(Calendar.MONTH) + 1, vsCalendar.get(Calendar.DAY_OF_MONTH), 
+        vsCalendar.get(Calendar.HOUR_OF_DAY), vsCalendar.get(Calendar.MINUTE), 0, 
+        DateTimeZone.forTimeZone(vsCalendar.getTimeZone()))
   }
 }

@@ -14,19 +14,18 @@ import java.util.TimeZone
 import java.text.SimpleDateFormat
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
-class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery, 
-    private val logger: Logger = Logger.getRootLogger())
+class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery)
   extends ObservationValuesCollectionRetriever {
 
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
-
-  private val httpSender = new HttpSender()
+  private val LOGGER = Logger.getLogger(getClass())
   private val parser = """<tr[^>]*><td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td>[^<]*<td[^>]*>([^<]*)</td></tr>""".r
   private val lastModifiedParser = """.*<OPTION SELECTED>([^<]*)<OPTION>.*""".r
-  private val dateParser = new SimpleDateFormat(" MMM dd, yyyy - hh:mm aa z ")
   private val timezoneParser = """<th rowspan="3" width="32">Time<br>\((.*)\)</th>""".r
   
   // ---------------------------------------------------------------------------
@@ -34,12 +33,13 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] ={
 
-    logger.info("NOOA-WEATHER: Collecting for station - " + station.databaseStation.foreign_tag)
+    LOGGER.info("NOOA-WEATHER: Collecting for station - " + 
+        station.databaseStation.foreign_tag)
     
     val rawData =
-      httpSender.sendGetMessage(SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL +
+      HttpSender.sendGetMessage(SourceUrls.NOAA_WEATHER_OBSERVATION_RETRIEVAL +
         station.databaseStation.foreign_tag + ".html")
 
     val timezone = timezoneParser.findFirstMatchIn(rawData) match{
@@ -57,7 +57,7 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
         altimeter, seaLevel, prec1, prec3, prec6) = patternMatch
 
       val calendar = createDate(day, time, timezone)
-      if (calendar.after(startDate)) {
+      if (calendar.isAfter(startDate)) {
         for (observationValue <- observationValuesCollection) {
           observationValue.observedProperty.foreign_tag match {
             case "Wind Speed" => {
@@ -178,7 +178,7 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
     }
   }
 
-  private def createDate(dayRaw: String, timeRaw: String, timezone:String): Calendar = {
+  private def createDate(dayRaw: String, timeRaw: String, timezone:String): DateTime = {
     val calendar = Calendar.getInstance(TimeZone.getTimeZone(timezone))
     val hour = timeRaw.split(":")(0).toInt
     val mins = timeRaw.split(":")(1).toInt
@@ -193,16 +193,6 @@ class NoaaWeatherObservationRetriever(private val stationQuery: StationQuery,
       (calendar.get(Calendar.MONTH), calendar.get(Calendar.YEAR))
     }
 
-    calendar.set(Calendar.YEAR, year)
-    calendar.set(Calendar.MONTH, month)
-    calendar.set(Calendar.DAY_OF_MONTH, day)
-    calendar.set(Calendar.HOUR_OF_DAY, hour)
-    calendar.set(Calendar.MINUTE, mins)
-    calendar.set(Calendar.SECOND, 0)
-
-    // The time is not able to be changed from the timezone if this is not set. 
-    calendar.getTime()
-
-    return calendar
+    new DateTime(year, month+1, day, hour, mins, DateTimeZone.forTimeZone(TimeZone.getTimeZone(timezone)))
   }
 }

@@ -16,29 +16,34 @@ import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.StationQuery
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
+import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
+import org.joda.time.DateTimeZone
 
-class RawsObservationRetriever(private val stationQuery:StationQuery, 
-    private val logger: Logger = Logger.getRootLogger())
+class RawsObservationRetriever(private val stationQuery:StationQuery)
 	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
+  private val LOGGER = Logger.getLogger(getClass())
   private val yearFormatDate = new SimpleDateFormat("yy");
   private val monthFormatDate = new SimpleDateFormat("MM");
   private val dayFormatDate = new SimpleDateFormat("dd");
-  private val dateParser = new SimpleDateFormat("yyyyMMddHHmm");
   private val httpSender = new HttpSender()
-  
+  private val akTimeZone = DateTimeZone.forID("US/Alaska")
+  private val dateParser = DateTimeFormat.forPattern("yyyyMMddHHmm")
+            .withZone(akTimeZone)
+            
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] ={
 
-    logger.info("RAWS: Collecting for station - " + station.databaseStation.foreign_tag)
+    LOGGER.info("RAWS: Collecting for station - " + station.databaseStation.foreign_tag)
 
     val data = getRawData(station, startDate)
     
@@ -78,7 +83,7 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
         } else {
           val columns = line.split(",");
           val calendar = createDate(columns(0))
-          if (calendar.after(startDate)) {
+          if (calendar.isAfter(startDate)) {
             for (columnIndex <- 1 until headers.length) {
 
               val columnName = headers.get(columnIndex)
@@ -117,17 +122,17 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
     }
   }
   
-  private def getRawData(databaseStation:LocalStation, startDate: Calendar): String = {
-    val thirtyDaysBefore = Calendar.getInstance()
-    thirtyDaysBefore.add(Calendar.DAY_OF_MONTH, -29)
+  private def getRawData(databaseStation:LocalStation, startDate: DateTime): String = {
+    val thirtyDaysBefore = DateTime.now()
+    thirtyDaysBefore.minusDays(29)
 
-    val startDateAlaskaTimeZone = if (startDate.before(thirtyDaysBefore)) {
+    val startDateAlaskaTimeZone = if (startDate.isBefore(thirtyDaysBefore)) {
       getDateObjectInAlaskaTime(thirtyDaysBefore)
     } else {
       getDateObjectInAlaskaTime(startDate)
     }
 
-    val endDateAlaskaTimeZone = getDateObjectInAlaskaTime(Calendar.getInstance)
+    val endDateAlaskaTimeZone = getDateObjectInAlaskaTime(DateTime.now())
 
     val startMonth = monthFormatDate.format(startDateAlaskaTimeZone)
     val startDay = dayFormatDate.format(startDateAlaskaTimeZone)
@@ -163,31 +168,14 @@ class RawsObservationRetriever(private val stationQuery:StationQuery,
       new HttpPart("WsHou", "00"),
       new HttpPart("WeHou", "24"))
 
-    val results = httpSender.sendPostMessage(
+    httpSender.sendPostMessage(
         SourceUrls.RAWS_OBSERVATION_RETRIEVAL, parts)
-
-    return results;
   }
   
-  private def createDate(rawText: String): Calendar = {
-    val date = dateParser.parse(rawText)
-    val calendar = Calendar.getInstance(TimeZone
-      .getTimeZone("US/Alaska"))
-    calendar.set(Calendar.YEAR, date.getYear() + 1900)
-    calendar.set(Calendar.MONTH, date.getMonth())
-    calendar.set(Calendar.DAY_OF_MONTH, date.getDate())
-    calendar.set(Calendar.HOUR_OF_DAY, date.getHours())
-    calendar.set(Calendar.MINUTE, date.getMinutes())
-    calendar.set(Calendar.SECOND, 0)
-
-    // The time is not able to be changed from the timezone if this is not set. 
-    calendar.getTime()
-
-    return calendar
-  }
+  private def createDate(rawText: String) = dateParser.parseDateTime(rawText)
   
-  private def getDateObjectInAlaskaTime(calendar: Calendar): Date = {
-    val copyCalendar = calendar.clone().asInstanceOf[Calendar]
+  private def getDateObjectInAlaskaTime(calendar: DateTime): Date = {
+    val copyCalendar = calendar.toCalendar(null)
     copyCalendar.setTimeZone(TimeZone.getTimeZone("US/Alaska"))
     val localCalendar = Calendar.getInstance()
     localCalendar.set(Calendar.YEAR, copyCalendar.get(Calendar.YEAR))

@@ -10,9 +10,8 @@ import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.SourceUrls
 
 class NoaaNosCoOpsStationUpdater(private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox, 
-  private val logger: Logger = Logger.getRootLogger()) extends 
-  SosStationUpdater(stationQuery, boundingBox, logger) {
+  private val boundingBox: BoundingBox) extends 
+  SosStationUpdater(stationQuery, boundingBox) {
 
   // ---------------------------------------------------------------------------
   // SosStationUpdater Members

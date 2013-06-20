@@ -4,31 +4,32 @@ import com.axiomalaska.sos.source.StationQuery
 import java.util.Calendar
 import com.axiomalaska.sos.source.data.LocalStation
 import net.opengis.ows.x11.ExceptionReportDocument
-import net.opengis.om.x10.CompositeObservationDocument
+//import net.opengis.om.x10.CompositeObservationDocument
 import scala.collection.mutable
-import gov.noaa.ioos.x061.CompositePropertyType
-import gov.noaa.ioos.x061.ValueArrayType
-import gov.noaa.ioos.x061.CompositeValueType
-import net.opengis.gml.x32.ValueArrayPropertyType
-import gov.noaa.ioos.x061.NamedQuantityType
+//import gov.noaa.ioos.x061.CompositePropertyType
+//import gov.noaa.ioos.x061.ValueArrayType
+//import gov.noaa.ioos.x061.CompositeValueType
+//import gov.noaa.ioos.x061.NamedQuantityType
 import net.opengis.gml.x32.TimeInstantType
+import net.opengis.gml.x32.ValueArrayPropertyType
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import com.axiomalaska.phenomena.Phenomenon
+import org.joda.time.DateTime
+import org.joda.time.DateTimeZone
 
-abstract class SosObservationRetriever(private val stationQuery:StationQuery, 
-    private val logger: Logger = Logger.getRootLogger()) 
+abstract class SosObservationRetriever(private val stationQuery:StationQuery) 
 	extends ObservationValuesCollectionRetriever {
   
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
-
+  private val LOGGER = Logger.getLogger(getClass())
   private val sosRawDataRetriever = new SosRawDataRetriever()
-  private var phenomena = stationQuery.getAllPhenomena
+  private val phenomena = stationQuery.getAllPhenomena
   protected val serviceUrl:String
   
   // ---------------------------------------------------------------------------
@@ -36,12 +37,12 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
   // ---------------------------------------------------------------------------
   
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: Calendar):List[ObservationValues] ={
+      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] ={
 
-    val thirdyDaysOld = Calendar.getInstance
-    thirdyDaysOld.add(Calendar.DAY_OF_MONTH, -30)
+    val thirdyDaysOld = DateTime.now()
+    thirdyDaysOld.minusDays(-30)
     
-    val adjustedStartDate = if(startDate.before(thirdyDaysOld)){
+    val adjustedStartDate = if(startDate.isBefore(thirdyDaysOld)){
       thirdyDaysOld
     }
     else{
@@ -52,23 +53,23 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
     
     val rawData = sosRawDataRetriever.getRawData(serviceUrl,
           station.databaseStation.foreign_tag,
-          sensorForeignId, adjustedStartDate, Calendar.getInstance)
+          sensorForeignId, adjustedStartDate, DateTime.now())
     
-    createCompositeObservationDocument(rawData) match {
-      case Some(compositeObservationDocument) => {
-        return buildSensorObservationValues(compositeObservationDocument, 
-            station, sensor, phenomenon, startDate)
-      }
-      case None => {
-//        val exceptionDocument =
-//          ExceptionReportDocument.Factory.parse(rawData);
-//
-//        val fullMessage = exceptionDocument.getExceptionReport().
-//          getExceptionArray()(0).getExceptionTextArray().mkString(", ");
-        
-        return Nil
-      }
-    }
+//    createCompositeObservationDocument(rawData) match {
+//      case Some(compositeObservationDocument) => {
+//        return buildSensorObservationValues(compositeObservationDocument, 
+//            station, sensor, phenomenon, startDate)
+//      }
+//      case None => {
+////        val exceptionDocument =
+////          ExceptionReportDocument.Factory.parse(rawData);
+////
+////        val fullMessage = exceptionDocument.getExceptionReport().
+////          getExceptionArray()(0).getExceptionTextArray().mkString(", ");
+//        
+//        return Nil
+//      }
+//    }
     
     return Nil
   }
@@ -157,44 +158,46 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
 //    }
   }
   
-  private def buildSensorObservationValues(
-    compositeObservationDocument: CompositeObservationDocument, 
-    station: LocalStation, sensor: LocalSensor, phenomenon: LocalPhenomenon, 
-    startDate: Calendar): List[ObservationValues] = {
-      
-    val observationValuesCollection = createSensorObservationValuesCollection(
-        station, sensor, phenomenon)
+//  private def buildSensorObservationValues(
+//    compositeObservationDocument: CompositeObservationDocument, 
+//    station: LocalStation, sensor: LocalSensor, phenomenon: LocalPhenomenon, 
+//    startDate: DateTime): List[ObservationValues] = {
+//      
+//    val observationValuesCollection = createSensorObservationValuesCollection(
+//        station, sensor, phenomenon)
     
-    for (xmlObject <- 
-     getValueArrayType(compositeObservationDocument).getValueComponents().getAbstractValueArray();
-     val compositeValue = xmlObject.asInstanceOf[CompositeValueType]) {
+//    for (xmlObject <- 
+//     getValueArrayType(compositeObservationDocument).getValueComponents().getAbstractValueArray();
+//     val compositeValue = xmlObject.asInstanceOf[CompositeValueType]) {
+//
+//      val calendar = getTime(compositeValue.getValueComponents()) match {
+//        case Some(time) => time
+//        case None => throw new Exception("Date not found")
+//      }
+//
+//      if (calendar.isAfter(startDate)) {
+//        for (namedQuantityType <- getValues(compositeValue.getValueComponents())) {
+//          observationValuesCollection.find(observationValues =>
+//            observationValues.observedProperty.foreign_tag == 
+//              namedQuantityType.getName()) match {
+//            case Some(sensorObservationValue) => 
+//              sensorObservationValue.addValue(namedQuantityType.getDoubleValue(), calendar)
+//            case None => {
+//              val observedProperty = observationValuesCollection.find(observationValues =>
+//                observationValues.observedProperty.foreign_tag == namedQuantityType.getName()) match {
+//                case Some(observationValues) => {
+//                  observationValues.addValue(namedQuantityType.getDoubleValue(), calendar)
+//                }
+//                case None => //println("namedQuantityType.getName(): " + namedQuantityType.getName())
+//              }
+//            }
+//          }
+//        }
+//      }
+//    }
 
-      val calendar = getTime(compositeValue.getValueComponents()) match {
-        case Some(time) => time
-        case None => throw new Exception("Date not found")
-      }
-
-      if (calendar.after(startDate)) {
-        for (namedQuantityType <- getValues(compositeValue.getValueComponents())) {
-          observationValuesCollection.find(observationValues =>
-            observationValues.observedProperty.foreign_tag == namedQuantityType.getName()) match {
-            case Some(sensorObservationValue) => sensorObservationValue.addValue(namedQuantityType.getDoubleValue(), calendar)
-            case None => {
-              val observedProperty = observationValuesCollection.find(observationValues =>
-                observationValues.observedProperty.foreign_tag == namedQuantityType.getName()) match {
-                case Some(observationValues) => {
-                  observationValues.addValue(namedQuantityType.getDoubleValue(), calendar)
-                }
-                case None => //println("namedQuantityType.getName(): " + namedQuantityType.getName())
-              }
-            }
-          }
-        }
-      }
-    }
-
-    observationValuesCollection
-  }
+//    observationValuesCollection
+//  }
   
   private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -206,85 +209,77 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery,
     }
   }
 
-  private def getValueArrayType(compositeObservationDocument: CompositeObservationDocument):ValueArrayType={
-    val compositePropertyType: CompositePropertyType =
-      compositeObservationDocument.getObservation().getResult().asInstanceOf[CompositePropertyType]
-
-    val valueArrayType: ValueArrayType =
-      compositePropertyType.getComposite().getValueComponents().getAbstractValueArray(1).asInstanceOf[ValueArrayType]
-
-    val compositeValueType: CompositeValueType =
-      valueArrayType.getValueComponents().getAbstractValueArray(0).asInstanceOf[CompositeValueType]
-
-    val valueArrayType1: ValueArrayType =
-      compositeValueType.getValueComponents().getAbstractValueArray(1).asInstanceOf[ValueArrayType]
-    
-    return valueArrayType1
-  }
+//  private def getValueArrayType(compositeObservationDocument: CompositeObservationDocument):ValueArrayType={
+//    val compositePropertyType: CompositePropertyType =
+//      compositeObservationDocument.getObservation().getResult().asInstanceOf[CompositePropertyType]
+//
+//    val valueArrayType: ValueArrayType =
+//      compositePropertyType.getComposite().getValueComponents().getAbstractValueArray(1).asInstanceOf[ValueArrayType]
+//
+//    val compositeValueType: CompositeValueType =
+//      valueArrayType.getValueComponents().getAbstractValueArray(0).asInstanceOf[CompositeValueType]
+//
+//    val valueArrayType1: ValueArrayType =
+//      compositeValueType.getValueComponents().getAbstractValueArray(1).asInstanceOf[ValueArrayType]
+//    
+//    return valueArrayType1
+//  }
+//  
+//  private def getValues(valuePropertyType: ValueArrayPropertyType): List[NamedQuantityType] = {
+//    val compositeValueType = valuePropertyType.getAbstractValueArray(1).
+//      asInstanceOf[CompositeValueType]
+//
+//    val values = compositeValueType.getValueComponents().getAbstractValueArray().collect{
+//      case namedQuantity: NamedQuantityType => namedQuantity}
+//
+//    return values.toList
+//  }
+//
+//  private def getTime(valuePropertyType: ValueArrayPropertyType): Option[DateTime] = {
+//    val calendarOptions = for {xmlObject <- valuePropertyType.getAbstractValueArray()} yield{
+//      xmlObject match {
+//        case compositeValueType: CompositeValueType 
+//        	if (compositeValueType.getValueComponents().getAbstractTimeObjectArray().length == 1) => {
+//          val timeInstantType =
+//            compositeValueType.getValueComponents().getAbstractTimeObjectArray()(0).asInstanceOf[TimeInstantType]
+//
+//          val calendar = createDate(timeInstantType.getTimePosition().getObjectValue().asInstanceOf[Calendar])
+//
+//          Some(calendar)
+//        }
+//        case _ => None
+//      }
+//    }
+//    val calendars = calendarOptions.filter(_.nonEmpty)
+//    
+//    if(calendars.length > 0){
+//      return calendars(0)
+//    }
+//    else
+//    {
+//      return None 
+//    }
+//  }
   
-  private def getValues(valuePropertyType: ValueArrayPropertyType): List[NamedQuantityType] = {
-    val compositeValueType = valuePropertyType.getAbstractValueArray(1).
-      asInstanceOf[CompositeValueType]
-
-    val values = compositeValueType.getValueComponents().getAbstractValueArray().collect{
-      case namedQuantity: NamedQuantityType => namedQuantity}
-
-    return values.toList
+  private def createDate(xmlCalendar: Calendar): DateTime = {
+    new DateTime(xmlCalendar.get(Calendar.YEAR), 
+        xmlCalendar.get(Calendar.MONTH)+1, xmlCalendar.get(Calendar.DAY_OF_MONTH), 
+        xmlCalendar.get(Calendar.HOUR_OF_DAY), xmlCalendar.get(Calendar.MINUTE), 0,
+        DateTimeZone.forID(xmlCalendar.getTimeZone().getID()))
   }
 
-  private def getTime(valuePropertyType: ValueArrayPropertyType): Option[Calendar] = {
-    val calendarOptions = for {xmlObject <- valuePropertyType.getAbstractValueArray()} yield{
-      xmlObject match {
-        case compositeValueType: CompositeValueType if (compositeValueType.getValueComponents().getAbstractTimeObjectArray().length == 1) => {
-          val timeInstantType =
-            compositeValueType.getValueComponents().getAbstractTimeObjectArray()(0).asInstanceOf[TimeInstantType]
-
-          val calendar = createDate(timeInstantType.getTimePosition().getObjectValue().asInstanceOf[Calendar])
-
-          Some(calendar)
-        }
-        case _ => None
-      }
-    }
-    val calendars = calendarOptions.filter(_.nonEmpty)
-    
-    if(calendars.length > 0){
-      return calendars(0)
-    }
-    else
-    {
-      return None 
-    }
-  }
-  
-  private def createDate(xmlCalendar: Calendar): Calendar = {
-    val calendar = Calendar.getInstance(xmlCalendar.getTimeZone())
-    calendar.set(Calendar.YEAR, xmlCalendar.get(Calendar.YEAR))
-    calendar.set(Calendar.MONTH, xmlCalendar.get(Calendar.MONTH))
-    calendar.set(Calendar.DAY_OF_MONTH, xmlCalendar.get(Calendar.DAY_OF_MONTH))
-    calendar.set(Calendar.HOUR_OF_DAY, xmlCalendar.get(Calendar.HOUR_OF_DAY))
-    calendar.set(Calendar.MINUTE, xmlCalendar.get(Calendar.MINUTE))
-    calendar.set(Calendar.SECOND, 0)
-    
-    // The time is not able to be changed from the 
-    //setTimezone if this is not set. Java Error
-    calendar.getTime()
-
-    return calendar
-  }
-
-  private def createCompositeObservationDocument(data: String): Option[CompositeObservationDocument] = {
-    if (data != null && !data.contains("ExceptionReport")) {
-      try {
-        val compositeObservationDocument =
-          CompositeObservationDocument.Factory.parse(data)
-
-        return Some[CompositeObservationDocument](compositeObservationDocument)
-      } catch {
-        case e: Exception => println("error parsing data")
-      }
-    }
-
-    return None;
-  }
+//  private def createCompositeObservationDocument(data: String): Option[CompositeObservationDocument] = {
+//    if (data != null && !data.contains("ExceptionReport")) {
+//      try {
+//        val compositeObservationDocument =
+//          CompositeObservationDocument.Factory.parse(data)
+//
+//        return Some[CompositeObservationDocument](compositeObservationDocument)
+//      } catch {
+//        case e: Exception => println("error parsing data")
+//      }
+//    }
+//
+//    return None;
+//  }
 }

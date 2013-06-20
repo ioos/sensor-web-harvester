@@ -1,9 +1,9 @@
 package com.axiomalaska.sos.source
 
-import com.axiomalaska.sos.data.Location
 import com.axiomalaska.sos.data.SosStation
+import com.vividsolutions.jts.geom.Point
 
-case class BoundingBox(southWestCorner: Location, northEastCorner: Location)
+case class BoundingBox(southWestCorner: Point, northEastCorner: Point)
 
 class GeoTools {
 	/**
@@ -14,20 +14,20 @@ class GeoTools {
 	 * @param boundingBox - the bounding box to station location
 	 * @return true if within bounding box, false otherwise
 	 */
-	def isStationWithinRegion(stationLocation:Location, 
+	def isStationWithinRegion(stationLocation:Point, 
 			boundingBox:BoundingBox):Boolean = {
 		if(boundingBox.northEastCorner != null && boundingBox.southWestCorner != null){
 			if(doesBoundingBoxGoOver180Longitude(boundingBox)){
-				return isStationWithinRegionOver180Longitude(stationLocation, 
-						boundingBox);
+				isStationWithinRegionOver180Longitude(stationLocation, 
+						boundingBox)
 			}
 			else{
-				return isStationWithinRegionNormal(stationLocation, 
-						boundingBox);
+				isStationWithinRegionNormal(stationLocation, 
+						boundingBox)
 			}
 		}
 		else{
-			return true;
+			true;
 		}
 	}
 	
@@ -43,16 +43,15 @@ class GeoTools {
 	 * @return
 	 */
 	private def doesBoundingBoxGoOver180Longitude(boundingBox:BoundingBox):Boolean ={
-		
-		return (boundingBox.southWestCorner.getLongitude() > boundingBox.northEastCorner.getLongitude());
+		(boundingBox.southWestCorner.getX() > boundingBox.northEastCorner.getX())
 	}
 	
-	private def isStationWithinRegionNormal(stationLocation:Location,  
+	private def isStationWithinRegionNormal(stationLocation:Point,  
 			boundingBox:BoundingBox):Boolean = {
-		if(stationLocation.getLatitude() <= boundingBox.northEastCorner.getLatitude() && 
-		   stationLocation.getLatitude() >= boundingBox.southWestCorner.getLatitude() && 
-		   stationLocation.getLongitude() <= boundingBox.northEastCorner.getLongitude() && 
-		   stationLocation.getLongitude() >= boundingBox.southWestCorner.getLongitude() ){
+		if(stationLocation.getY() <= boundingBox.northEastCorner.getY() && 
+		   stationLocation.getY() >= boundingBox.southWestCorner.getY() && 
+		   stationLocation.getX() <= boundingBox.northEastCorner.getX() && 
+		   stationLocation.getX() >= boundingBox.southWestCorner.getX() ){
 			return true;
 		}
 		else{
@@ -60,20 +59,20 @@ class GeoTools {
 		}
 	}
 	
-	private def isStationWithinRegionOver180Longitude(stationLocation:Location,
+	private def isStationWithinRegionOver180Longitude(stationLocation:Point,
 			boundingBox:BoundingBox):Boolean = {
-		if (stationLocation.getLongitude() > 0) {
-			if (stationLocation.getLatitude() <= boundingBox.northEastCorner.getLatitude()
-				&& stationLocation.getLatitude() >= boundingBox.southWestCorner.getLatitude()
-				&& stationLocation.getLongitude() > boundingBox.southWestCorner.getLongitude()) {
+		if (stationLocation.getX() > 0) {
+			if (stationLocation.getY() <= boundingBox.northEastCorner.getY()
+				&& stationLocation.getY() >= boundingBox.southWestCorner.getY()
+				&& stationLocation.getX() > boundingBox.southWestCorner.getX()) {
 				return true;
 			} else {
 				return false;
 			}
 		} else {
-			if (stationLocation.getLatitude() <= boundingBox.northEastCorner.getLatitude()
-			   && stationLocation.getLatitude() >= boundingBox.southWestCorner.getLatitude()
-			   && stationLocation.getLongitude() <= boundingBox.northEastCorner.getLongitude()) {
+			if (stationLocation.getY() <= boundingBox.northEastCorner.getY()
+			   && stationLocation.getY() >= boundingBox.southWestCorner.getY()
+			   && stationLocation.getX() <= boundingBox.northEastCorner.getX()) {
 				return true;
 			} else {
 				return false;
