@@ -34,7 +34,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   
   private var phenomenaList = stationQuery.getPhenomena
   
-  var stationResponse: List[String] = null
+//  var stationResponse: List[String] = null
   var resultResponse: (String,List[String]) = ("",Nil)
   
   val name = "STORET"
@@ -61,7 +61,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       if (response != null) {
         val splitResponse = response.toString split '\n'
         val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
-        stationResponse = filterCSV(meh)
+        val stationResponse = filterCSV(meh)
         // go through the list, compiling all of the stations
         val retval = for {
           (stationLine, index) <- stationResponse.zipWithIndex
@@ -73,7 +73,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
           val sensors = stationUpdater.getSourceSensors(station, databaseObservedProperties)
           if(sensors.nonEmpty)
         } yield {
-          LOGGER.debug("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
+          LOGGER.info("[" + index + " of " + (stationResponse.length - 1) + "] station: " + station.name)
           (station, sensors)
         }
         // filter out duplicate stations
@@ -94,7 +94,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val name = reduceLargeStrings(getStationName(line))
       val foreignTag = reduceLargeStrings(getStationTag(line))
       // internal tag is the name, formatted
-      val tag = nameToTag(name)
+      val tag = source.tag + ":" + nameToTag(name)
       val description = reduceLargeStrings(getStationDescription(line))
       val platformType = reduceLargeStrings(getStationType(line))
       val sourceId = source.id

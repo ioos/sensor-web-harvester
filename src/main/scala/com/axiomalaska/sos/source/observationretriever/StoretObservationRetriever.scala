@@ -72,7 +72,7 @@ class StoretObservationRetriever(private val stationQuery:StationQuery)
       val siteid = station.databaseStation.foreign_tag
       val org = siteid.split("-").head
       // get date for latest mm-dd-yyyy (month is 0 index, so increment by 1, day is incremented to prevent repeat data
-      val date = startDate.monthOfYear() + "-" + (startDate.getDayOfMonth() + 1) + "-" + startDate.getYear()
+      val date = startDate.getMonthOfYear() + "-" + (startDate.getDayOfMonth() + 1) + "-" + startDate.getYear()
       // add in above to formulate request
       val request = resultURL + "&organization=" + org + "&siteid=" + siteid + "&startDateLo=" + date
       try {
