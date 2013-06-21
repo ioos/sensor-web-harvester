@@ -148,11 +148,8 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {
-    LOGGER info "checking lat/lon for station " + station.tag
-    LOGGER info station.latitude + " - " + station.longitude
     val stationLocation = GeomHelper.createLatLngPoint(station.latitude, station.longitude)
     geoTools.isStationWithinRegion(stationLocation, boundingBox)
-    true
   }
 
   private def createSourceStation(foreignId: String): Option[DatabaseStation] = {
@@ -176,7 +173,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       }
 
       LOGGER.info("Processing station: " + name)
-      Some(new DatabaseStation(name, foreignId, foreignId, "", 
+      Some(new DatabaseStation(name, source.tag + ":" + foreignId, foreignId, "", 
           "BUOY", source.id, lat.toDouble, lon.toDouble))
     } else {
       None
@@ -305,23 +302,5 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
         return None
       }
     }
-  }
-  
-  private def getObservedProperty(phenomenon: Phenomenon, foreignTag: String) : Option[ObservedProperty] = {
-    try {
-      var localPhenom: LocalPhenomenon = new LocalPhenomenon(new DatabasePhenomenon(phenomenon.getId, phenomenon.getUnit().getName()))
-      var units: String = if (phenomenon.getUnit == null || phenomenon.getUnit.getSymbol == null) "none" else phenomenon.getUnit.getSymbol
-      if (localPhenom.databasePhenomenon.id < 0) {
-        localPhenom = new LocalPhenomenon(insertPhenomenon(localPhenom.databasePhenomenon, units, phenomenon.getId, phenomenon.getName))
-      }
-      return new Some[ObservedProperty](stationUpdater.createObservedProperty(foreignTag, source, localPhenom.getUnit.getSymbol, localPhenom.databasePhenomenon.id))
-    } catch {
-      case ex: Exception => {}
-    }
-    None
-  }
-    
-  private def insertPhenomenon(dbPhenom: DatabasePhenomenon, units: String, description: String, name: String) : DatabasePhenomenon = {
-    stationQuery.createPhenomenon(dbPhenom)
   }
 }
