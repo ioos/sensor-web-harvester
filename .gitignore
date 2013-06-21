@@ -4,7 +4,6 @@
 *.sql
 
 # Package Files #
-*.jar
 *.gz
 *.war
 *.ear
@@ -19,7 +18,6 @@ target
 *example*
 ex_*
 example.properties
-*backup
 epa_*
 *txt
 *log*
