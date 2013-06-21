@@ -221,7 +221,7 @@ class NerrsStationUpdater(
           val stationCode = (row \\ "Station_Code").text
           val stationName = (row \\ "Station_Name").text
           val latitude = (row \\ "Latitude").text.toDouble
-          val longitude = (row \\ "Longitude").text.toDouble
+          val longitude = (row \\ "Longitude").text.toDouble * (-1)
           val isActive = (row \\ "Status").text match {
             case "Active" => true
             case _ => false
