@@ -21,7 +21,7 @@ class SosRawDataRetriever() {
       stationPostFixName:String, observedProperty:String, 
       startDate: DateTime, endDate: DateTime): String = {
 
-    LOGGER.info("SNO-RAW: Collecting for station - " + stationPostFixName)
+    LOGGER.debug("SNO-RAW: Collecting for station - " + stationPostFixName)
     
     val copyStartDate = getDateObjectInGMTTime(startDate)
     val copyEndDate = getDateObjectInGMTTime(endDate)
@@ -143,7 +143,7 @@ class SosRawDataRetriever() {
     request = request.replace("gml=\"http://www.opengis.net/gml\"",
       "gml=\"http://www.opengis.net/gml/3.2\"");
 
-    val results = HttpSender.sendPostMessage(serviceUrl, request);
+    val results = HttpSender.sendPostMessage(serviceUrl, request)
 
     return results;
   }
