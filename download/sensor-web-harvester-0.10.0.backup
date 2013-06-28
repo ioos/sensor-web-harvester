@@ -383,14 +383,16 @@ ALTER TABLE ONLY station ALTER COLUMN id SET DEFAULT nextval('station_id_seq'::r
 --
 
 COPY network (id, description, tag, source_tag, short_name, long_name) FROM stdin;
-7	A network of all the NOAA Weather stations	all	gov.noaa.nws	NOAA Weather	NOAA Weather stations
-8	A network of all the NERRS stations	all	cdmo.nerrs	NERRS	NERRS stations
 1	A network of all the RAWS stations	all	edu.dri.raws	RAWS	RAWS stations
 2	A network of all the NOAA NOS CO-OPS stations	all	NOAA.NOS.CO-OPS	NOAA NOS CO-OPS	NOAA NOS CO-OPS stations
 3	A network of all the HADS stations	all	gov.noaa.nws.hads	HADS	HADS stations
 4	A network of all the NDBC stations	all	NDBC	NDBC	NDBC stations
 5	A network of all the SnoTel stations	all	gov.usda.nrcs.wcc.snotel	Snotel	Snotel stations
 6	A network of all the USGS Water stations	all	gov.usgs.waterdata	USGS Water	USGS Water stations
+7	A network of all the NOAA Weather stations	all	gov.noaa.nws	NOAA Weather	NOAA Weather stations
+8	A network of all the NERRS stations	all	cdmo.nerrs	NERRS	NERRS stations
+9	A network of all the GLOS stations	all	GLOS	GLOS Stations	GLOS stations
+10	A network of all the STORET stations	all	STORET	STORET	STORET stations
 \.
 
 
@@ -410,14 +412,16 @@ SELECT pg_catalog.setval('network_id_seq', 8, true);
 --
 
 COPY network_source (network_id, source_id) FROM stdin;
-3	3
 1	1
 2	2
+3	3
 4	4
 5	5
 6	6
 7	7
 8	8
+9	9
+10	10
 \.
 
 
