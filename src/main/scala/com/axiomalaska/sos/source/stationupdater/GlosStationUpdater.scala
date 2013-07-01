@@ -213,10 +213,15 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
       case "wind_speed" => return Phenomena.instance.WIND_SPEED
       case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
-      case "sun_radiation" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "rads"
-        return phenomenaFactory.findCustomPhenomenon(url)
-      }
+      case "mass_concentration_of_chlorophyll_in_sea_water" => return Phenomena.instance.MASS_CONCENTRATION_OF_CHLOROPHYLL_IN_SEA_WATER
+      case "mass_concentration_of_oxygen_in_sea_water" => return Phenomena.instance.MASS_CONCENTRATION_OF_OXYGEN_IN_SEA_WATER
+      case "sea_water_ph_reported_on_total_scale" => return Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
+      case "sea_water_electrical_conductivity" => return Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
+      // When a Phenomena project is release with this change: https://github.com/axiomalaska/phenomena/commit/83aa8512dd748199fa9539dc2600b46348e77814
+      // we can change the following to the normal syntax used by the others.
+      case "northward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("northward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
+      case "eastward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("eastward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
+      case "sun_radiation" => return Phenomena.instance.SOLAR_RADIATION
       case _ => LOGGER.info("Unhandled case: " + tag)
     }
     
