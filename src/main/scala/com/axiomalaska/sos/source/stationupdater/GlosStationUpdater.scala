@@ -19,6 +19,7 @@ import com.axiomalaska.sos.tools.HttpSender
 import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
 import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
 import java.io.File
 import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTPFile
@@ -103,14 +104,16 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         val station = readStationFromXML(xml)
         // get the obs data, need this for the depth values
         var dataXML: scala.xml.Elem = null
+        val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
 
         breakable {
-          for (ftpfile <- path_list) yield {
+          for (ftpfile <- path_list) {
+            byteStream.reset()
             if (ftpfile.getName.contains(station.stationName)) {
               try {
-                val input_stream = glos_ftp.retrieveFileStream(ftpfile.getName)
-                dataXML = scala.xml.XML.load(input_stream)
-                input_stream.close()
+                glos_ftp.retrieveFile(ftpfile.getName, byteStream)
+                val inp: ByteArrayInputStream = new ByteArrayInputStream(byteStream.toByteArray)
+                dataXML = scala.xml.XML.load(inp)
                 break
               } catch {
                 case ex: Exception =>
