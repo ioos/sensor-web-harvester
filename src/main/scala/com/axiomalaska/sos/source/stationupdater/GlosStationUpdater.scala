@@ -250,8 +250,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       depths: List[Double]) : List[ObservedProperty] = {
     val properties = for {
       (dpth,index) <- depths.zipWithIndex
-      val phenom = findPhenomenon(name)
-      val foreignTag = getForeignTagFromName(name, index)
+      phenom = findPhenomenon(name)
+      foreignTag = getForeignTagFromName(name, index)
       if (phenom.ne(null) && !foreignTag.equals(""))
     } yield {
       stationUpdater.getObservedProperty(phenom, foreignTag, phenom.getUnit().toString(), dpth, source)
