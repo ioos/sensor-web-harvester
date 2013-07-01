@@ -51,17 +51,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private var stationList: List[String] = Nil
   
   private var phenomenaList = stationQuery.getPhenomena
-  
-  // default mmisw url
-  private val MAX_FILE_LIMIT = 2500
-  private var filesToMove: List[String] = List()
-  private var filesInMemory: List[scala.xml.Elem] = List()
-  
-  ////////// DEBUG VALs //////////////////////////////////////////
-  private val DEBUG: Boolean = false  // enable to run on local debug test files
-  private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
-  ////////////////////////////////////////////////////////////////
-  
+
   def update() {
     
     LOGGER.info("Updating GLOS...")
@@ -78,28 +68,26 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   
   private def getSourceStations() : List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     // read ftp for data files for stations
-    if (!DEBUG) {
-      try {
-        if (!glos_ftp.isConnected) {
-          glos_ftp.connect(ftp_host, ftp_port)
-          glos_ftp.login(ftp_user, ftp_pass)
-          // check for succesful login
-          if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
-            glos_ftp.disconnect
-            LOGGER.error("FTP connection was refused.")
-          } else {
-            // set to passive mode
-            glos_ftp.enterLocalPassiveMode
-            // set timeouts to 1 min
-            glos_ftp.setControlKeepAliveTimeout(60)
-            glos_ftp.setDataTimeout(60000)
-          }
+    try {
+      if (!glos_ftp.isConnected) {
+        glos_ftp.connect(ftp_host, ftp_port)
+        glos_ftp.login(ftp_user, ftp_pass)
+        // check for succesful login
+        if(!FTPReply.isPositiveCompletion(glos_ftp.getReplyCode)) {
+          glos_ftp.disconnect
+          LOGGER.error("FTP connection was refused.")
+        } else {
+          // set to passive mode
+          glos_ftp.enterLocalPassiveMode
+          // set timeouts to 1 min
+          glos_ftp.setControlKeepAliveTimeout(60)
+          glos_ftp.setDataTimeout(60000)
         }
-      } catch {
-        case ex: Exception => {
-            LOGGER.error(ex.toString)
-            return Nil
-        }
+      }
+    } catch {
+      case ex: Exception => {
+          LOGGER.error(ex.toString)
+          return Nil
       }
     }
     // read local ISOs for metadata
@@ -108,13 +96,10 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
         val readin = scala.io.Source.fromFile(file)
         val xml = scala.xml.XML.loadString(readin.mkString)
-//        LOGGER.info("read in xml:\n" + xml)
         // read in the station data
         val station = readStationFromXML(xml)
         // get the obs data, need this for the depth values
-        if (DEBUG) readInDebugFilesIntoMemory(station.stationName)
-        LOGGER.info(filesInMemory.size + " files for station")
-        val dataXML = if (!DEBUG) readInData(station.stationName) else readInDataDebug()
+        var dataXML: scala.xml.Elem = null
         if (dataXML.ne(null)) {
           LOGGER.info("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
@@ -219,9 +204,9 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     }
     sensors.toList.flatten
   }
-  
-  
-  
+
+
+
   private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
     LOGGER.info("looking for tag: " + tag)
@@ -295,7 +280,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   }
 
   private def readStationFromXML(xml : scala.xml.Node) : GLOSStation = {
-//    val metadata = (xml \ "gmi:MI_Metadata")
+    //val metadata = (xml \ "gmi:MI_Metadata")
     val name = (xml \ "fileIdentifier" \ "CharacterString").text.trim
     val id = name
     var desc = (xml \ "identificationInfo" \\ "abstract" \ "CharacterString").text.trim
@@ -307,54 +292,5 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     LOGGER.info("read in station: " + name)
     new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
   }
-  
-   ///////////////////////////////////////////////////////////////
-   ////////               Debug                     //////////////
-   ///////////////////////////////////////////////////////////////
-   
-  private def readInDebugFilesIntoMemory(stationid: String) {
-    val stid: String = if (stationid.contains(":")) {
-      stationid.substring(stationid.lastIndexOf(":")+1)
-    } else {
-      stationid
-    }
-    try {
-      val dir = new File(DEBUG_DIR)
-      var fileCount = 0
-      val fileList = for {
-        file <- dir.listFiles()
-        val currentCount = fileCount
-        if (file.getName.contains(".xml") && 
-            file.getName.toLowerCase.contains(stid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
-      } yield {
-        filesToMove = file.getAbsolutePath :: filesToMove
-        fileCount += 1
-        loadFileDebug(file)
-      }
-      filesInMemory = fileList.filter(_.isDefined).map(_.get).toList
-    } catch {
-      case ex: Exception => { ex.printStackTrace() }
-    }
-  }
 
-  private def loadFileDebug(file: java.io.File) : Option[scala.xml.Elem] = {
-    try {
-      new Some[scala.xml.Elem](scala.xml.XML.loadFile(file))
-    } catch {
-      case ex: Exception => { None }
-    }
-  }
-  
-  private def readInDataDebug() : scala.xml.Elem = {
-    val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
-    var retval: scala.xml.Elem = null
-    try {
-      for (file <- filesInMemory) {
-        return file
-      }
-    } catch {
-      case ex: Exception => LOGGER.error(ex.toString)
-    }
-    return retval
-  }
 }
