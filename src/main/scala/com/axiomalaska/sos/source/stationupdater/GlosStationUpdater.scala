@@ -126,9 +126,9 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
         if (dataXML.ne(null)) {
           LOGGER.info("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
-          val stationDB = new DatabaseStation(station.stationName, station.stationId, 
+          val stationDB = new DatabaseStation(station.stationName, source.tag + ":" + station.stationId,
               station.stationId, station.stationDesc, station.platformType, 
-              SourceId.GLOS, station.lat, station.lon)
+              source.id, station.lat, station.lon)
           val sensors = readInSensors((xml \ "contentInfo"), stationDB, depths)
           if (sensors.nonEmpty)
             (stationDB, sensors)
