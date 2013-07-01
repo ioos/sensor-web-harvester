@@ -116,15 +116,14 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
                 dataXML = scala.xml.XML.load(inp)
                 break
               } catch {
-                case ex: Exception =>
-                  LOGGER.error("Could not open file: " + ftpfile.getName + "\n" + ex.toString)
+                case ex: Exception => null // Don't do anything
               }
             }
           }
         }
 
         if (dataXML.ne(null)) {
-          LOGGER.info("reading xml file for station: " + station.stationName)
+          LOGGER.debug("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
           val stationDB = new DatabaseStation(station.stationName, station.stationId, 
               station.stationId, station.stationDesc, station.platformType, 
@@ -202,7 +201,6 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
 
   private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
-    LOGGER.info("looking for tag: " + tag)
     tag.toLowerCase match {
       case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
       case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
