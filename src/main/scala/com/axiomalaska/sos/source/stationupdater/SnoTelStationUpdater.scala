@@ -30,14 +30,14 @@ import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.data.PhenomenaFactory
 
-case class SnotelSensor(observedpropertylabel: String,
-  observedpropertylongcode: String, observedpropertyshortcode: String,
-  unit: String, instrument: String, interval: String,
-  ordinal: Int, sensorheight: Double)
-
 class SnoTelStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
 
+private case class SnotelSensor(observedpropertylabel: String,
+  observedpropertylongcode: String, observedpropertyshortcode: String,
+  unit: String, instrument: String, interval: String,
+  ordinal: Int, sensorDepth: Double)
+  
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
@@ -123,7 +123,7 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
 
       val filteredSnotelSensors = for {
         snotelSensor <- databaseSnotelSensors
-        val tag = snotelSensor.observedpropertyshortcode + snotelSensor.sensorheight
+        val tag = snotelSensor.observedpropertyshortcode + snotelSensor.sensorDepth
         if (!map.contains(tag))
       } yield {
         map += tag
@@ -214,153 +214,153 @@ class SnoTelStationUpdater(private val stationQuery: StationQuery,
       case "WTEQ" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SNOW_WATER_EQUIVALENT,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SAL" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SALINITY,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "TMAX" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "TOBS" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "PRCP" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.PRECIPITATION_INCREMENT,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SMS" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_MOISTURE_PERCENT,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "RHUM" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "RHUMN" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_MINIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "RHUMV" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_AVERAGE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "RHUMX" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.RELATIVE_HUMIDITY_MAXIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "RDC" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.RELATIVE_PERMITTIVITY,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "PREC" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.PRECIPITATION_ACCUMULATED,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "STO" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "TAVG" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_AVERAGE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "BATT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "BATX" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE_MAXIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "BATN" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.BATTERY_VOLTAGE_MINIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "WSPDX" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_SPEED_OF_GUST,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "WSPDV" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_SPEED,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SNWD" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SNOW_DEPTH,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "TMIN" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MINIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "PRES" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_PRESSURE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "WDIRV" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.WIND_FROM_DIRECTION,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SRADV" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOLAR_RADIATION_AVERAGE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SRADN" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOLAR_RADIATION_MINIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SRADX" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOLAR_RADIATION_MAXIMUM,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SRAD" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOLAR_RADIATION,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "COND" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "WTEMP" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SEA_WATER_TEMPERATURE,
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SRMO" => {
         val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_gage_height"
         Some(stationUpdater.getObservedProperty(phenomenaFactory.findCustomPhenomenon(url),
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
-          snotelSensor.sensorheight * (-1), source))
+          snotelSensor.sensorDepth, source))
       }
       case "SNOW" => None  // Snow Fall
       case "LRADT" => None // Solar Radiation/langley Total

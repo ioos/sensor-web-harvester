@@ -322,19 +322,19 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       }
       case "AIRTEMP.1FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -0.3048, source))
+            id, Units.CELSIUS, 0.3048, source))
       }
       case "AIRTEMP.3FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -0.9144, source))
+            id, Units.CELSIUS, 0.9144, source))
       }
       case "AIRTEMP.8FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -2.4384, source))
+            id, Units.CELSIUS, 2.4384, source))
       }
       case "AIRTEMP.15FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -4.572, source))
+            id, Units.CELSIUS, 4.572, source))
       }
       case "MaximumAirTemperature" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM, 
@@ -358,16 +358,16 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       }
       case "AverageSoilTemperature4Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -0.1016, source))
+            id, Units.CELSIUS, 0.1016, source))
       }
       case "AverageSoilTemperature20Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -0.508, source))
+            id, Units.CELSIUS, 0.508, source))
       }
       // The name is correct with the Y
       case "AverageSoilYemperature40Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -1.016, source))
+            id, Units.CELSIUS, 1.016, source))
       }
       case "SoilTemperatureSensor1" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
