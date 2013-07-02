@@ -5,9 +5,6 @@
 
 package com.axiomalaska.sos.source.observationretriever
 
-
-import com.axiomalaska.phenomena.Phenomena
-import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
@@ -15,9 +12,7 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
-import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
-import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import org.apache.commons.net.ftp.{FTPFile, FTPClient, FTPReply}
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
@@ -51,13 +46,6 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private val reloc_dir = "processed"
   private val glos_ftp: FTPClient = new FTPClient()
   private var fileList: Array[FTPFile] = null
-  
-  private val GLOS_MMISW = "http://mmisw.org/this/is/fake/parameter/"
-  
-  ////////// DEBUG VALs //////////////////////////////////////////
-  private val DEBUG: Boolean = true  // enable to run on local debug test files
-  private val DEBUG_DIR: String = "C:/Users/scowan/Desktop/Temp"
-  ////////////////////////////////////////////////////////////////
     
   def getObservationValues(station: LocalStation, sensor: LocalSensor, 
     phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] = {
@@ -68,11 +56,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     
     // retrieve files if needed
     if (!currentStationName.equals(stid)) {
-      if (!DEBUG)
-        readInFtpFilesIntoMemory(stid)
-      else
-        readInDebugFilesIntoMemory(stid)
-      
+      readInFtpFilesIntoMemory(stid)
       currentStationName = stid
     }
     val observationValuesCollection = createSensorObservationValuesCollection(station, sensor, phenomenon)
@@ -253,48 +237,5 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     if(!success)
       logger.error("Could not read in file " + fileName + " after 3 attempts.")
     retval
-  }
-  
-   ///////////////////////////////////////////////////////////////
-   ////////               Debug                     //////////////
-   ///////////////////////////////////////////////////////////////
-   
-  private def readInDebugFilesIntoMemory(stationid: String) {
-    try {
-      val dir = new File(DEBUG_DIR)
-      var fileCount = 0
-      val fileList = for {
-        file <- dir.listFiles()
-        val currentCount = fileCount
-        if (file.getName.contains(".xml") && 
-            file.getName.toLowerCase.contains(stationid.toLowerCase) && currentCount < MAX_FILE_LIMIT)
-      } yield {
-        filesToMove = file.getAbsolutePath :: filesToMove
-        fileCount += 1
-        loadFileDebug(file)
-      }
-      filesInMemory = fileList.filter(_.isDefined).map(_.get).toList
-    } catch {
-      case ex: Exception => { ex.printStackTrace() }
-    }
-
-    // remove the files read-in
-    for (rf <- filesToMove) {
-      try {
-        val file = new File(rf)
-        if (!file.delete)
-          logger.warn("Unable to delete file: " + rf)
-      } catch {
-        case ex: Exception => logger.error("Deleting file: rf \n\t" + ex.toString)
-      }
-    }
-  }
-
-  private def loadFileDebug(file: java.io.File) : Option[scala.xml.Elem] = {
-    try {
-      new Some[scala.xml.Elem](scala.xml.XML.loadFile(file))
-    } catch {
-      case ex: Exception => { None }
-    }
   }
 }
