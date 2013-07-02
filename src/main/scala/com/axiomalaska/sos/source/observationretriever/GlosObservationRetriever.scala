@@ -15,12 +15,10 @@ import com.axiomalaska.sos.source.data.LocalStation
 import com.axiomalaska.sos.source.data.ObservationValues
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
-import java.io.ByteArrayOutputStream
-import java.io.File
+import java.io.{ByteArrayInputStream, ByteArrayOutputStream, File}
 import java.text.SimpleDateFormat
 import java.util.Calendar
-import org.apache.commons.net.ftp.FTPClient
-import org.apache.commons.net.ftp.FTPReply
+import org.apache.commons.net.ftp.{FTPFile, FTPClient, FTPReply}
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
@@ -52,6 +50,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   private val ftp_pass = "AGSLaos001"
   private val reloc_dir = "processed"
   private val glos_ftp: FTPClient = new FTPClient()
+  private var fileList: Array[FTPFile] = null
   
   private val GLOS_MMISW = "http://mmisw.org/this/is/fake/parameter/"
   
@@ -121,6 +120,9 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
           glos_ftp.enterLocalPassiveMode
           glos_ftp.setControlKeepAliveTimeout(60)
           glos_ftp.setDataTimeout(60000)
+
+          // grab list of files all at once on connection
+          fileList = glos_ftp.listFiles
         }
       }
     } catch {
@@ -134,7 +136,6 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     try {
       filesInMemory = Nil
       filesToMove = Nil
-      val fileList = glos_ftp.listFiles
       var fileCount = 0
       val files = for {
         file <- fileList
@@ -222,6 +223,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   
   private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
     val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
+    var inpStream: ByteArrayInputStream = null
     var success = false
     var attempts = 0
     var retval: Option[scala.xml.Elem] = None
@@ -231,7 +233,9 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
         glos_ftp.retrieveFile(fileName, byteStream) match {
           case true => {
               filesToMove = fileName :: filesToMove
-              val xml = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
+              inpStream = new ByteArrayInputStream(byteStream.toByteArray)
+
+              val xml = scala.xml.XML.load(inpStream)
               retval = new Some[scala.xml.Elem](xml)
           }
           case false => {
