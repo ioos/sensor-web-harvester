@@ -116,15 +116,14 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
                 dataXML = scala.xml.XML.load(inp)
                 break
               } catch {
-                case ex: Exception =>
-                  LOGGER.error("Could not open file: " + ftpfile.getName + "\n" + ex.toString)
+                case ex: Exception => null // Don't do anything
               }
             }
           }
         }
 
         if (dataXML.ne(null)) {
-          LOGGER.info("reading xml file for station: " + station.stationName)
+          LOGGER.debug("reading xml file for station: " + station.stationName)
           val depths = readInDepths(dataXML)
           val stationDB = new DatabaseStation(station.stationName, source.tag + ":" + station.stationId,
               station.stationId, station.stationDesc, station.platformType, 
@@ -202,7 +201,6 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
 
   private def findPhenomenon(tag: String) : Phenomenon = {
     // check the tag to list of known phenomena
-    LOGGER.info("looking for tag: " + tag)
     tag.toLowerCase match {
       case "air_pressure_at_sea_level" => return Phenomena.instance.AIR_PRESSURE_AT_SEA_LEVEL
       case "air_temperature" => return Phenomena.instance.AIR_TEMPERATURE
@@ -215,10 +213,15 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "wind_from_direction" => return Phenomena.instance.WIND_FROM_DIRECTION
       case "wind_speed" => return Phenomena.instance.WIND_SPEED
       case "wind_speed_of_gust" => return Phenomena.instance.WIND_SPEED_OF_GUST
-      case "sun_radiation" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "rads"
-        return phenomenaFactory.findCustomPhenomenon(url)
-      }
+      case "mass_concentration_of_chlorophyll_in_sea_water" => return Phenomena.instance.MASS_CONCENTRATION_OF_CHLOROPHYLL_IN_SEA_WATER
+      case "mass_concentration_of_oxygen_in_sea_water" => return Phenomena.instance.MASS_CONCENTRATION_OF_OXYGEN_IN_SEA_WATER
+      case "sea_water_ph_reported_on_total_scale" => return Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
+      case "sea_water_electrical_conductivity" => return Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
+      // When a Phenomena project is release with this change: https://github.com/axiomalaska/phenomena/commit/83aa8512dd748199fa9539dc2600b46348e77814
+      // we can change the following to the normal syntax used by the others.
+      case "northward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("northward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
+      case "eastward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("eastward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
+      case "sun_radiation" => return Phenomena.instance.SOLAR_RADIATION
       case _ => LOGGER.info("Unhandled case: " + tag)
     }
     
@@ -252,8 +255,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       depths: List[Double]) : List[ObservedProperty] = {
     val properties = for {
       (dpth,index) <- depths.zipWithIndex
-      val phenom = findPhenomenon(name)
-      val foreignTag = getForeignTagFromName(name, index)
+      phenom = findPhenomenon(name)
+      foreignTag = getForeignTagFromName(name, index)
       if (phenom.ne(null) && !foreignTag.equals(""))
     } yield {
       stationUpdater.getObservedProperty(phenom, foreignTag, phenom.getUnit().toString(), dpth, source)
