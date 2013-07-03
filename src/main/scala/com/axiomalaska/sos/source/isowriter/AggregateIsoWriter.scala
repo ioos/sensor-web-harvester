@@ -53,7 +53,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
               isoDirectory, overwrite)))
       }
       case "storet" => {
-          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("storet") ).head
+          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("us.storet") ).head
           new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, 
               isoDirectory, overwrite)))
       }
