@@ -13,9 +13,11 @@ import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.HttpSender
+import com.axiomalaska.sos.tools.{HttpSender, HttpPart}
 import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.phenomena.Phenomena
+import scala.collection.JavaConversions._
+import scala.collection.mutable.ListBuffer
 
 import org.apache.log4j.Logger
 
@@ -26,11 +28,11 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery)
-  private val httpSender = new HttpSender()
   private val LOGGER = Logger.getLogger(getClass())
-  
-  private val resultURL = "http://www.waterqualitydata.us/Result/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
-  private val stationURL = "http://www.waterqualitydata.us/Station/search?countrycode=US&command.avoid=NWIS&mimeType=csv"
+
+  private val resultURLBase = "http://www.waterqualitydata.us/Result/search"
+  private val stationURLBase = "http://www.waterqualitydata.us/Station/search"
+  private val urlCommonOpts = List(new HttpPart("countrycode", "US"), new HttpPart("command.avoid", "NWIS"), new HttpPart("mimeType", "csv"))
   
   private var phenomenaList = stationQuery.getPhenomena
   
@@ -46,18 +48,23 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
     stationUpdater.updateStations(sourceStationSensors, databaseStations)
   }
-  
+
+  private def sendGetMessage(baseUrl: String, parts: List[HttpPart]) : String = {
+    // have to convert from scala immutable list to java mutable list
+    // http://stackoverflow.com/questions/2429944/how-to-convert-a-scala-list-to-a-java-util-list
+    val convParts: java.util.List[HttpPart] = ListBuffer(parts: _*)
+    HttpSender.sendGetMessage(baseUrl, convParts)
+  }
   
   private def getSourceStations(bbox: BoundingBox) : 
   List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
     try {
       // create the station request url by adding the bounding box
-      val requestURL = stationURL + "&bBox=" + bbox.southWestCorner.getX + "," + 
-    		  bbox.southWestCorner.getY + "," + bbox.northEastCorner.getX + "," + 
-    		  bbox.northEastCorner.getY
+      val bboxStr = bbox.southWestCorner.getX + "," + bbox.southWestCorner.getY + "," + bbox.northEastCorner.getX + "," +
+        bbox.northEastCorner.getY
       
       // try downloading the file ... this failed, now just load it into memory
-      val response = HttpSender.sendGetMessage(requestURL)
+      val response = sendGetMessage(stationURLBase, urlCommonOpts ::: List(new HttpPart("bBox", bboxStr)))
       if (response != null) {
         val splitResponse = response.toString split '\n'
         val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
@@ -79,7 +86,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         // filter out duplicate stations
         return retval.groupBy(_._1).map(_._2.head).toList
       } else {
-        LOGGER error "response to " + requestURL + " was null"
+        LOGGER error "response to station request was null"
       }
     } catch {
       case ex: Exception => LOGGER error ex.toString; ex.printStackTrace()
@@ -115,9 +122,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
     if (!resultResponse._1.equalsIgnoreCase(station.foreign_tag)) {
       try {
-        val request = resultURL + "&siteid=" + 
-        station.foreign_tag + "&organization=" + organization.head
-        val response = HttpSender.sendGetMessage(request)
+        val response = sendGetMessage(resultURLBase, urlCommonOpts ::: List(new HttpPart("siteid", station.foreign_tag)))
         if (response != null) {
           val splitResponse = response.mkString.split('\n')
           val removeFirstRow = splitResponse.filter(!_.contains("OrganizationIdentifier")).toList
