@@ -38,11 +38,16 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   val name = "STORET"
 
   def update() {
-    val sourceStationSensors = getSourceStations(boundingBox)
-
     val databaseStations = stationQuery.getAllStations(source)
+    val stationTags = databaseStations.view.map {_.foreign_tag}.toSet
 
-    stationUpdater.updateStations(sourceStationSensors, databaseStations)
+    val stations = getSourceStations(boundingBox, stationTags)
+
+    // incrementally update in groups of 1000
+    for ((subStations, idx) <- stations.grouped(1000).zipWithIndex) {
+      val sourceStationSensors = getObservedPropsForStations(subStations, idx * 1000)
+      stationUpdater.updateStations(sourceStationSensors, databaseStations)
+    }
   }
 
   private def sendGetMessage(baseUrl: String, parts: List[HttpPart]) : String = {
@@ -52,59 +57,68 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     HttpSender.sendGetMessage(baseUrl, convParts)
   }
   
-  private def getSourceStations(bbox: BoundingBox) : 
-  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  private def getSourceStations(bbox: BoundingBox, stationTags: Set[String]) :
+  List[DatabaseStation] = {
+    // create the station request url by adding the bounding box
+    val bboxStr = bbox.southWestCorner.getX + "," + bbox.southWestCorner.getY + "," + bbox.northEastCorner.getX + "," +
+      bbox.northEastCorner.getY
+
+    // try downloading the file ... this failed, now just load it into memory
+    val response = sendGetMessage(stationURLBase, urlCommonOpts ::: List(new HttpPart("bBox", bboxStr)))
+    if (response == null) {
+      LOGGER error "response to station request was null"
+      return Nil
+    }
+
+    val splitResponse = response.toString split '\n'
+    val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
+    val stationResponse = filterCSV(meh)
+
+    // The sequence:
+    //
+    // For all non-null stations in the CSV response:
+    //   Turn them into DatabaseStation instances and filter out ones that already exist in the database
+
+    val rawStations = stationResponse.filter(p => p.nonEmpty)
+    val stations = rawStations.map(createSourceStation(_)).filter {t:DatabaseStation => !stationTags.contains(t.foreign_tag)}
+    return stations
+  }
+
+  private def getObservedPropsForStations(stations: List[DatabaseStation], offset:Int) :
+    List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+
+    //   In parallel, iterate these DatabaseStations:
+    //     Get all phenomenas from web service
+    //   For all these results:
+    //     Parse phenomena and update database
+    //     Get list of sensors
+    // Return a list of (station, sensors) tuples
+
     try {
-      // create the station request url by adding the bounding box
-      val bboxStr = bbox.southWestCorner.getX + "," + bbox.southWestCorner.getY + "," + bbox.northEastCorner.getX + "," +
-        bbox.northEastCorner.getY
-      
-      // try downloading the file ... this failed, now just load it into memory
-      val response = sendGetMessage(stationURLBase, urlCommonOpts ::: List(new HttpPart("bBox", bboxStr)))
-      if (response != null) {
-        val splitResponse = response.toString split '\n'
-        val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
-        val stationResponse = filterCSV(meh)
 
-        // The sequence:
-        //
-        // For all non-null stations in the CSV response:
-        //   Turn them into DatabaseStation instances and filter out ones that already exist in the database
-        //   In parallel, iterate these DatabaseStations:
-        //     Get all phenomenas from web service
-        //   For all these results:
-        //     Parse phenomena and update database
-        //     Get list of sensors
-        // Return a list of (station, sensors) tuples
+      val parStations = stations.zipWithIndex.par
+      parStations.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(4))
 
-        val rawStations = stationResponse.filter(p => p.nonEmpty)
-        val stations = rawStations.map(createSourceStation(_)).filter {t:DatabaseStation => !stationQuery.getStation(t.foreign_tag).isDefined }
+      val computed = parStations.map { t:(DatabaseStation,Int) => {
+        val sourcePhenomena = getSourcePhenomena(t._1)
 
-        val parStations = stations.zipWithIndex.par
-        parStations.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(4))
+        LOGGER.info("[" + (t._2 + 1) + " of " + stations.length + "] (offset: " + offset + ") station: " + t._1.name)
+        (t._1, sourcePhenomena)
+      }}.seq  // convert to sequential (non-parallel)
 
-        val computed = parStations.map { t:(DatabaseStation,Int) => {
-          val sourcePhenomena = getSourcePhenomena(t._1)
-
-          LOGGER.info("[" + (t._2 + 1) + " of " + stations.length + "] station: " + t._1.name)
-          (t._1, sourcePhenomena)
-        }}.seq  // convert to sequential (non-parallel)
-
-        val retval = for {
-          (station, sourcePhenomena) <- computed
-          phenomena = getObservedProperties(sourcePhenomena)
-          dbObservedProps = stationUpdater.updateObservedProperties(source, phenomena)
-          sensors = stationUpdater.getSourceSensors(station, dbObservedProps)
-          if sensors.nonEmpty
-        } yield {
-          (station, sensors)
-        }
-
-        // filter out duplicate stations
-        return retval.groupBy(_._1).map(_._2.head).toList
-      } else {
-        LOGGER error "response to station request was null"
+      val retval = for {
+        (station, sourcePhenomena) <- computed
+        phenomena = getObservedProperties(sourcePhenomena)
+        dbObservedProps = stationUpdater.updateObservedProperties(source, phenomena)
+        sensors = stationUpdater.getSourceSensors(station, dbObservedProps)
+        if sensors.nonEmpty
+      } yield {
+        (station, sensors)
       }
+
+      // filter out duplicate stations
+      return retval.groupBy(_._1).map(_._2.head).toList
+
     } catch {
       case ex: Exception => LOGGER error ex.toString; ex.printStackTrace()
     }
