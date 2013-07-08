@@ -278,7 +278,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     (if(date.get(Calendar.DAY_OF_MONTH) < 10) "0" else "") + date.get(Calendar.DAY_OF_MONTH)
 
   private def writeISOOutput() : scala.xml.Elem = {
-    val retval = 
+    //         <gmd:contact>{addGLOSResponsibleParty}</gmd:contact>
+    val retval =
       <gmi:MI_Metadata xmlns:gmi="http://www.isotc211.org/2005/gmi" xmlns:srv="http://www.isotc211.org/2005/srv"
         xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gsr="http://www.isotc211.org/2005/gsr"
         xmlns:gss="http://www.isotc211.org/2005/gss" xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -287,7 +288,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd"
         xsi:schemaLocation="http://www.isotc211.org/2005/gmi http://www.ngdc.noaa.gov/metadata/published/xsd/schema.xsd">
         <gmd:fileIdentifier>{addFileIdentifier(fileIdentifier)}</gmd:fileIdentifier>
-        <gmd:contact>{addGLOSResponsibleParty}</gmd:contact>
         {
           for (ct <- contacts) yield {
             <gmd:contact>{addResponsibleParty(ct)}</gmd:contact>
