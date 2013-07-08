@@ -24,6 +24,9 @@ import org.apache.log4j.Logger
 
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
 
+// Set the environment var STORET_FULL_UPDATE to any value to update every found station.
+// Otherwise all existing stations in the database are ignored.
+
 class StoretStationUpdater (private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
 
@@ -75,14 +78,17 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     val meh = splitResponse.filter(s => !s.contains("OrganizationIdentifier")).toList
     val stationResponse = filterCSV(meh)
 
-    // The sequence:
-    //
     // For all non-null stations in the CSV response:
     //   Turn them into DatabaseStation instances and filter out ones that already exist in the database
 
-    val rawStations = stationResponse.filter(p => p.nonEmpty)
-    val stations = rawStations.map(createSourceStation(_)).filter {t:DatabaseStation => !stationTags.contains(t.foreign_tag)}
-    return stations
+    val rawStations = stationResponse.filter(p => p.nonEmpty).map(createSourceStation(_))
+
+    scala.util.Properties.envOrNone("STORET_FULL_UPDATE") match {
+      case Some(fullUpdate) => return rawStations
+      case None => return rawStations.filter {t:DatabaseStation => !stationTags.contains(t.foreign_tag)}
+    }
+    //val stations = rawStations.filter {t:DatabaseStation => !stationTags.contains(t.foreign_tag)}
+    //return stations
   }
 
   private def getObservedPropsForStations(stations: List[DatabaseStation], offset:Int, totallength:Int) :
