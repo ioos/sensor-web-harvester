@@ -45,7 +45,8 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
     // incrementally update in groups of 1000
     for ((subStations, idx) <- stations.grouped(1000).zipWithIndex) {
-      val sourceStationSensors = getObservedPropsForStations(subStations, idx * 1000)
+      val sourceStationSensors = getObservedPropsForStations(subStations, idx * 1000, stations.length)
+      LOGGER.info("Saving " + sourceStationSensors.length + " to database")
       stationUpdater.updateStations(sourceStationSensors, databaseStations)
     }
   }
@@ -84,7 +85,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     return stations
   }
 
-  private def getObservedPropsForStations(stations: List[DatabaseStation], offset:Int) :
+  private def getObservedPropsForStations(stations: List[DatabaseStation], offset:Int, totallength:Int) :
     List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
     //   In parallel, iterate these DatabaseStations:
@@ -102,7 +103,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       val computed = parStations.map { t:(DatabaseStation,Int) => {
         val sourcePhenomena = getSourcePhenomena(t._1)
 
-        LOGGER.info("[" + (t._2 + 1) + " of " + stations.length + "] (offset: " + offset + ") station: " + t._1.name)
+        LOGGER.info("[" + (offset + t._2 + 1) + " of " + totallength + "] station: " + t._1.name)
         (t._1, sourcePhenomena)
       }}.seq  // convert to sequential (non-parallel)
 
