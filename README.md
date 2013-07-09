@@ -55,9 +55,14 @@ The metadata database is used to collect the stations’ metadata in order to al
 createdb --host [host] --port [port] -U [database_user] sensor-metadata
 ```
 
-3.  Restore the backup to a PostgreSQL database using `psql`. You can also execute the contents of the .backup file on your database manually (it is just SQL).
+3.  Create a "sensoruser" PostgreSQL user (NOTE: you can use another name but the database backups are hardcoded to grant access to the "sensoruser" user)
 ```bash
-psql -f sensor-web-harvetser-[version].backup -d [database_name] -U [database_user]
+createuser -E -P sensoruser
+```
+
+4.  Restore the backup to a PostgreSQL database using `psql`. You can also execute the contents of the .backup file on your database manually (it is just SQL).
+```bash
+psql -f sensor-web-harvester-[version].backup -d [database_name] -U [database_user]
 ```
 
 
