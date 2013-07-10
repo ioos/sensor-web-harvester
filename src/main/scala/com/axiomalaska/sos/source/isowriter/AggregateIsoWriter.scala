@@ -57,6 +57,11 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
           new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, 
               isoDirectory, overwrite)))
       }
+      case "hads" => {
+        val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("gov.noaa.nws.hads")).head
+        new Some((thisSource, new HadsIsoWriter(stationQuery, templateFile,
+          isoDirectory, overwrite)))
+      }
       case _ => None
     }
     // return list that has all 'None' removed
