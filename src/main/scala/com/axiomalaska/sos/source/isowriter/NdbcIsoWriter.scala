@@ -124,7 +124,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   
   //////////////////////////////////////////////////////////////////////////////
   
-  private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
+  override def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     val temporals = getStationTemporalExtents(station)
     val begin = if (temporals._1 != null) formatDateTime(temporals._1) else ""
     val end = if (temporals._2 != null) formatDateTime(temporals._2) else ""

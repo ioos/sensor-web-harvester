@@ -173,10 +173,20 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   protected def getServiceInformation(station: LocalStation) : List[ServiceIdentification] = {Nil}
   
   protected def getContacts(station: LocalStation) : List[Contact] = Nil
+
+  protected def getExtent(station: LocalStation) : ServiceIdentificationExtent = {null}
   
-  protected def getFileIdentifier(station: LocalStation) : String = {null}
+  protected def getFileIdentifier(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
   
-  protected def getDataIdentification(station: LocalStation) : DataIdentification = {new DataIdentification(null,null,Nil,null,null)}
+  protected def getDataIdentification(station: LocalStation) : DataIdentification = {
+    val idabstract = station.databaseStation.description
+    val citation = new DataIdentificationCitation(station.getLongName)
+    val keywords = getSensorTagsAndNames(station).map(_._2)
+    val agg = null
+    val extent = getExtent(station)
+
+    new DataIdentification(idabstract,citation,keywords,agg,extent)
+  }
   
   protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
   

@@ -29,7 +29,7 @@ class HadsIsoWriter(private val stationQuery:StationQuery,
 
     val extent = getExtent(station)
 
-    val stationInfoUrl = SourceUrls.HADS_STATION_INFORMATION + dbStation.foreign_tag
+    //val stationInfoUrl = SourceUrls.HADS_STATION_INFORMATION + dbStation.foreign_tag
 
     val ops = List(
       //new ServiceIdentificationOperations("SOS Get Capabilities", wqpGetCapsUrl, wqpGetCapsName, wqpGetCapsDesc),
@@ -39,24 +39,11 @@ class HadsIsoWriter(private val stationQuery:StationQuery,
     List(new ServiceIdentification(srvabst, srvtype, id, citation, extent, ops))
   }
 
-  private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
+  override def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     // no temporal extents for HADS
     new ServiceIdentificationExtent(station.getLocation.getY.toString,
-      station.getLocation.getX.toString, "", "")
+      station.getLocation.getX.toString, "unknown", "unknown")
   }
-
-  override def getSensorTagsAndNames(station: LocalStation): List[(String, String)] = {
-    val sensors = stationQuery.getAllSensors(station.databaseStation)
-    return sensors.map { d:DatabaseSensor => {
-      // @TODO is this one to one?
-      val phen = stationQuery.getPhenomena(d)
-      if (phen.length == 0)
-        ("", "")
-      else
-        (phen.head.tag, d.tag)
-    }}
-  }
-
 
   override def getContacts(station: LocalStation) : List[Contact] = {
     val source = station.getSource
@@ -64,22 +51,4 @@ class HadsIsoWriter(private val stationQuery:StationQuery,
     List(new Contact(null,hadsOrgName,phone,source.getAddress,source.getCity,
       source.getState,source.getZipcode,source.getEmail,"hads",source.getWebAddress,hadsRole))
   }
-
-  override def getFileIdentifier(station: LocalStation) : String = {
-    station.databaseStation.foreign_tag
-  }
-
-  override def getDataIdentification(station: LocalStation): DataIdentification = {
-    val idabstract = station.databaseStation.description
-    val citation = new DataIdentificationCitation(idabstract)
-    val keywords = getSensorTagsAndNames(station).map(_._2)
-    val agg = null
-    val extent = getExtent(station)
-    new DataIdentification(idabstract,citation,keywords,agg,extent)
-  }
-
-  override def getForeignTag(station: LocalStation) : String = {
-    station.databaseStation.foreign_tag
-  }
-
 }
