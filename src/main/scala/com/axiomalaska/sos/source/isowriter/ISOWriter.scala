@@ -310,7 +310,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           if (dataIdentification != null)
             addDataIdentification(dataIdentification)
         }
-        { for(srv <- serviceIdentification) yield {
+        { for(srv <- serviceIdentification if srv.ops.length > 0) yield {
             addServiceIdentificationInfo(srv)
           } }
         <gmd:contentInfo>{addContentInfo}</gmd:contentInfo>
