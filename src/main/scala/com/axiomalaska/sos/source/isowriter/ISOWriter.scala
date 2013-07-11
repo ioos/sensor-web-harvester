@@ -567,7 +567,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         <gmd:temporalElement>
           <gmd:EX_TemporalExtent>
             <gmd:extent>
-              <gml:TimePeriod id={tpid}>
+              <gml:TimePeriod id="TP-EX1">
                 { if (extent.timeBegin != null && extent.timeBegin != "") {
                     if (extent.timeBegin.equals("unknown"))
                       <gml:beginPosition indeterminatePosition="unknown"/>
@@ -579,12 +579,12 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
                   }
                 }
                 { if (extent.timeEnd != null && extent.timeEnd != "") {
-                    <gml:endPosition>{extent.timeEnd}</gml:endPosition>
+                    if (extent.timeEnd.equals("unknown"))
+                        <gml:endPosition indeterminatePosition="unknown"/>
+                    else
+                      <gml:endPosition>{extent.timeEnd}</gml:endPosition>
                   }
-                  else if (extent.timeEnd.equals("unknown")) {
-                    <gml:endPosition indeterminatePosition="unknown"/>
-                  }
-                  else { 
+                  else {
                     <gml:endPosition indeterminatePosition="now"/> 
                   }
                 }
