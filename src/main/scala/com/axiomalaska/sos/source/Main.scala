@@ -115,6 +115,7 @@ object Main {
     publisherInfo.setEmail(propertiesRead.email)
     publisherInfo.setName(propertiesRead.name)
     publisherInfo.setWebAddress(propertiesRead.webAddress)
+    publisherInfo.setCode(propertiesRead.name)
 
     val sosManager = new SosSourcesManager(propertiesRead.databaseUrl,
       propertiesRead.databaseUsername, propertiesRead.databasePassword, 
