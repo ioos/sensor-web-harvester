@@ -174,7 +174,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
 
       LOGGER.info("Processing station: " + name)
       Some(new DatabaseStation(name, source.tag + ":" + foreignId, foreignId, "", 
-          "BUOY", source.id, lat.toDouble, lon.toDouble))
+          "BUOY", source.id, lat.toDouble, lon.toDouble, null, null))
     } else {
       None
     }

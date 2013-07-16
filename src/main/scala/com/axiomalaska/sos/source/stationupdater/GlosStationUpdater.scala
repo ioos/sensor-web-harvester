@@ -25,11 +25,11 @@ import org.apache.commons.net.ftp.FTPClient
 import org.apache.commons.net.ftp.FTPFile
 import scala.collection.mutable
 import com.axiomalaska.sos.source.data.PhenomenaFactory
-
 import scala.util.control.Breaks._
-//case class GlosStation (stationName: String, stationId: String, stationDesc: String, lat: Double, lon: Double)
+import org.joda.time.format.ISODateTimeFormat
+import java.sql.Timestamp
 
-case class GLOSStation (stationName: String, stationId: String, stationDesc: String, platformType: String, lat: Double, lon: Double)
+case class GLOSStation (stationName: String, stationId: String, stationDesc: String, platformType: String, lat: Double, lon: Double, time_begin: Timestamp, time_end: Timestamp)
 
 class GlosStationUpdater (private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
@@ -54,6 +54,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private var stationList: List[String] = Nil
   
   private var phenomenaList = stationQuery.getPhenomena
+  private val dateParser = ISODateTimeFormat.dateTime()
 
   def update() {
     
@@ -127,7 +128,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
           val depths = readInDepths(dataXML)
           val stationDB = new DatabaseStation(station.stationName, source.tag + ":" + station.stationId,
               station.stationId, station.stationDesc, station.platformType, 
-              source.id, station.lat, station.lon)
+              source.id, station.lat, station.lon, station.time_begin, station.time_end)
           val sensors = readInSensors((xml \ "contentInfo"), stationDB, depths)
           if (sensors.nonEmpty)
             (stationDB, sensors)
@@ -285,8 +286,16 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val platformType = "BUOY"
     if (desc.length > 254) 
       desc = desc.slice(0, 252) + "..."
+
+    val tpelem = xml \ "identificationInfo" \ "MD_DataIdentification" \ "extent" \\ "TimePeriod"
+
+    val beginval = (tpelem \ "beginPosition").text.trim
+    val time_begin = if (beginval != "") new Timestamp(dateParser.parseDateTime(beginval).getMillis) else null
+    val endval = (tpelem \ "endPosition").text.trim
+    val time_end = if (endval != "") new Timestamp(dateParser.parseDateTime(endval).getMillis) else null
+
     LOGGER.info("read in station: " + name)
-    new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble)
+    new GLOSStation(name, id, desc, platformType, lat.head.toDouble, lon.head.toDouble, time_begin, time_end)
   }
 
 }

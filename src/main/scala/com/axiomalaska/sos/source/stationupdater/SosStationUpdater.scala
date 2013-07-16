@@ -19,6 +19,8 @@ import net.opengis.sos.x10.GetCapabilitiesDocument
 import com.axiomalaska.sos.tools.HttpSender
 import com.axiomalaska.sos.tools.GeomHelper
 import scala.xml.Node
+import org.joda.time.format.ISODateTimeFormat
+import java.sql.Timestamp
 
 abstract class SosStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
@@ -34,6 +36,8 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
   protected val serviceUrl: String
   protected val source: Source
   private val LOGGER = Logger.getLogger(getClass())
+  private val dateParserFull = ISODateTimeFormat.dateTime()
+  private val dateParserNoMillis = ISODateTimeFormat.dateTimeNoMillis()
 
   // ---------------------------------------------------------------------------
   // StationUpdater Members
@@ -255,9 +259,11 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
     val label = observationOffering.getDescription().getStringValue
     val (lat, lon) = getLatLon(observationOffering)
 
+    val (timeBegin, timeEnd) = getTimeExtents(observationOffering)
+
     LOGGER.info("Processing station: " + label)
     return new DatabaseStation(label, stationPostfixName, stationPostfixName,
-      "", "BUOY", source.id, lat, lon)
+      "", "BUOY", source.id, lat, lon, timeBegin.getOrElse(null), timeEnd.getOrElse(null))
   }
 
   private def getLatLon(observationOfferingType: ObservationOfferingType): (Double, Double) = {
@@ -266,6 +272,40 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
     val lon = latLon.get(1).toString().toDouble
 
     return (lat, lon)
+  }
+
+  private def getTimeExtents(observationOffering: ObservationOfferingType): (Option[Timestamp], Option[Timestamp]) = {
+    val tpelem = scala.xml.XML.loadString(observationOffering.getTime.toString)
+    val rFull = "\\.\\d+Z$".r
+    val beginval = (tpelem \ "beginPosition").text.trim
+    var timeBegin : Option[Timestamp] = None
+    try {
+      timeBegin = beginval match {
+        case "" => None
+        case _ if rFull.findFirstIn(beginval) != None => Some(new Timestamp(dateParserFull.parseDateTime(beginval).getMillis))
+        case _ => Some(new Timestamp(dateParserNoMillis.parseDateTime(beginval).getMillis))
+      }
+    } catch {
+      case ex: IllegalArgumentException => {
+        // pass
+      }
+    }
+
+    val endval = (tpelem \ "endPosition").text.trim
+    var timeEnd : Option[Timestamp] = None
+    try {
+      timeEnd = endval match {
+        case "" => None
+        case _ if rFull.findFirstIn(endval) != None => Some(new Timestamp(dateParserFull.parseDateTime(endval).getMillis))
+        case _ => Some(new Timestamp(dateParserNoMillis.parseDateTime(endval).getMillis))
+      }
+    } catch {
+      case ex: IllegalArgumentException => {
+        // pass
+      }
+    }
+
+    return (timeBegin, timeEnd)
   }
 
   private def getNamedQuantityTypes(observationOfferingType: ObservationOfferingType,

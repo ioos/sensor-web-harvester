@@ -21,6 +21,8 @@ import scala.collection.mutable.ListBuffer
 import scala.collection.parallel._
 
 import org.apache.log4j.Logger
+import java.sql.Timestamp
+import org.joda.time.format.DateTimeFormat
 
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
 
@@ -37,7 +39,9 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   private val resultURLBase = "http://www.waterqualitydata.us/Result/search"
   private val stationURLBase = "http://www.waterqualitydata.us/Station/search"
   private val urlCommonOpts = List(new HttpPart("countrycode", "US"), new HttpPart("command.avoid", "NWIS"), new HttpPart("mimeType", "csv"))
-  
+
+  private val dateParser = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")
+
   val name = "STORET"
 
   def update() {
@@ -107,20 +111,25 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       parStations.tasksupport = new ForkJoinTaskSupport(new scala.concurrent.forkjoin.ForkJoinPool(4))
 
       val computed = parStations.map { t:(DatabaseStation,Int) => {
-        val sourcePhenomena = getSourcePhenomena(t._1)
+        val sourceData = getStationData(t._1)
+        val sourcePhenomena = getPhenomenaNameUnitDepths(sourceData)
+        val timeExtents = getTimeExtents(sourceData)
 
         LOGGER.info("[" + (offset + t._2 + 1) + " of " + totallength + "] station: " + t._1.name)
-        (t._1, sourcePhenomena)
+        (t._1, sourcePhenomena, timeExtents)
       }}.seq  // convert to sequential (non-parallel)
 
       val retval = for {
-        (station, sourcePhenomena) <- computed
+        (station, sourcePhenomena, timeExtents) <- computed
+        newStation = updateStationTimeExtents(station, timeExtents)
         phenomena = getObservedProperties(sourcePhenomena)
         dbObservedProps = stationUpdater.updateObservedProperties(source, phenomena)
         sensors = stationUpdater.getSourceSensors(station, dbObservedProps)
         if sensors.nonEmpty
       } yield {
-        (station, sensors)
+        stationQuery.updateStation(station, newStation)   // side effect - update time extents
+
+        (newStation, sensors)
       }
 
       // filter out duplicate stations
@@ -131,6 +140,13 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     }
     
     Nil
+  }
+
+  private def updateStationTimeExtents(station: DatabaseStation, timeExtents: (Option[Timestamp], Option[Timestamp])) : DatabaseStation = {
+    val newStation = new DatabaseStation(station.name, station.tag, station.foreign_tag, station.description, station.platformType,
+    station.source_id, station.latitude, station.longitude, station.active, timeExtents._1.getOrElse(null), timeExtents._2.getOrElse(null))
+
+    return newStation
   }
   
   private def createSourceStation(line: String) : DatabaseStation = {
@@ -145,32 +161,54 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     val lat = getStationLatitude(line)
     val lon = getStationLongitude(line)
     val active = true
-    return new DatabaseStation(name,tag,foreignTag,description,platformType,sourceId,lat,lon,active)
+
+    // to get timeBegin/end we must query for the station's data - we already do this in getObservedPropsForStation,
+    // so we'll update this DatabaseStation at that point.
+    val timeBegin = null
+    val timeEnd = null
+
+    return new DatabaseStation(name,tag,foreignTag,description,platformType,sourceId,lat,lon,active, timeBegin, timeEnd)
   }
-  
-  private def getSourcePhenomena(station: DatabaseStation) : List[(String,String,List[String])] = {
+
+
+  private def getStationData(station: DatabaseStation) : List[String] = {
     // get the results from wqp
     val organization = (station.foreign_tag split "-")
     // skip this organization since it has several hundred stations, all empty
     if (organization.head.equalsIgnoreCase("1117MBR"))
-      return Nil
+      return List()
 
     try {
       val response = sendGetMessage(resultURLBase, urlCommonOpts ::: List(new HttpPart("siteid", station.foreign_tag)))
       if (response != null) {
-        val splitResponse = response.mkString.split('\n')
-        val removeFirstRow = splitResponse.filter(!_.contains("OrganizationIdentifier")).toList
-
-        return getPhenomenaNameUnitDepths(filterCSV(removeFirstRow))
+        val splitResponse = response.mkString.split('\n').drop(1).toList
+        return filterCSV(splitResponse)
       }
     } catch {
       case ex: Exception => {
-          LOGGER error ex.toString
-          ex.printStackTrace()
+        LOGGER error ex.toString
+        ex.printStackTrace()
       }
     }
 
-    return Nil
+    return List()
+  }
+
+  private def getTimeExtents(sourceData: List[String]) : (Option[Timestamp], Option[Timestamp]) = {
+    val timeList = for {
+      timeRow <- sourceData
+      cols = timeRow split ","
+    } yield {
+      val beginTime = if (cols(6) != "") Some(dateParser.parseDateTime(cols(6) + " " + cols(7))) else None
+      val endTime = if (cols(9) != "") Some(dateParser.parseDateTime(cols(9) + " " + cols(10))) else None
+      (beginTime.map(_.getMillis), endTime.map(_.getMillis))
+    }
+
+    val (beginTimeList, endTimeList) = timeList unzip
+    val begin = if (beginTimeList.filter(_.isDefined).length > 0) beginTimeList.min else None
+    val end = if (endTimeList.filter(_.isDefined).length > 0) endTimeList.max else None
+
+    return (begin.map(new Timestamp(_)), end.map(new Timestamp(_)))
   }
 
   private def getObservedProperties(phenomena: List[(String,String,List[String])]) : List[ObservedProperty] = {
@@ -342,4 +380,3 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
       Double.NaN
   }
 }
-  
