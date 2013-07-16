@@ -49,7 +49,7 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     val writers = for (src <- sourceSplit) yield src match {
       case "ndbc" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("wmo") ).head
-          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, 
+          new Some((thisSource,new NdbcSosIsoWriter(stationQuery, templateFile,
               isoDirectory, overwrite)))
       }
       case "storet" => {
@@ -60,6 +60,11 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
       case "hads" => {
         val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("gov.noaa.nws.hads")).head
         new Some((thisSource, new HadsIsoWriter(stationQuery, templateFile,
+          isoDirectory, overwrite)))
+      }
+      case "noaanoscoops" => {
+        val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("NOAA.NOS.CO-OPS")).head
+        new Some((thisSource, new NoaaNosCoOpsIsoWriter(stationQuery, templateFile,
           isoDirectory, overwrite)))
       }
       case _ => None
