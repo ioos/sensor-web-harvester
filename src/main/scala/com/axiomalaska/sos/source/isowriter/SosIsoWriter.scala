@@ -33,15 +33,16 @@ abstract class SosIsoWriter(private val stationQuery:StationQuery,
 
     // @TODO: need to use URL builder from sos-injector, but is private currently
     val getCapsUrl = baseUrl + "?service=SOS&request=GetCapabilities"
-    val descSensorUrl = baseUrl + "?service=SOS&request=DescribeSensor&version=1.0.0&outputformat=text/xml;subtype=%22sensorML/1.0.1%22&procedure=" + java.net.URLEncoder.encode(
-        station.databaseStation.foreign_tag, "UTF-8")
-    val getObsUrl = baseUrl + "?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/xml;subtype=%22om/1.0.0%22&eventtime=latest&offering=" + java.net.URLEncoder.encode(
-          station.databaseStation.foreign_tag, "UTF-8") + "&observedProperty=" + java.net.URLEncoder.encode(getSensorTagsAndNames(station).map(_._1).head, "UTF-8")
+    val descSensorUrl = baseUrl + "?service=SOS&request=DescribeSensor&version=1.0.0&outputformat=text/xml;subtype=%22sensorML/1.0.1%22&procedure=urn:ioos:station:" + java.net.URLEncoder.encode(
+        station.databaseStation.tag, "UTF-8")
+    val obsProp = stationQuery.getAllSensors(station.databaseStation).head.tag
+    val getObsUrl = baseUrl + "?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/xml;subtype=%22om/1.0.0%22&eventtime=latest&offering=urn:ioos:station:" + java.net.URLEncoder.encode(
+          station.databaseStation.tag, "UTF-8") + "&observedProperty=" + java.net.URLEncoder.encode(obsProp, "UTF-8")
 
     val ops = List(
       new ServiceIdentificationOperations("SOS Get Capabilities", getCapsUrl, "SOS", "Sensor Observation Service - GetCapabilities"),
       new ServiceIdentificationOperations("SOS Describe Sensor", descSensorUrl, "SOS", "Sensor Observation Service - DescribeSensor"),
-      new ServiceIdentificationOperations("SOS Get Observation", getObsUrl, "SOS", "Sensor Observation Service - DescribeSensor")
+      new ServiceIdentificationOperations("SOS Get Observation", getObsUrl, "SOS", "Sensor Observation Service - GetObservation")
     )
     List(new ServiceIdentification(srvabst, srvtype, id, citation, extent, ops))
   }
