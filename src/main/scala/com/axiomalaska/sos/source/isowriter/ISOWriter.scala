@@ -86,7 +86,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     
     val source = station.getSource
     // check to see if a directory with the source name exists
-    val sourceDir = new File(isoWriteDirectory + "/" + source.getName)
+    val sourceDir = new File(isoWriteDirectory + "/" + source.getName.toLowerCase)
     if (!sourceDir.exists) {
       if (!sourceDir.mkdir)
         if (!sourceDir.mkdirs)
