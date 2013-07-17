@@ -188,7 +188,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     new DataIdentification(idabstract,citation,keywords,agg,extent)
   }
   
-  protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
+  protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase.replace("wmo:", "") }
   
   //////////////////////////////////////////////////////////////////////////////
   
