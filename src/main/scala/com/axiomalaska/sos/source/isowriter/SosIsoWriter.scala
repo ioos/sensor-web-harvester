@@ -24,7 +24,10 @@ abstract class SosIsoWriter(private val stationQuery:StationQuery,
   override def getServiceInformation(station: LocalStation): List[ServiceIdentification] = {
     val dbStation = station.databaseStation
 
-    val srvabst = dbStation.description
+    val srvabst = dbStation.description match {
+      case "" => dbStation.name
+      case _ => dbStation.description
+    }
     val srvtype = dbStation.platformType
     val id = "SOS"
     val citation = new ServiceIdentificationCitation(sosName, orgName, role)

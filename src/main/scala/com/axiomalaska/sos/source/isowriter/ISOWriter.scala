@@ -154,7 +154,10 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   protected def getFileIdentifier(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
   
   protected def getDataIdentification(station: LocalStation) : DataIdentification = {
-    val idabstract = station.databaseStation.description
+    val idabstract = station.databaseStation.description match {
+      case "" => station.databaseStation.name
+      case _ => station.databaseStation.description
+    }
     val citation = new DataIdentificationCitation(station.getLongName)
     val keywords = getSensorTagsAndNames(station).map(_._2)
     val agg = null
