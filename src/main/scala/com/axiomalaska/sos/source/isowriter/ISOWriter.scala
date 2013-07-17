@@ -13,7 +13,6 @@ import org.apache.log4j.Logger
 
 trait ISOWriter {
   def writeISOFile(station: LocalStation)
-  def writeFileList(sourceName: String)
 }
 
 case class ServiceIdentification(val srvAbstract: String,
@@ -78,8 +77,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   private var dataIdentification: DataIdentification = null
   private var dimensions: List[Dimension] = Nil
   
-  private var fileList: List[String] = Nil
-  
   def writeISOFile(station: LocalStation) {
     lstation = station
     val file = new java.io.File(templateFile)
@@ -110,7 +107,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     }
     
     val fileName = sourceDir.getAbsolutePath + "/" + getForeignTag(station) + ".xml"
-    fileList = getForeignTag(station) + ".xml" :: fileList
     serviceIdentification = getServiceInformation(station)
     contacts = getContacts(station)
     fileIdentifier = getFileIdentifier(station)
@@ -132,27 +128,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           ex.printStackTrace()
       }
     }
-  }
-  
-  def writeFileList(sourceName : String) {
-    val sourceDir = new File(isoWriteDirectory + "/" + sourceName.toLowerCase)
-    val fileName = sourceDir.getAbsoluteFile + "/list.html"
-    LOGGER info "writing to " + fileName
-    try {
-      val file = new java.io.File(fileName)
-      file.createNewFile
-      val writer = new java.io.FileWriter(file)
-      val list = fileListHtml(fileList)
-      writer.write(list.toString)
-      writer.flush
-      writer.close
-    } catch {
-      case ex: Exception => {
-          LOGGER error ex.toString()
-          ex.printStackTrace()
-      }
-    }
-    
   }
   
   // The below should be overwritten in the subclasses /////////////////////////
