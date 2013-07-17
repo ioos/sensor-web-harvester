@@ -135,7 +135,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   }
   
   def writeFileList(sourceName : String) {
-    val sourceDir = new File(isoWriteDirectory + "/" + sourceName)
+    val sourceDir = new File(isoWriteDirectory + "/" + sourceName.toLowerCase)
     val fileName = sourceDir.getAbsoluteFile + "/list.html"
     LOGGER info "writing to " + fileName
     try {
