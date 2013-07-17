@@ -2,6 +2,8 @@ package com.axiomalaska.sos.source.isowriter
 
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
+import org.joda.time.format.ISODateTimeFormat
+import org.joda.time.DateTime
 
 abstract class SosIsoWriter(private val stationQuery:StationQuery,
     private val templateFile: String,
@@ -16,6 +18,8 @@ abstract class SosIsoWriter(private val stationQuery:StationQuery,
   protected val contactPhone : String // eg "(999) 999-9999"
   protected val contactWebId : String
   protected val baseUrl : String     // not including any query params
+
+  private val dateFormatter = ISODateTimeFormat.dateTime()
 
   override def initialSetup(station: LocalStation): Boolean = {
     true
@@ -53,12 +57,12 @@ abstract class SosIsoWriter(private val stationQuery:StationQuery,
   override def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     val beginTime = station.databaseStation.timeBegin match {
       case null => "unknown"
-      case _ => station.databaseStation.timeBegin.toString
+      case _ => dateFormatter.withZoneUTC.print(station.databaseStation.timeBegin.getTime)
     }
     val endTime = station.databaseStation.timeEnd match {
       case null if beginTime == "unknown" || !station.databaseStation.active => "unknown"
       case null  => ""    // blank string means "now"
-      case _  => station.databaseStation.timeEnd.toString
+      case _ => dateFormatter.withZoneUTC.print(station.databaseStation.timeEnd.getTime)
     }
 
     new ServiceIdentificationExtent(station.getLocation.getY.toString,
