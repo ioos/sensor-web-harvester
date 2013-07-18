@@ -127,8 +127,6 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
         sensors = stationUpdater.getSourceSensors(station, dbObservedProps)
         if sensors.nonEmpty
       } yield {
-        stationQuery.updateStation(station, newStation)   // side effect - update time extents
-
         (newStation, sensors)
       }
 
