@@ -4,6 +4,8 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.LocalStation
 import org.joda.time.format.ISODateTimeFormat
 import org.joda.time.DateTime
+import com.axiomalaska.sos.source.observationretriever.SosObservationRetriever.getSensorForeignId
+import scala.collection.JavaConverters._
 
 abstract class SosIsoWriter(private val stationQuery:StationQuery,
     private val templateFile: String,
@@ -42,7 +44,8 @@ abstract class SosIsoWriter(private val stationQuery:StationQuery,
     val getCapsUrl = baseUrl + "?service=SOS&request=GetCapabilities"
     val descSensorUrl = baseUrl + "?service=SOS&request=DescribeSensor&version=1.0.0&outputformat=text/xml;subtype=%22sensorML/1.0.1%22&procedure=urn:ioos:station:" + java.net.URLEncoder.encode(
         station.databaseStation.tag, "UTF-8")
-    val obsProp = stationQuery.getAllSensors(station.databaseStation).head.tag
+
+    val obsProp = station.getSensors().asScala.flatMap(_.getPhenomena.asScala.map(getSensorForeignId(_))).head.split("/").last
     val getObsUrl = baseUrl + "?service=SOS&request=GetObservation&version=1.0.0&responseformat=text/xml;subtype=%22om/1.0.0%22&eventtime=latest&offering=urn:ioos:station:" + java.net.URLEncoder.encode(
           station.databaseStation.tag, "UTF-8") + "&observedProperty=" + java.net.URLEncoder.encode(obsProp, "UTF-8")
 
