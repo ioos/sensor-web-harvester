@@ -104,6 +104,10 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     }
     // read local ISOs for metadata
     val dir = new File(glos_metadata_folder)
+    if (!dir.exists) {
+      LOGGER.info("Directory " + dir.getAbsolutePath() + " doesn't exist")      
+      (null, Nil)
+    }
     LOGGER.info(dir.listFiles.length + " files in directory")
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
         val readin = scala.io.Source.fromFile(file)
