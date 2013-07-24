@@ -106,7 +106,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     val dir = new File(glos_metadata_folder)
     if (!dir.exists) {
       LOGGER.info("Directory " + dir.getAbsolutePath() + " doesn't exist")      
-      (null, Nil)
+      return List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])]()
     }
     LOGGER.info(dir.listFiles.length + " files in directory")
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
