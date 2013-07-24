@@ -1,0 +1,90 @@
+07-23 17:02:48 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "SOURCE" not found; SQL statement:
+Select
+  source12.city as source12_city,
+  source12.zipcode as source12_zipcode,
+  source12.name as source12_name,
+  source12.email as source12_email,
+  source12.state as source12_state,
+  source12.tag as source12_tag,
+  source12.country as source12_country,
+  source12.operator_sector as source12_operator_sector,
+  source12.id as source12_id,
+  source12.web_address as source12_web_address,
+  source12.address as source12_address
+From
+  source source12
+Where
+  (source12.id = ?) [42102-172]
+07-23 17:15:41 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "SOURCE" not found; SQL statement:
+Select
+  source12.city as source12_city,
+  source12.zipcode as source12_zipcode,
+  source12.name as source12_name,
+  source12.email as source12_email,
+  source12.state as source12_state,
+  source12.tag as source12_tag,
+  source12.country as source12_country,
+  source12.operator_sector as source12_operator_sector,
+  source12.id as source12_id,
+  source12.web_address as source12_web_address,
+  source12.address as source12_address
+From
+  source source12
+Where
+  (source12.id = ?) [42102-172]
+07-23 17:17:53 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "SOURCE" not found; SQL statement:
+Select
+  source12.city as source12_city,
+  source12.zipcode as source12_zipcode,
+  source12.name as source12_name,
+  source12.email as source12_email,
+  source12.state as source12_state,
+  source12.tag as source12_tag,
+  source12.country as source12_country,
+  source12.operator_sector as source12_operator_sector,
+  source12.id as source12_id,
+  source12.web_address as source12_web_address,
+  source12.address as source12_address
+From
+  source source12
+Where
+  (source12.id = ?) [42102-172]
+07-23 17:18:09 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "SOURCE" not found; SQL statement:
+Select
+  source12.city as source12_city,
+  source12.zipcode as source12_zipcode,
+  source12.name as source12_name,
+  source12.email as source12_email,
+  source12.state as source12_state,
+  source12.tag as source12_tag,
+  source12.country as source12_country,
+  source12.operator_sector as source12_operator_sector,
+  source12.id as source12_id,
+  source12.web_address as source12_web_address,
+  source12.address as source12_address
+From
+  source source12
+Where
+  (source12.id = ?) [42102-172]
+07-23 17:18:52 jdbc[2]: exception
+org.h2.jdbc.JdbcSQLException: Table "SOURCE" not found; SQL statement:
+Select
+  source12.city as source12_city,
+  source12.zipcode as source12_zipcode,
+  source12.name as source12_name,
+  source12.email as source12_email,
+  source12.state as source12_state,
+  source12.tag as source12_tag,
+  source12.country as source12_country,
+  source12.operator_sector as source12_operator_sector,
+  source12.id as source12_id,
+  source12.web_address as source12_web_address,
+  source12.address as source12_address
+From
+  source source12
+Where
+  (source12.id = ?) [42102-172]

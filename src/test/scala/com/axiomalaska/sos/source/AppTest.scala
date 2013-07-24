@@ -48,9 +48,19 @@ import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.stationupdater.StoretStationUpdater
 //import com.axiomalaska.sos.example.CnfaicSosInjectorFactory
 
-@Test
-class AppTest {
+object AppTest {
+  final val databaseUrl:String = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
 
+  @BeforeClass
+  def setupDatabase ={
+    new MetadataDatabaseManager(AppTest.databaseUrl).init
+  }    
+}
+
+@Test
+class AppTest {  
+  private val sosUrl:String = "http://ioossos.axiomalaska.com/52n-sos-ioos/sos/pox"    
+    
   /**
    * Eureka, CA to East of Yuma, AZ
    */
@@ -59,9 +69,9 @@ class AppTest {
         GeomHelper.createLatLngPoint(40.7641, -114.0830))
   }
   
-  def randomBoundingBox():BoundingBox ={
-    BoundingBox(GeomHelper.createLatLngPoint(39.0, -77.1), 
-        GeomHelper.createLatLngPoint(39.1, -77.0))
+  def smallBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(39.05, -77.1), 
+        GeomHelper.createLatLngPoint(39.1, -77.05))
   }
 
   /**
@@ -88,52 +98,44 @@ class AppTest {
   @Test
   def testOK() = assertTrue(true)
   
-//  @Test
-//  def testStreamFlow(){
-//    val phenomenaFactory = new PhenomenaFactory()
-//    
-//    val streamFlow = 
-//      phenomenaFactory.findCustomPhenomenon(Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_flow")
-//      
-//    println(streamFlow.getUnit().getSymbol())
-//  }
+  @Test
+  def testStreamFlow(){
+    val phenomenaFactory = new PhenomenaFactory()
+    
+    val streamFlow = 
+      phenomenaFactory.findCustomPhenomenon(Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_flow")
+      
+    println(streamFlow.getUnit().getSymbol())
+  }
   
-//  @Test
-//  def updateStationsInDatabase(){
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
-//        "sensoruser", "sensor")
-//    
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new StoretStationUpdater(stationQuery, alaskaBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
-//  
-//  @Test
-//  def updateSos() {
-//    val publisherInfo = new PublisherInfo()
-//    publisherInfo.setCountry("usa")
-//    publisherInfo.setEmail("none@aol.com")
-//    publisherInfo.setName("test")
-//    publisherInfo.setWebAddress("www.ioos.gov")
-//
-//    val databaseUrl = "jdbc:postgresql://localhost:5432/sensor_metadata_database"
-//    val databaseUser = "postgres"
-//    val databasePassword = "postgres"
-//    val sosUrl = "http://staging1.axiom:8080/52n-sos-ioos/sos/pox"
-//    
-//    val factory = new SosInjectorFactory()
-//    val queryBuilder = new StationQueryBuilder(
-//      databaseUrl, databaseUser, databasePassword)
-//
-//    queryBuilder.withStationQuery(stationQuery => {
-//      val sosInjector = factory.buildUsgsWaterSosInjector(
-//        sosUrl, stationQuery, publisherInfo)
-//        
-//      sosInjector.update()
-//    })
-//  }
+  @Test
+  def updateStationsInDatabase(){
+    val queryBuilder = new StationQueryBuilder(AppTest.databaseUrl)
+    
+    queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new StoretStationUpdater(stationQuery, smallBoundingBox)
+      stationUpdater.update()
+    })
+  }
+  
+  @Test
+  def updateSos() {
+    val publisherInfo = new PublisherInfo()
+    publisherInfo.setCountry("usa")
+    publisherInfo.setEmail("none@aol.com")
+    publisherInfo.setName("test")
+    publisherInfo.setWebAddress("www.ioos.gov")
+    
+    val factory = new SosInjectorFactory()
+    val queryBuilder = new StationQueryBuilder(AppTest.databaseUrl)
+
+    queryBuilder.withStationQuery(stationQuery => {
+      val sosInjector = factory.buildUsgsWaterSosInjector(
+        sosUrl, stationQuery, publisherInfo)
+        
+      sosInjector.update()
+    })
+  }
 
 //  @Test
 //  def updateSos2() {
@@ -145,18 +147,15 @@ class AppTest {
 //    pi.setWebAddress("http://test.com");
 //
 //    val sosInjector = CnfaicSosInjectorFactory.buildCnfaicSosInjector(
-//      "http://staging1.axiom:8080/52n-sos-ioos/sos/pox", pi);
+//      sosUrl, pi);
 //
 //    sosInjector.update();
 //  }
 
 //  @Test
 //  def updateSosOneStation() {
-//    val observationSubmitter = new ObservationSubmitter(
-//      "http://staging1.axiom:8080/52n-sos-ioos-dev/sos");
-//    val queryBuilder = new StationQueryBuilder(
-//      "jdbc:postgresql://localhost:5432/sensor_metadata_database", 
-//      "postgres", "postgres")
+//    val observationSubmitter = new ObservationSubmitter(sosUrl);
+//    val queryBuilder = new StationQueryBuilder("jdbc:h2:sensor-web-harvester")
 //    
 //    val publisherInfo = new PublisherInfoImp()
 //
@@ -202,9 +201,7 @@ class AppTest {
 //  @Test
 //  def updateSosOne(){
 //    val factory = new ObservationUpdaterFactory()
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor_metadata_database",
-//        "postgres", "postgres")
+//    val queryBuilder = new StationQueryBuilder("jdbc:h2:sensor-web-harvester")
 //
 //    queryBuilder.withStationQuery(stationQuery => {
 //      val stationRetriever = new StationRetriever2(stationQuery)
@@ -222,8 +219,7 @@ class AppTest {
   
 //  @Test
 //  def testRetriever(){
-//    val queryBuilder = new StationQueryBuilder(
-//        "jdbc:postgresql://localhost:5432/sensor", "sensoruser", "sensor")
+//    val queryBuilder = new StationQueryBuilder("jdbc:h2:sensor-web-harvester")
 //
 //    
 //    queryBuilder.withStationQuery(stationQuery => {

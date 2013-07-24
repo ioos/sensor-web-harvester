@@ -14,13 +14,11 @@ class ISOSourcesManager(private val isoTemplate: String,
                         private val isoDirectory: String,
                         private val sources: String,
                         private val databaseUrl: String,
-                        private val databaseUsername: String,
-                        private val databasePassword: String,
                         private val overwrite: Boolean,
                         private val publisherInfo: PublisherInfo) {
   
   def writeISOs() {
-    val queryBuilder = new StationQueryBuilder(databaseUrl, databaseUsername, databasePassword)
+    val queryBuilder = new StationQueryBuilder(databaseUrl)
     queryBuilder.withStationQuery(stationQuery => {
         val isoWriters = new AggregateIsoWriter(stationQuery, isoTemplate, 
             isoDirectory, sources, overwrite, publisherInfo)
