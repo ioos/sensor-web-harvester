@@ -104,11 +104,6 @@
       <artifactId>gt-shapefile</artifactId>
       <version>9.3</version>
     </dependency>	
-    <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-geojson</artifactId>
-      <version>9.3</version>
-    </dependency>
 	<!-- Needed to allow org.joda DateTime object to work in scala -->
     <dependency>
         <groupId>org.joda</groupId>
