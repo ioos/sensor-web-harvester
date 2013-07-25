@@ -48,19 +48,20 @@ import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.stationupdater.StoretStationUpdater
 //import com.axiomalaska.sos.example.CnfaicSosInjectorFactory
 
-object AppTest {
+object SensorWebHarvesterTest {
   final val databaseUrl:String = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
+  final val metadataDatabaseManager = new MetadataDatabaseManager(SensorWebHarvesterTest.databaseUrl)
+  final val queryBuilder = new StationQueryBuilder(SensorWebHarvesterTest.databaseUrl)
+  final val sosUrl:String = "http://ioossos.axiomalaska.com/52n-sos-ioos/sos/pox"
 
   @BeforeClass
   def setupDatabase ={
-    new MetadataDatabaseManager(AppTest.databaseUrl).init
+    metadataDatabaseManager.init
   }    
 }
 
 @Test
-class AppTest {  
-  private val sosUrl:String = "http://ioossos.axiomalaska.com/52n-sos-ioos/sos/pox"    
-    
+class SensorWebHarvesterTest {  
   /**
    * Eureka, CA to East of Yuma, AZ
    */
@@ -74,6 +75,12 @@ class AppTest {
         GeomHelper.createLatLngPoint(39.1, -77.05))
   }
 
+  def mediumBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(60.0, -145.0), 
+        GeomHelper.createLatLngPoint(65.0, -140.0))
+  }
+  
+  
   /**
    * johnmarks
    */
@@ -94,6 +101,12 @@ class AppTest {
     BoundingBox(GeomHelper.createLatLngPoint(40, -179.0), 
         GeomHelper.createLatLngPoint(85.0, -140.0))
   }
+
+  def southcentralAlaskaBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(59.0, -153.0), 
+        GeomHelper.createLatLngPoint(62.0, -148.0))
+  }
+  
   
   @Test
   def testOK() = assertTrue(true)
@@ -109,33 +122,115 @@ class AppTest {
   }
   
   @Test
-  def updateStationsInDatabase(){
-    val queryBuilder = new StationQueryBuilder(AppTest.databaseUrl)
-    
-    queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new StoretStationUpdater(stationQuery, smallBoundingBox)
+  def testGlosStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new GlosStationUpdater(stationQuery, smallBoundingBox)
       stationUpdater.update()
     })
   }
-  
-  @Test
-  def updateSos() {
-    val publisherInfo = new PublisherInfo()
-    publisherInfo.setCountry("usa")
-    publisherInfo.setEmail("none@aol.com")
-    publisherInfo.setName("test")
-    publisherInfo.setWebAddress("www.ioos.gov")
-    
-    val factory = new SosInjectorFactory()
-    val queryBuilder = new StationQueryBuilder(AppTest.databaseUrl)
 
-    queryBuilder.withStationQuery(stationQuery => {
-      val sosInjector = factory.buildUsgsWaterSosInjector(
-        sosUrl, stationQuery, publisherInfo)
-        
-      sosInjector.update()
+//  @Test
+//  //too slow for normal tests 
+//  def testHadsStationUpdater(){
+//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new HadsStationUpdater(stationQuery, smallBoundingBox)
+//      stationUpdater.update()
+//    })
+//  }
+
+  //  @Test
+//  //too slow for normal tests  
+//  def testNdbcStationUpdater(){
+//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new NdbcStationUpdater(stationQuery, smallBoundingBox)
+//      stationUpdater.update()
+//    })
+//  }
+
+  @Test  
+  def testNdbcSosStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new NdbcSosStationUpdater(stationQuery, smallBoundingBox)
+      stationUpdater.update()
     })
   }
+
+  @Test  
+  def testNerrsStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new NerrsStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
+      stationUpdater.update()
+    })
+  }
+
+  @Test  
+  def testNoaaNosCoOpsStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new NoaaNosCoOpsStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
+      stationUpdater.update()
+    })
+  }
+
+  @Test  
+  def testNoaaWeatherStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new NoaaWeatherStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
+      stationUpdater.update()
+    })
+  }
+
+//  @Test
+//  //too slow for normal testing
+//  def testRawsStationUpdater(){
+//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+//      val stationUpdater = new RawsStationUpdater(stationQuery, smallBoundingBox)
+//      stationUpdater.update()
+//    })
+//  }
+  
+  @Test
+  def testSnoTelStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new SnoTelStationUpdater(stationQuery, mediumBoundingBox)
+      stationUpdater.update()
+    })
+  }
+
+  @Test
+  def testStoretStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new StoretStationUpdater(stationQuery, smallBoundingBox)
+      stationUpdater.update()
+    })
+  }  
+
+  @Test
+  def testUsgsWaterStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new UsgsWaterStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
+      stationUpdater.update()
+    })
+  }  
+  
+  
+//  @Test
+//  def updateSos() {
+//    val publisherInfo = new PublisherInfo()
+//    publisherInfo.setCountry("usa")
+//    publisherInfo.setEmail("none@aol.com")
+//    publisherInfo.setName("test")
+//    publisherInfo.setWebAddress("www.ioos.gov")
+//    
+//    val factory = new SosInjectorFactory()
+//    val queryBuilder = new StationQueryBuilder(SensorWebHarvesterTest.databaseUrl)
+//
+//    queryBuilder.withStationQuery(stationQuery => {
+//      val sosInjector = factory.buildUsgsWaterSosInjector(
+//        SensorWebHarvesterTest.sosUrl, stationQuery, publisherInfo)
+//        
+//      sosInjector.update()
+//    })
+//  }
 
 //  @Test
 //  def updateSos2() {

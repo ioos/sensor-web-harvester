@@ -47,7 +47,7 @@ The network root is the default network in the SOS that contains all the station
 For example for AOOS the default network is urn:ioos:network:aoos:all. The properties file requires the following variables:
 
 * database_url - the URL where the H2 metadata database should be stored.
-               - Example: jdbc:h2:~/sensor_web_harvester or jdbc:h2:/usr/local/sensor_web_harvester   
+                 Example: jdbc:h2:~/sensor_web_harvester or jdbc:h2:/usr/local/sensor_web_harvester   
 * sos_url - the URL to the SOS being used. Example: http://192.168.1.40:8080/sos/sos
 * publisher_country - the publisher's country. Example: USA
 * publisher_email - the publisher's email address
@@ -59,8 +59,8 @@ For example for AOOS the default network is urn:ioos:network:aoos:all. The prope
 * east_lon - the easternmost longitude of the bounding box
 * network_root_id - For this root network urn:ioos:network:aoos:all "all" is the root_id
 * network_root_source_id - For this root network urn:ioos:network:aoos:all "aoos" is the source_id
-* sources - semi-colon seperated value list of sources that are to be updated (optional: this will default to 'all' if it is not the properties file)
-          - Accepted values: all, glos, hads, ndbc, nerrs, noaa_nos_coops, noaaweather, raws, snotel, storet, usgswater
+* sources - semi-colon separated value list of sources that are to be updated (optional: this will default to 'all' if it is not the properties file)
+            Accepted values: all, glos, hads, ndbc, nerrs, noaa_nos_coops, noaaweather, raws, snotel, storet, usgswater
 
 **Note that running these processes can take a long time (hours) as information is downloaded and extracted from many sources.**
 
