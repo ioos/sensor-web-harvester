@@ -3,7 +3,7 @@ package com.axiomalaska.sos.source
 import scala.collection.immutable.HashMap
 
 object StateAbbrevations {
-  val stateAbbreviations = HashMap(
+  val stateAbbreviations = Map(
     "Alabama" -> "al",
     "Alaska" -> "ak",
     "Arizona" -> "az",

@@ -91,7 +91,8 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
 
   private def getStatesTimeSeriesTypes(): List[TimeSeriesType] = {
     val abbrs = for{ state <- MSet(GeoTools.statesInBoundingBox(boundingBox).toList:_*)} yield stateAbbreviations(state)
-    abbrs ++= nonStates
+    //TODO disabling non-state harvest for now, add more robust spatial layer in the future
+//    abbrs ++= nonStates
     abbrs.toList.flatMap(getTimeSeriesTypes)
   }    
 

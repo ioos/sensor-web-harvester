@@ -69,6 +69,23 @@ class SensorWebHarvesterTest {
     BoundingBox(GeomHelper.createLatLngPoint(32.6666, -124.1245), 
         GeomHelper.createLatLngPoint(40.7641, -114.0830))
   }
+
+  /**
+   * For testing HADS (smallest HADS region)
+   */
+  def rhodeIslandBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(41.2, -71.75), 
+        GeomHelper.createLatLngPoint(41.7, -71.3))
+  }
+
+  /**
+   * For testing RAWS (smallest RAWS region)
+   */
+  def iowaBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(40.75, -95.5), 
+        GeomHelper.createLatLngPoint(43.3, -91.5))
+  }
+  
   
   def smallBoundingBox():BoundingBox ={
     BoundingBox(GeomHelper.createLatLngPoint(39.05, -77.1), 
@@ -79,7 +96,6 @@ class SensorWebHarvesterTest {
     BoundingBox(GeomHelper.createLatLngPoint(60.0, -145.0), 
         GeomHelper.createLatLngPoint(65.0, -140.0))
   }
-  
   
   /**
    * johnmarks
@@ -129,17 +145,16 @@ class SensorWebHarvesterTest {
     })
   }
 
-//  @Test
-//  //too slow for normal tests 
-//  def testHadsStationUpdater(){
-//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new HadsStationUpdater(stationQuery, smallBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
+  @Test
+  def testHadsStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new HadsStationUpdater(stationQuery, rhodeIslandBoundingBox)
+      stationUpdater.update()
+    })
+  }
 
   //  @Test
-//  //too slow for normal tests  
+//  //not used and too slow for normal tests  
 //  def testNdbcStationUpdater(){
 //    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
 //      val stationUpdater = new NdbcStationUpdater(stationQuery, smallBoundingBox)
@@ -179,14 +194,13 @@ class SensorWebHarvesterTest {
     })
   }
 
-//  @Test
-//  //too slow for normal testing
-//  def testRawsStationUpdater(){
-//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new RawsStationUpdater(stationQuery, smallBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
+  @Test
+  def testRawsStationUpdater(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      val stationUpdater = new RawsStationUpdater(stationQuery, iowaBoundingBox)
+      stationUpdater.update()
+    })
+  }
   
   @Test
   def testSnoTelStationUpdater(){
