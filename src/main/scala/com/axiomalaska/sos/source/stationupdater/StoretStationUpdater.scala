@@ -5,19 +5,23 @@
 
 package com.axiomalaska.sos.source.stationupdater
 
-import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.source.BoundingBox
-import com.axiomalaska.sos.source.data.SourceId
-import com.axiomalaska.sos.source.data.DatabaseStation
-import com.axiomalaska.sos.source.data.DatabaseSensor
-import com.axiomalaska.sos.source.data.DatabasePhenomenon
-import com.axiomalaska.sos.source.data.LocalPhenomenon
-import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.HttpSender
-import com.axiomalaska.phenomena.Phenomenon
-import com.axiomalaska.phenomena.Phenomena
+import java.net.URLEncoder
+
+import scala.Array.canBuildFrom
+import scala.Option.option2Iterable
 
 import org.apache.log4j.Logger
+
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.sos.source.BoundingBox
+import com.axiomalaska.sos.source.StationQuery
+import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.DatabaseSensor
+import com.axiomalaska.sos.source.data.DatabaseStation
+import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.data.SourceId
+import com.axiomalaska.sos.tools.HttpSender
 
 case class StoretStation (stationId: String, stationName: String, lat: Double, lon: Double, orgId: String)
 
@@ -116,7 +120,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     if (!resultResponse._1.equalsIgnoreCase(station.foreign_tag)) {
       try {
         val request = resultURL + "&siteid=" + 
-        station.foreign_tag + "&organization=" + organization.head
+            URLEncoder.encode(station.foreign_tag) + "&organization=" + URLEncoder.encode(organization.head)
         val response = HttpSender.sendGetMessage(request)
         if (response != null) {
           val splitResponse = response.mkString.split('\n')
