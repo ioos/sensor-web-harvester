@@ -103,7 +103,14 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       }
     }
     // read local ISOs for metadata
-    val dir = new File(glos_metadata_folder)
+    var dir = new File(glos_metadata_folder)
+    if (!dir.exists) {
+      //try to load from classpath
+      val glosMetadataDirResource = getClass.getClassLoader.getResource(glos_metadata_folder)
+      if (glosMetadataDirResource != null) {
+        dir = new File(glosMetadataDirResource.toURI)
+      }
+    }
     if (!dir.exists) {
       LOGGER.info("Directory " + dir.getAbsolutePath() + " doesn't exist")      
       return List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])]()
@@ -138,15 +145,16 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   }
   
   private def readInData(stationid: String) : scala.xml.Elem = {
-    val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
     var retval: scala.xml.Elem = null
     try {
       for (file <- glos_ftp.listFiles) {
-        if (file.getName.contains(stationid)) {
+        if (file.getName.contains(stationid) && file.getName.toLowerCase.endsWith(".xml")) {
+          val byteStream = new ByteArrayOutputStream
           glos_ftp.retrieveFile(file.getName, byteStream) match {
             case true => {
                 try {
-                  retval = scala.xml.XML.loadString(byteStream.toString("UTF-8").trim)
+                  val xmlStr = byteStream.toString("UTF-8").trim
+                  retval = scala.xml.XML.loadString(xmlStr)
                   return retval
                 } catch {
                   case ex: Exception => 

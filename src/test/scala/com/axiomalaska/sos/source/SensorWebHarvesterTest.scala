@@ -140,7 +140,7 @@ class SensorWebHarvesterTest {
   @Test
   def testGlosStationUpdater(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new GlosStationUpdater(stationQuery, smallBoundingBox)
+      val stationUpdater = new GlosStationUpdater(stationQuery, worldBoundingBox)
       stationUpdater.update()
     })
   }
