@@ -7,6 +7,8 @@ import com.axiomalaska.sos.source.stationupdater.NdbcStationUpdater
 import com.axiomalaska.sos.tools.HttpSender
 import org.jsoup.Jsoup
 import scala.collection.JavaConversions._
+import com.axiomalaska.sos.source.observationretriever.UsgsWaterObservationRetriever
+import com.axiomalaska.sos.source.stationupdater.UsgsWaterStationUpdater
 import com.axiomalaska.sos.source.stationupdater.HadsStationUpdater
 import com.axiomalaska.sos.source.stationupdater.NoaaNosCoOpsStationUpdater
 import com.axiomalaska.sos.source.stationupdater.NoaaWeatherStationUpdater
@@ -18,6 +20,10 @@ import javax.measure.unit.SI
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.source.observationretriever.SnoTelObservationRetriever
 import com.axiomalaska.sos.source.data.SourceId
+import com.axiomalaska.sos.source.data.Source
+import com.axiomalaska.sos.source.data.DatabaseStation
+import com.axiomalaska.sos.source.data.DatabaseSensor
+import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.StationRetriever
 import com.axiomalaska.sos.data.SosStation
 import com.axiomalaska.sos.source.data.LocalStation
@@ -38,6 +44,7 @@ import com.axiomalaska.sos.data.PublisherInfo
 import com.axiomalaska.sos.source.stationupdater.NdbcSosStationUpdater
 import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
+import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.SosNetwork
 import com.axiomalaska.sos.tools.GeomHelper
 import org.n52.sos.ioos.asset.NetworkAsset
@@ -46,6 +53,13 @@ import com.axiomalaska.phenomena.UnitResolver
 import com.axiomalaska.sos.source.data.PhenomenaFactory
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.stationupdater.StoretStationUpdater
+import com.axiomalaska.sos.source.observationretriever.GlosObservationRetriever
+import org.joda.time.DateTime
+import com.axiomalaska.sos.source.observationretriever.NdbcSosObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.RawsObservationRetriever
+import com.axiomalaska.sos.source.observationretriever.StoretObservationRetriever
 //import com.axiomalaska.sos.example.CnfaicSosInjectorFactory
 
 object SensorWebHarvesterTest {
@@ -122,7 +136,41 @@ class SensorWebHarvesterTest {
     BoundingBox(GeomHelper.createLatLngPoint(59.0, -153.0), 
         GeomHelper.createLatLngPoint(62.0, -148.0))
   }
-  
+
+  def kodiakBoundingBox():BoundingBox ={
+    BoundingBox(GeomHelper.createLatLngPoint(56.0, -156.0), 
+        GeomHelper.createLatLngPoint(59.0, -151.5))
+  }
+
+  def getTestConstellation(stationQuery:StationQuery, sourceId:Int, dateTime:DateTime):
+          (LocalStation, LocalSensor, LocalPhenomenon, DateTime) = {
+      val source = stationQuery.getSource(sourceId)
+      assertNotNull(source)
+      
+      val stations = stationQuery.getAllStations(source)
+      assertNotNull(stations)
+      assertFalse(stations.isEmpty)
+      val station = stations.head
+      assertNotNull(station)
+      
+      val sensors = stationQuery.getAllSensors(station)
+      assertNotNull(sensors)
+      assertFalse(sensors.isEmpty)
+      val sensor = sensors.head
+      assertNotNull(sensor)
+      
+      val phenomena = stationQuery.getPhenomena(sensor)
+      assertNotNull(phenomena)
+      assertFalse(phenomena.isEmpty)
+      val phenomenon = phenomena.head
+      assertNotNull(phenomenon)
+
+      val localSource = new LocalSource(source)
+      val localStation = new LocalStation(localSource, station, stationQuery)
+      val localSensor = new LocalSensor(sensor, localStation, stationQuery)      
+      val localPhenomenon = new LocalPhenomenon(phenomenon)            
+      return (localStation, localSensor, localPhenomenon, dateTime)
+  }
   
   @Test
   def testOK() = assertTrue(true)
@@ -138,91 +186,106 @@ class SensorWebHarvesterTest {
   }
   
   @Test
-  def testGlosStationUpdater(){
+  def testGlos(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new GlosStationUpdater(stationQuery, worldBoundingBox)
-      stationUpdater.update()
+      new GlosStationUpdater(stationQuery, worldBoundingBox).update
+//      new GlosObservationRetriever(stationQuery).getObservationValues _ tupled
+//          getTestConstellation(stationQuery, SourceId.GLOS, new DateTime().minusDays(1))
     })
   }
 
   @Test
-  def testHadsStationUpdater(){
+  def testHads(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new HadsStationUpdater(stationQuery, rhodeIslandBoundingBox)
-      stationUpdater.update()
+      new HadsStationUpdater(stationQuery, rhodeIslandBoundingBox).update
+      val obsValues = new HadsObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.HADS, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)
     })
   }
 
-  //  @Test
-//  //not used and too slow for normal tests  
-//  def testNdbcStationUpdater(){
-//    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-//      val stationUpdater = new NdbcStationUpdater(stationQuery, smallBoundingBox)
-//      stationUpdater.update()
-//    })
-//  }
+  //Non-sos NDBC not tested, not used and too slow
 
   @Test  
-  def testNdbcSosStationUpdater(){
+  def testNdbcSos(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new NdbcSosStationUpdater(stationQuery, smallBoundingBox)
-      stationUpdater.update()
-    })
-  }
-
-  @Test  
-  def testNerrsStationUpdater(){
-    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new NerrsStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
-      stationUpdater.update()
+      new NdbcSosStationUpdater(stationQuery, kodiakBoundingBox).update
+      val obsValues = new NdbcSosObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.NDBC, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)      
     })
   }
 
   @Test  
-  def testNoaaNosCoOpsStationUpdater(){
+  def testNerrs(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new NoaaNosCoOpsStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
-      stationUpdater.update()
+      new NerrsStationUpdater(stationQuery, alaskaBoundingBox).update
+      val obsValues = new NerrsObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.NERRS, new DateTime().minusDays(5))
+      //TODO why is obsValues empty?
+//      assertFalse(obsValues.isEmpty)
     })
   }
 
   @Test  
-  def testNoaaWeatherStationUpdater(){
+  def testNoaaNosCoOps(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new NoaaWeatherStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
-      stationUpdater.update()
+      new NoaaNosCoOpsStationUpdater(stationQuery, southcentralAlaskaBoundingBox).update
+      val obsValues = new NoaaNosCoOpsObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.NOAA_NOS_CO_OPS, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)      
+    })
+  }
+
+  @Test  
+  def testNoaaWeather(){
+    SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
+      new NoaaWeatherStationUpdater(stationQuery, southcentralAlaskaBoundingBox).update
+      val obsValues = new NoaaNosCoOpsObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.NOAA_WEATHER, new DateTime().minusDays(5))
+      //TODO why is obsValues empty?
+//      assertFalse(obsValues.isEmpty)
     })
   }
 
   @Test
-  def testRawsStationUpdater(){
+  def testRaws(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new RawsStationUpdater(stationQuery, iowaBoundingBox)
-      stationUpdater.update()
+      new RawsStationUpdater(stationQuery, iowaBoundingBox).update
+      val obsValues = new RawsObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.RAWS, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)
     })
   }
   
   @Test
-  def testSnoTelStationUpdater(){
+  def testSnoTel(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new SnoTelStationUpdater(stationQuery, mediumBoundingBox)
-      stationUpdater.update()
+      new SnoTelStationUpdater(stationQuery, mediumBoundingBox).update
+      val obsValues = new SnoTelObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.SNOTEL, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)
     })
   }
 
   @Test
-  def testStoretStationUpdater(){
+  def testStoret(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new StoretStationUpdater(stationQuery, smallBoundingBox)
-      stationUpdater.update()
+      new StoretStationUpdater(stationQuery, smallBoundingBox).update
+      val obsValues = new StoretObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.STORET, new DateTime().minusDays(1))
+      //TODO why is obsValues empty?
+//      assertFalse(obsValues.isEmpty)
     })
   }  
 
   @Test
-  def testUsgsWaterStationUpdater(){
+  def testUsgsWater(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
-      val stationUpdater = new UsgsWaterStationUpdater(stationQuery, southcentralAlaskaBoundingBox)
-      stationUpdater.update()
+      new UsgsWaterStationUpdater(stationQuery, southcentralAlaskaBoundingBox).update
+      val obsValues = new UsgsWaterObservationRetriever(stationQuery).getObservationValues _ tupled
+          getTestConstellation(stationQuery, SourceId.USGSWATER, new DateTime().minusDays(1))
+      assertFalse(obsValues.isEmpty)
     })
   }  
   

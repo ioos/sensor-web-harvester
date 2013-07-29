@@ -10,8 +10,7 @@ CREATE TABLE IF NOT EXISTS source (
     city VARCHAR(255),
     state VARCHAR(255),
     zipcode VARCHAR(255)
-) AS SELECT ROWNUM(), *
-FROM CSVREAD('classpath:source.csv');
+) AS SELECT * FROM CSVREAD('classpath:source.csv');
 
 CREATE TABLE IF NOT EXISTS network (
     id INTEGER PRIMARY KEY AUTO_INCREMENT NOT NULL,
