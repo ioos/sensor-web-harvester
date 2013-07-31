@@ -297,13 +297,14 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     } else if (lname.equals("specific conductance")) {
       Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
     } else if (units contains "#/100ml") {
-      Phenomena.instance.createPhenomenonWithPPmL(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"#.100mL-1")
     } else if (units.toLowerCase contains "ug/l") {
-      Phenomena.instance.createPhenomenonWithugL(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"10e-1mg.L-1")
     } else if (units.toLowerCase contains "cfu") {
-      Phenomena.instance.createPhenonmenonWithCFU(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"cfu.100mL-1")
     } else {
       // create a homeless parameter
+      LOGGER.debug("Unknown phenomenon: " + lname + " " + units)
       Phenomena.instance.createHomelessParameter(nameToTag(lname), units)
     }
   }

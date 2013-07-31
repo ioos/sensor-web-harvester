@@ -218,10 +218,8 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       case "mass_concentration_of_oxygen_in_sea_water" => return Phenomena.instance.MASS_CONCENTRATION_OF_OXYGEN_IN_SEA_WATER
       case "sea_water_ph_reported_on_total_scale" => return Phenomena.instance.SEA_WATER_PH_REPORTED_ON_TOTAL_SCALE
       case "sea_water_electrical_conductivity" => return Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
-      // When a Phenomena project is release with this change: https://github.com/axiomalaska/phenomena/commit/83aa8512dd748199fa9539dc2600b46348e77814
-      // we can change the following to the normal syntax used by the others.
-      case "northward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("northward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
-      case "eastward_sea_water_velocity" => return Phenomena.instance.createHomelessParameter("eastward_sea_water_velocity", "http://mmisw.org/ont/cf/parameter/","m/s")
+      case "northward_sea_water_velocity" => return Phenomena.instance.NORTHWARD_SEA_WATER_VELOCITY
+      case "eastward_sea_water_velocity" => return Phenomena.instance.EASTWARD_SEA_WATER_VELOCITY
       case "sun_radiation" => return Phenomena.instance.SOLAR_RADIATION
       case _ => LOGGER.info("Unhandled case: " + tag)
     }
