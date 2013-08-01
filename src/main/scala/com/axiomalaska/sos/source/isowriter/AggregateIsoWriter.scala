@@ -20,7 +20,6 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
                          private val overwrite: Boolean = true,
                          private val publisherInfo: PublisherInfo) {
 
-  private var sourceList: List[String] = Nil
   private val LOGGER = Logger.getLogger(getClass())
   
   def writeISOs() {
@@ -35,12 +34,8 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
           wrt.writeISOFile(new LocalStation(new LocalSource(src), station, 
               stationQuery))
         }
-        wrt.writeFileList(src.name)
-        sourceList = src.name :: sourceList
       }
     )
-    
-    writeSourceList
   }
   
   private def getSourceWriters() : List[(Source,ISOWriter)] = {
@@ -49,47 +44,28 @@ class AggregateIsoWriter(private val stationQuery: StationQuery,
     val writers = for (src <- sourceSplit) yield src match {
       case "ndbc" => {
           val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("wmo") ).head
-          new Some((thisSource,new NdbcIsoWriter(stationQuery, templateFile, 
+          new Some((thisSource,new NdbcSosIsoWriter(stationQuery, templateFile,
               isoDirectory, overwrite)))
       }
       case "storet" => {
-          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("storet") ).head
+          val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("us.storet") ).head
           new Some((thisSource,new StoretIsoWriter(stationQuery, templateFile, 
               isoDirectory, overwrite)))
+      }
+      case "hads" => {
+        val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("gov.noaa.nws.hads")).head
+        new Some((thisSource, new HadsIsoWriter(stationQuery, templateFile,
+          isoDirectory, overwrite)))
+      }
+      case "noaanoscoops" => {
+        val thisSource = dbSources.filter( _.tag.equalsIgnoreCase("NOAA.NOS.CO-OPS")).head
+        new Some((thisSource, new NoaaNosCoOpsIsoWriter(stationQuery, templateFile,
+          isoDirectory, overwrite)))
       }
       case _ => None
     }
     // return list that has all 'None' removed
     val retval = writers.filter( _.isDefined ).map( _.get )
     retval.toList
-  }
-  
-  private def writeSourceList() = {
-    val fileName = isoDirectory + "/sources.html"
-    try {
-      val file = new java.io.File(fileName)
-      file.createNewFile
-      val writer = new java.io.FileWriter(file)
-      writer.write(sourceListHtml.toString)
-      writer.flush
-      writer.close
-    } catch {
-      case ex: Exception => {
-          LOGGER error ex.toString
-          ex.printStackTrace()
-      }
-    }
-  }
-  
-  private def sourceListHtml() : scala.xml.Elem = {
-    <html>
-      <body>
-        <ul>
-          { for (src <- sourceList) yield {
-            <li>{ src }</li>
-          } }
-        </ul>
-      </body>
-    </html>
   }
 }

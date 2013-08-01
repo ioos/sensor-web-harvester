@@ -277,7 +277,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
             val foreignId = s.getSiteCodeArray(0).getStringValue
             val station = new DatabaseStation(s.getSiteName,
               source.tag + ":" + foreignId, foreignId, "", "FIXED MET STATION", source.id,
-              p.getLatitude, p.getLongitude)
+              p.getLatitude, p.getLongitude, null, null)
 
             return Some(station)
           }

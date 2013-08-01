@@ -16,10 +16,12 @@ import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.sos.source.Units
+import org.joda.time.DateTime
 
 case class NerrsStation(siteId: String, stationCode: String, stationName: String,
   latitude: Double, longitude: Double, isActive: Boolean, state: String,
-  reserveName: String, paramsReported: List[String])
+  reserveName: String, paramsReported: List[String], time_begin: DateTime,
+  time_end: DateTime)
 
 class NerrsStationUpdater(
   private val stationQuery: StationQuery,
@@ -210,7 +212,7 @@ class NerrsStationUpdater(
       source.tag + ":" + nerrsStation.stationCode,
       nerrsStation.stationCode, nerrsStation.reserveName,
       "FIXED MET STATION", source.id, nerrsStation.latitude,
-      nerrsStation.longitude)
+      nerrsStation.longitude, null, null)
   }
 
   private def createNerrsStations(): List[NerrsStation] = {
@@ -231,7 +233,7 @@ class NerrsStationUpdater(
           val paramsReported = (row \\ "Params_Reported").text.split(",").toList
 
           NerrsStation(siteId, stationCode, stationName, latitude, longitude,
-            isActive, state, reserveName, paramsReported)
+            isActive, state, reserveName, paramsReported, null, null)
         }
 
         nerrsStations.toList

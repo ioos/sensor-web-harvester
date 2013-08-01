@@ -179,7 +179,9 @@ private class StationQueryImp(url:String) extends StationQuery {
           set (s.name := newStation.name,
               s.tag := newStation.tag,
             s.latitude := newStation.latitude, 
-            s.longitude := newStation.longitude))
+            s.longitude := newStation.longitude,
+            s.timeBegin := newStation.timeBegin,
+            s.timeEnd := newStation.timeEnd))
     }
   }
   

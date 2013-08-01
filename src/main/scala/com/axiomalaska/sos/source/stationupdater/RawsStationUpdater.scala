@@ -200,7 +200,7 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
       LOGGER.info("Processed station: " + label)
       return Some(new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, "", 
-          "FIXED MET STATION", source.id, lat, lon))
+          "FIXED MET STATION", source.id, lat, lon, null, null))
     } else {
       LOGGER.info("response not found ------------------------")
       None

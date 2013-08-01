@@ -12,7 +12,19 @@ import java.text.SimpleDateFormat
 import java.util.Calendar
 import org.apache.log4j.Logger
 
-class NdbcIsoWriter(private val stationQuery:StationQuery, 
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+// superceded by NdbcSosIsoWriter
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+// **************************************************************************
+
+class NdbcIsoWriter(private val stationQuery:StationQuery,
     private val templateFile: String,
     private val isoDirectory: String,
     private val overwrite: Boolean) 
@@ -124,7 +136,7 @@ class NdbcIsoWriter(private val stationQuery:StationQuery,
   
   //////////////////////////////////////////////////////////////////////////////
   
-  private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
+  override def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     val temporals = getStationTemporalExtents(station)
     val begin = if (temporals._1 != null) formatDateTime(temporals._1) else ""
     val end = if (temporals._2 != null) formatDateTime(temporals._2) else ""

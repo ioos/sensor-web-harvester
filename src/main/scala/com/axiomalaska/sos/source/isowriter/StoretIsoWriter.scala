@@ -191,7 +191,7 @@ class StoretIsoWriter(private val stationQuery:StationQuery,
     new DataIdentification(srvabst,citation,keywords,agg,extent)
   }
 
-  private def getExtent(station: LocalStation): ServiceIdentificationExtent = {
+  override def getExtent(station: LocalStation): ServiceIdentificationExtent = {
     val temporals = getStationTemporalExtents
     val begin = if (temporals._1 != null) {
       if (temporals._1.getTimeInMillis != Long.MaxValue)
