@@ -18,6 +18,7 @@ import org.joda.time.DateTimeZone
 import com.axiomalaska.phenomena.Phenomena
 import scala.xml.Node
 import org.joda.time.format.DateTimeFormat
+import com.axiomalaska.sos.source.data.RawValues
 
 object SosObservationRetriever {
   /**
@@ -80,108 +81,41 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery)
   
   private val LOGGER = Logger.getLogger(getClass())
   private val sosRawDataRetriever = new SosRawDataRetriever()
-  private val dateParser = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ")
   
   protected val serviceUrl:String
-  
+
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
   // ---------------------------------------------------------------------------
-  
-  def getObservationValues(station: LocalStation, sensor: LocalSensor, 
-      phenomenon: LocalPhenomenon, startDate: DateTime):List[ObservationValues] ={
 
-    val thirdyDaysOld = DateTime.now().minusDays(30)
-    
-    val adjustedStartDate = if(startDate.isBefore(thirdyDaysOld)){
-      thirdyDaysOld
-    }
-    else{
-      startDate
-    }
-    
-    val sensorForeignId = getSensorForeignId(phenomenon)
-    
-    val rawData = sosRawDataRetriever.getRawData(serviceUrl,
-          station.databaseStation.foreign_tag,
-          sensorForeignId, adjustedStartDate, DateTime.now())
-          
-//    println(rawData)
+  def getObservationValues(station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon, startDate: DateTime): List[ObservationValues] = {
 
-    val xmlResult = scala.xml.XML.loadString(rawData)
+    val sensorForeignId = sosRawDataRetriever.getSensorForeignId(phenomenon)
 
-    xmlResult.find(node => node.label == "CompositeObservation") match {
-      case Some(compositeObNode) => {
-        buildSensorObservationValues(compositeObNode,
-          station, sensor, phenomenon, startDate)
-      }
-      case None => {
-        LOGGER.error("station ID: " + station.databaseStation.foreign_tag)
-        Nil
-      }
+    val rawData = sosRawDataRetriever.getRawData(serviceUrl, 
+        sensorForeignId, station.databaseStation.foreign_tag, startDate, DateTime.now())
+
+    val observationValuesCollection = createSensorObservationValuesCollection(
+        station, sensor, phenomenon)
+    val phenomenonForeignTags = observationValuesCollection.map(_.observedProperty.foreign_tag)
+
+    for {
+      rawValue <- sosRawDataRetriever.createRawValues(rawData, phenomenonForeignTags)
+      observationValues <- observationValuesCollection.find(
+          _.observedProperty.foreign_tag == rawValue.phenomenonForeignTag)
+      (dateTime, value) <- rawValue.values
+      if (dateTime.isAfter(startDate))
+    } {
+      observationValues.addValue(value, dateTime)
     }
+
+    observationValuesCollection
   }
 
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
-
-  private case class NamedQuantity(name:String, value:Double)
-  
-  private def buildSensorObservationValues(
-    compositeObservationDocument: Node, 
-    station: LocalStation, sensor: LocalSensor, phenomenon: LocalPhenomenon, 
-    startDate: DateTime): List[ObservationValues] = {
-      
-    val observationValuesCollection = createSensorObservationValuesCollection(
-        station, sensor, phenomenon)
-    
-    val resultNode = compositeObservationDocument \ "result"
-    
-    val arrayNodeOption = (resultNode \ "Composite" \ "valueComponents" \ 
-    	"Array" \ "valueComponents" \ "Composite" \ "valueComponents" \ "Array").headOption
-
-    for {
-      arrayNode <- arrayNodeOption
-      compositeNode <- arrayNode \\ "Composite"
-      valueComponents <- (compositeNode \ "valueComponents").headOption
-      compositeContextNode <- (valueComponents \ "CompositeContext").headOption
-      val dateTime = createDate(compositeContextNode)
-      if (dateTime.isAfter(startDate))
-      namedQuantity <- getNamedQuantities(valueComponents)
-    } {
-      observationValuesCollection.find(observationValues =>
-        observationValues.observedProperty.foreign_tag ==
-          namedQuantity.name) match {
-        case Some(sensorObservationValue) =>
-          sensorObservationValue.addValue(namedQuantity.value, dateTime)
-        case None => //println("namedQuantityType.getName(): " + namedQuantityType.getName())
-      }
-    }
-
-    observationValuesCollection
-  }
-  
-  private def createDate(compositeContextNode:Node):DateTime ={
-    (compositeContextNode \\ "timePosition").headOption match{
-      case Some(timePositionNode) =>{
-        dateParser.parseDateTime(timePositionNode.text)
-      }
-      case None => throw new Exception("did not find datetime")
-    }
-  }
-  
-  private def getNamedQuantities(valueComponentsNode:Node):List[NamedQuantity] ={
-    (for{valueNode <- (valueComponentsNode \ "CompositeValue")
-      quantity <- valueNode \\ "Quantity"
-      names <- quantity.attribute("name")
-      nameNode <- names.headOption
-      val name = nameNode.text
-      if(quantity.text.nonEmpty)
-      val value = quantity.text.toDouble} yield{
-      NamedQuantity(name, value)
-    }).toList
-  }
   
   private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -193,3 +127,4 @@ abstract class SosObservationRetriever(private val stationQuery:StationQuery)
     }
   }
 }
+

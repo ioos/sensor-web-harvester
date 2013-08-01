@@ -17,20 +17,16 @@ import com.axiomalaska.sos.source.SourceUrls
 import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.DateTimeZone
+import com.axiomalaska.sos.source.data.RawValues
 
 class HadsObservationRetriever(private val stationQuery:StationQuery) 
 	extends ObservationValuesCollectionRetriever {
 
-  
   // ---------------------------------------------------------------------------
   // Private Data
   // ---------------------------------------------------------------------------
   
   private val LOGGER = Logger.getLogger(getClass())
-  private val httpSender = new HttpSender()
-  private val gmtTimeZone = DateTimeZone.forID("GMT")
-  private val gmtTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm")
-            .withZone(gmtTimeZone)
             
   // ---------------------------------------------------------------------------
   // ObservationValuesCollectionRetriever Members
@@ -43,33 +39,40 @@ class HadsObservationRetriever(private val stationQuery:StationQuery)
     LOGGER.info("HADS: Collecting for station - " + 
         station.databaseStation.foreign_tag)
 
-    val parts = List[HttpPart](
-      new HttpPart("state", "nil"),
-      new HttpPart("hsa", "nil"),
-      new HttpPart("of", "1"),
-      new HttpPart("nesdis_ids", station.databaseStation.foreign_tag),
-      new HttpPart("sinceday", calculatedSinceDay(startDate)))
-
-    val result =
-      httpSender.sendPostMessage(SourceUrls.HADS_OBSERVATION_RETRIEVAL, parts);
+    val result = HadsObservationRetriever.getRawData(
+        station.databaseStation.foreign_tag, startDate)
 
     if (result != null) {
-      val observationValuesCollections =
-        createSensorObservationValuesCollection(station, sensor, phenomenon)
-
-      for { observationValues <- observationValuesCollections } {
-        collectValues(result, observationValues, startDate, DateTime.now())
-      }
-
-      observationValuesCollections
+      collectionObservationValues(result, startDate, station, sensor, phenomenon)
     } else {
       Nil
     }
   }
-  
+
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
+
+  private def collectionObservationValues(result: String, startDate: DateTime,
+    station: LocalStation, sensor: LocalSensor,
+    phenomenon: LocalPhenomenon): List[ObservationValues] = {
+    val observationValuesCollections =
+        createSensorObservationValuesCollection(station, sensor, phenomenon)
+
+    val phenomenonForeignTags = observationValuesCollections.map(_.observedProperty.foreign_tag)
+      for {
+        rawValues <- HadsObservationRetriever.createRawValues(result,
+         phenomenonForeignTags)
+         observationValues <- observationValuesCollections.find(
+             _.observedProperty.foreign_tag == rawValues.phenomenonForeignTag)
+         (dateTime, value) <- rawValues.values
+        if (dateTime.isAfter(startDate))
+      } {
+        observationValues.addValue(value.toDouble, dateTime)
+      }
+
+    observationValuesCollections
+  }
   
   private def createSensorObservationValuesCollection(station: LocalStation, 
       sensor: LocalSensor, phenomenon: LocalPhenomenon): List[ObservationValues] = {
@@ -80,23 +83,59 @@ class HadsObservationRetriever(private val stationQuery:StationQuery)
       new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
-  
+
   private def collectValues(data: String, observationValues: ObservationValues,
-    startDate: DateTime, endDate: DateTime) {
-    
-    val pattern = new Regex(observationValues.observedProperty.foreign_tag
-      + """\|(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\|(-?\d+.\d+)\|  \|""")
+    startDate: DateTime) {
 
-    for (patternMatch <- pattern.findAllIn(data)) {
-      val pattern(rawDate, value) = patternMatch
-      val calendar = gmtTimeFormatter.parseDateTime(rawDate)
-      if (calendar.isAfter(startDate) && calendar.isBefore(endDate)) {
+  }
+}
+object HadsObservationRetriever{
+  private val httpSender = new HttpSender()
+  private val gmtTimeZone = DateTimeZone.forID("GMT")
+  private val gmtTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm")
+            .withZone(gmtTimeZone)
+  
+  /**
+   * Get the raw unparsed string data for the station from the source
+   */
+  def getRawData(stationForeignId: String, startDate: DateTime):String = {
+    val parts = List[HttpPart](
+      new HttpPart("state", "nil"),
+      new HttpPart("hsa", "nil"),
+      new HttpPart("of", "1"),
+      new HttpPart("nesdis_ids", stationForeignId),
+      new HttpPart("sinceday", calculatedSinceDay(startDate)))
 
-        observationValues.addValue(value.toDouble, calendar)
-      }
+    httpSender.sendPostMessage(SourceUrls.HADS_OBSERVATION_RETRIEVAL, parts)
+  }
+  
+  /**
+   * Parse the raw unparsed data into DateTime, Value list. 
+   * 
+   * phenomenonForeignTag - The HADS Phenomenon Foreign Tag
+   */
+  def createRawValues(data: String, 
+      phenomenonForeignTags: List[String]): List[RawValues] ={
+    for { phenomenonForeignTag <- phenomenonForeignTags } yield {
+      val pattern = new Regex(phenomenonForeignTag
+        + """\|(\d{4}-\d{2}-\d{2} \d{2}:\d{2})\|(-?\d+.\d+)\|  \|""")
+
+      val values = (for {
+        patternMatch <- pattern.findAllIn(data)
+        val pattern(rawDate, value) = patternMatch
+        val calendar = gmtTimeFormatter.parseDateTime(rawDate)
+      } yield {
+        (calendar, value.toDouble)
+      }).toList
+      
+      RawValues(phenomenonForeignTag, values)
     }
   }
   
+  // ---------------------------------------------------------------------------
+  // Private Members
+  // ---------------------------------------------------------------------------
+
   private def calculatedSinceDay(startDate: DateTime):String ={
     val currentDate:DateTime = DateTime.now()
     val copyStartDate:DateTime = startDate.toDateTime()

@@ -12,11 +12,19 @@ import scala.collection.JavaConversions._
 import com.axiomalaska.sos.tools.HttpSender
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
+import org.joda.time.format.DateTimeFormat
+import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.sos.source.data.RawValues
+import scala.collection.mutable
+import scala.xml.Node
 
 class SosRawDataRetriever() {
   private val formatDate = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'")
   private val LOGGER = Logger.getLogger(getClass())
-    
+  private val dateParser = DateTimeFormat.forPattern("yyyy-MM-dd'T'HH:mm:ssZ")
+  private case class NamedQuantity(name:String, value:Double)
+  
   def getRawData(serviceUrl:String, 
       stationPostFixName:String, observedProperty:String, 
       startDate: DateTime, endDate: DateTime): String = {
@@ -148,10 +156,122 @@ class SosRawDataRetriever() {
     return results;
   }
   
+  /**
+   * The SOS that we are pulling the data from has different Phenomenon URLs than the SOS
+   * we are placing the data into. For example the pulling data SOS has one URL for
+   * wind where the SOS we are pushing data into has three wind_speed, wind_direction, and wind_gust
+   */
+  def getSensorForeignId(phenomenon: Phenomenon): String = {
+
+    if (phenomenon.getTag == Phenomena.instance.AIR_PRESSURE.getTag) {
+      "http://mmisw.org/ont/cf/parameter/air_pressure"
+    } else if (phenomenon.getTag == Phenomena.instance.AIR_TEMPERATURE.getTag) {
+      "http://mmisw.org/ont/cf/parameter/air_temperature"
+    } else if (phenomenon.getTag == Phenomena.instance.SEA_WATER_TEMPERATURE.getTag) {
+      "http://mmisw.org/ont/cf/parameter/sea_water_temperature"
+    } else if (phenomenon.getTag == Phenomena.instance.CURRENT_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.CURRENT_SPEED.getTag) {
+      "http://mmisw.org/ont/cf/parameter/currents"
+    } else if (phenomenon.getTag == Phenomena.instance.SEA_SURFACE_HEIGHT_ABOVE_SEA_LEVEL.getTag) {
+      "http://mmisw.org/ont/cf/parameter/water_surface_height_above_reference_datum"
+    } else if (phenomenon.getTag ==
+      Phenomena.instance.SEA_SURFACE_HEIGHT_AMPLITUDE_DUE_TO_GEOCENTRIC_OCEAN_TIDE.getTag) {
+      "http://mmisw.org/ont/cf/parameter/sea_surface_height_amplitude_due_to_equilibrium_ocean_tide"
+    } else if (phenomenon.getTag == Phenomena.instance.WIND_FROM_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.WIND_SPEED_OF_GUST.getTag ||
+      phenomenon.getTag == Phenomena.instance.WIND_SPEED.getTag ||
+      phenomenon.getTag == Phenomena.instance.WIND_GUST_FROM_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.WIND_VERTICAL_VELOCITY.getTag) {
+      "http://mmisw.org/ont/cf/parameter/winds"
+    } else if (phenomenon.getTag == Phenomena.instance.SALINITY.getTag()) {
+      "http://mmisw.org/ont/cf/parameter/sea_water_salinity"
+    } else if (phenomenon.getTag == Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_WIND_WAVE_TO_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_WIND_WAVE_PERIOD.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_WIND_WAVE_SIGNIFICANT_HEIGHT.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_SWELL_WAVE_PERIOD.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_SWELL_WAVE_SIGNIFICANT_HEIGHT.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_SWELL_WAVE_TO_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.SEA_SURFACE_DOMINANT_WAVE_TO_DIRECTION.getTag ||
+      phenomenon.getTag == Phenomena.instance.DOMINANT_WAVE_PERIOD.getTag ||
+      phenomenon.getTag == Phenomena.instance.SIGNIFICANT_WAVE_HEIGHT.getTag ||
+      phenomenon.getTag == Phenomena.instance.MEAN_WAVE_PERIOD.getTag) {
+      "http://mmisw.org/ont/cf/parameter/waves"
+    } else {
+      throw new Exception("Sensor Foreign Id not found: " + phenomenon.getTag())
+    }
+  }
+  
+  /**
+   * Parse the raw unparsed data into DateTime, Value list.
+   *
+   * phenomenonForeignTag - The HADS Phenomenon Foreign Tag
+   */
+  def createRawValues(rawData: String, phenomenonForeignTags: List[String]): List[RawValues] = {
+
+    val xmlResult = scala.xml.XML.loadString(rawData)
+    xmlResult.find(node => node.label == "CompositeObservation") match {
+      case Some(compositeObservationDocument) => {
+        val resultNode = compositeObservationDocument \ "result"
+
+        val arrayNodeOption = (resultNode \ "Composite" \ "valueComponents" \
+          "Array" \ "valueComponents" \ "Composite" \ "valueComponents" \ "Array").headOption
+
+        val rawValuesMap = new mutable.HashMap[String, mutable.ListBuffer[(DateTime, Double)]]()
+
+        phenomenonForeignTags.foreach(tag =>
+          rawValuesMap.put(tag, new mutable.ListBuffer[(DateTime, Double)]()))
+
+        for {
+          arrayNode <- arrayNodeOption
+          compositeNode <- arrayNode \\ "Composite"
+          valueComponents <- (compositeNode \ "valueComponents").headOption
+          compositeContextNode <- (valueComponents \ "CompositeContext").headOption
+          val dateTime = createDate(compositeContextNode)
+          namedQuantity <- getNamedQuantities(valueComponents)
+        } {
+          rawValuesMap.get(namedQuantity.name) match {
+            case Some(values) =>
+              values.add((dateTime, namedQuantity.value))
+            case None => // do nothing
+          }
+        }
+
+        (for { (phenomenonForeignTag, values) <- rawValuesMap } yield {
+          RawValues(phenomenonForeignTag, values.toList)
+        }).toList
+      }
+      case None => {
+        Nil
+      }
+    }
+  }
+  
   // ---------------------------------------------------------------------------
   // Private Members
   // ---------------------------------------------------------------------------
-
+  
+  private def createDate(compositeContextNode:Node):DateTime ={
+    (compositeContextNode \\ "timePosition").headOption match{
+      case Some(timePositionNode) =>{
+        dateParser.parseDateTime(timePositionNode.text)
+      }
+      case None => throw new Exception("did not find datetime")
+    }
+  }
+  
+ private def getNamedQuantities(valueComponentsNode:Node):List[NamedQuantity] ={
+    (for{valueNode <- (valueComponentsNode \ "CompositeValue")
+      quantity <- valueNode \\ "Quantity"
+      names <- quantity.attribute("name")
+      nameNode <- names.headOption
+      val name = nameNode.text
+      if(quantity.text.nonEmpty)
+      val value = quantity.text.toDouble} yield{
+      NamedQuantity(name, value)
+    }).toList
+  }
+ 
   private def getDateObjectInGMTTime(calendar:DateTime):Date={
     val copyCalendar = calendar.toCalendar(null)
     copyCalendar.setTimeZone(TimeZone.getTimeZone("GMT"))
