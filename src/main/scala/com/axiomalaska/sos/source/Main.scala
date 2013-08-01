@@ -17,8 +17,6 @@ case class Properties(val sosUrl: String,
       val name: String,
       val webAddress: String,
       val databaseUrl: String,
-      val databaseUsername: String,
-      val databasePassword: String,
       val northLat: Double,
       val southLat: Double,
       val westLon: Double,
@@ -55,6 +53,8 @@ object Main {
       val propertiesFilePath = args(1)
 
       val properties = createProperties(propertiesFilePath)
+      initDatabase(properties)
+
       if (tag == "-metadata") {
         updateMetadata(properties)
       } else if (tag == "-updatesos") {
@@ -78,13 +78,21 @@ object Main {
       LOGGER.info("Total Elapsed Time for harvesting (in secs): " + elapsedTime)
    }
   }
+
+  private def initDatabase(properties:PropertiesConfiguration){
+    val propertiesRead = readProperties(properties)
+    
+    LOGGER.info("Initializing Database: " + propertiesRead.databaseUrl)
+    
+    val metadataDatabaseManager = new MetadataDatabaseManager(propertiesRead.databaseUrl)
+
+    metadataDatabaseManager.init()    
+  }
   
   private def updateMetadata(properties:PropertiesConfiguration){   
     val propertiesRead = readProperties(properties)
       
     LOGGER.info("Database URL: " + propertiesRead.databaseUrl)
-    LOGGER.info("Database Username: " + propertiesRead.databaseUsername)
-    LOGGER.info("Database Password: " + propertiesRead.databasePassword)
 
     LOGGER.info("North Lat: " + propertiesRead.northLat)
     LOGGER.info("South Lat: " + propertiesRead.southLat)
@@ -99,12 +107,9 @@ object Main {
     val northEastCorner = GeomHelper.createLatLngPoint(propertiesRead.northLat, 
         propertiesRead.eastLon)
     val boundingBox = BoundingBox(southWestCorner, northEastCorner)
-    val metadataDatabaseManager = new MetadataDatabaseManager(
-      propertiesRead.databaseUrl, propertiesRead.databaseUsername, 
-      propertiesRead.databasePassword,
-      boundingBox, propertiesRead.sources.toLowerCase)
+    val metadataDatabaseManager = new MetadataDatabaseManager(propertiesRead.databaseUrl)
 
-    metadataDatabaseManager.update()
+    metadataDatabaseManager.update(boundingBox, propertiesRead.sources.toLowerCase)
   }
   
   private def updateSos(properties:PropertiesConfiguration){
@@ -115,10 +120,10 @@ object Main {
     publisherInfo.setEmail(propertiesRead.email)
     publisherInfo.setName(propertiesRead.name)
     publisherInfo.setWebAddress(propertiesRead.webAddress)
+    publisherInfo.setCode(propertiesRead.name)
 
     val sosManager = new SosSourcesManager(propertiesRead.databaseUrl,
-      propertiesRead.databaseUsername, propertiesRead.databasePassword, 
-      propertiesRead.sosUrl, publisherInfo, propertiesRead.sources)
+        propertiesRead.sosUrl, publisherInfo, propertiesRead.sources)
 
     sosManager.updateSos();
   }
@@ -133,8 +138,7 @@ object Main {
     publisherInfo.setWebAddress(propertiesRead.webAddress)
     
     val isoManager = new ISOSourcesManager(propertiesRead.isoTemplate, 
-        propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl,
-        propertiesRead.databaseUsername, propertiesRead.databasePassword, 
+        propertiesRead.isoLocation, propertiesRead.sources, propertiesRead.databaseUrl, 
         overWrite, publisherInfo)
     
     isoManager.writeISOs()
@@ -143,8 +147,6 @@ object Main {
   private def readProperties(properties: PropertiesConfiguration) : Properties = {
     val sosUrl = properties.getString("sos_url")
     val databaseUrl = properties.getString("database_url")
-    val databaseUsername = properties.getString("database_username")
-    val databasePassword = properties.getString("database_password")
     val country = properties.getString("publisher_country", "country")
     val email = properties.getString("publisher_email", "email")
     val name = properties.getString("publisher_name", "name")
@@ -159,7 +161,6 @@ object Main {
       
     LOGGER.info("sosUrl: " + sosUrl)
     LOGGER.info("databaseUrl: " + databaseUrl)
-    LOGGER.info("databaseUsername: " + databaseUsername)
     LOGGER.info("country: " + country)
     LOGGER.info("email: " + email)
     LOGGER.info("name: " + name)
@@ -172,9 +173,8 @@ object Main {
     LOGGER.info("isoTemplate: " + isoTemplate)
     LOGGER.info("isoLocation: " + isoLocation)
     
-    Properties(sosUrl,country,email,name,webAddress,databaseUrl,databaseUsername,
-                          databasePassword,northLat,southLat,westLon,eastLon,
-                          sources,isoTemplate,isoLocation)
+    Properties(sosUrl,country,email,name,webAddress,databaseUrl,
+        northLat,southLat,westLon,eastLon,sources,isoTemplate,isoLocation)
   }
   
   private def createProperties(propertiesFilePath: String): PropertiesConfiguration = {

@@ -95,7 +95,18 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
       }
     }
     // read local ISOs for metadata
-    val dir = new File(glos_metadata_folder)
+    var dir = new File(glos_metadata_folder)
+    if (!dir.exists) {
+      //try to load from classpath
+      val glosMetadataDirResource = getClass.getClassLoader.getResource(glos_metadata_folder)
+      if (glosMetadataDirResource != null) {
+        dir = new File(glosMetadataDirResource.toURI)
+      }
+    }
+    if (!dir.exists) {
+      LOGGER.info("Directory " + dir.getAbsolutePath() + " doesn't exist")      
+      return List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])]()
+    }
     LOGGER.info(dir.listFiles.length + " files in directory")
     var path_list: Array[FTPFile] = glos_ftp.listFiles
     val finallist = for (file <- dir.listFiles; if file.getName.contains(".xml")) yield {
@@ -140,7 +151,7 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
     }
     finallist.filter(p => p._2.nonEmpty).toList
   }
-  
+
   private def readInDepths(data: scala.xml.Elem) : List[Double] = {
     var continue: Boolean = true
     var retval: List[Double] = Nil

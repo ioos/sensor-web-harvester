@@ -321,7 +321,7 @@ abstract class SosStationUpdater(private val stationQuery: StationQuery,
           getPropertyNames(compositeObNode, phenomenonUrl)
         }
         case None => {
-          LOGGER.error(" station ID: " + station.foreign_tag +
+          LOGGER.warn(" station ID: " + station.foreign_tag +
             " phenomenon: " + phenomenonUrl + " error: parsing data ")
           Nil
         }

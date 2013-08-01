@@ -1,0 +1,11 @@
+id,name,tag,county,email,web_address,operator_sector,address,city,state,zipcode
+1,RAWS,edu.dri.raws,USA,wrcc@dri.edu,http://www.raws.dri.edu/,academic,2215 Raggio Parkway,Reno,NV,89512-1095
+2,NOAA NOS CO-OPS,NOAA.NOS.CO-OPS,USA,None,http://co-ops.nos.noaa.gov/,gov_federal,1305 East-West Highway,Silver Spring,MD,20910-3281
+3,HADS,gov.noaa.nws.hads,USA,HDSC.questions@noaa.gov,http://dipper.nws.noaa.gov/hdsc/pfds/,gov_federal,1325 East West Highway,Silver Spring,MD,20910
+4,NDBC,wmo,USA,webmaster.ndbc@noaa.gov,http://www.ndbc.noaa.gov/,gov_federal,Bldg. 3205,Stennis Space Center,MS,39529
+5,SnoTel,gov.usda.nrcs.wcc.snotel,USA,tony.tolsdorf@por.usda.gov,http://www.wcc.nrcs.usda.gov/snow/,gov_federal,"1201 NE Lloyd Blvd., Suite 802",Portland,OR,97232-1274
+6,USGS Water,gov.usgs.waterdata,USA,MAPSManager@alaskageographic.org,http://waterdata.usgs.gov/nwis,gov_federal,12201 Sunrise Valley Drive,Reston,VA,20192
+7,NOAA Weather,gov.noaa.nws,USA,w-nws.webmaster@noaa.gov,http://www.weather.gov/,gov_federal,1325 East West Highway,Silver Spring,MD,20910
+8,NERRS,cdmo.nerrs,USA,Laurie.Mcgilvray@noaa.gov,http://www.nerrs.noaa.gov/,gov_federal,1305 East West Highway,Silver Spring,MD,20910
+9,STORET,us.storet,USA,none,http://www.aoos.org gov_federal,"1007 W. Third Avenue, Suite 100",Anchorage,AK,99501
+10,GLOS,us.glos,USA,kpaige@glos.us,http://glos.us/,gov_federal,229 Nickels Arcade,Ann Arbor,MI,48104

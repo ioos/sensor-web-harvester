@@ -11,6 +11,7 @@ import com.axiomalaska.sos.source.Units
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.StateAbbrevations.stateAbbreviations
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.tools.HttpPart
@@ -25,6 +26,7 @@ import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.SourceUrls
 import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.sos.source.data.PhenomenaFactory
+import scala.collection.mutable.{Set => MSet}
 
 class HadsStationUpdater(
   private val stationQuery: StationQuery,
@@ -39,7 +41,7 @@ class HadsStationUpdater(
   private val sensorParser = """\n\s([A-Z]{2}[A-Z0-9]{0,1})\(\w+\)""".r
   private val geoTools = new GeoTools()
   private val phenomenaFactory = new PhenomenaFactory()
-
+  private val nonStates = Set("PR","CN")
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -110,7 +112,7 @@ class HadsStationUpdater(
   private def createSourceStations(): List[DatabaseStation] = {
     val set = new mutable.HashSet[String]()
     for {
-      stateUrl <- getAllStateUrls()
+      stateUrl <- getStateUrls()
       element <- getStationElements(stateUrl)
       station <- createStation(element)
       if (!set.contains(station.foreign_tag))
@@ -194,6 +196,10 @@ class HadsStationUpdater(
     }
   }
 
+  /**
+   * This method gets all state URLs. Use getStateUrls() to get all states in the bounding box, plus PR
+   */
+  @Deprecated
   private def getAllStateUrls(): List[String] = {
     val results = HttpSender.sendGetMessage(SourceUrls.HADS_COLLECTION_STATE_URLS)
 
@@ -209,6 +215,13 @@ class HadsStationUpdater(
 //    List("http://amazon.nws.noaa.gov/hads/charts/AK.html")
   }
 
+  private def getStateUrls(): List[String] = {
+    val abbrs = for{ state <- MSet(GeoTools.statesInBoundingBox(boundingBox).toList:_*)} yield stateAbbreviations(state).toUpperCase
+    //TODO disabling non-state harvest for now, add more robust spatial layer in the future    
+//    abbrs ++= nonStates
+    abbrs.map( abbr => SourceUrls.HADS_STATE_URL_TEMPLATE.format(abbr)).toList
+  }
+  
   private def getStationElements(stateUrl: String): List[Element] = {
     val results = HttpSender.sendGetMessage(stateUrl)
 

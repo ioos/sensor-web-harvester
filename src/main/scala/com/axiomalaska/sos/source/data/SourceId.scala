@@ -1,5 +1,9 @@
 package com.axiomalaska.sos.source.data
 
+/**
+ * THESE IDS MUST MATCH THE ID COLUMN IN source.csv!
+ * Otherwise all kinds of madness will ensue!
+ */
 object SourceId {
   val RAWS = 1
   val NOAA_NOS_CO_OPS = 2

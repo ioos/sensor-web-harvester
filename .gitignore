@@ -1,7 +1,5 @@
 *.class
 *log*
-*.csv
-*.sql
 
 # Package Files #
 *.gz
@@ -21,8 +19,6 @@ example.properties
 epa_*
 *txt
 *log*
-*csv
-glos_metadata_test.xml
 glos_station/*
 glosbuoy_metadata/*
 *gz
