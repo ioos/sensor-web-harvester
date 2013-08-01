@@ -8,15 +8,16 @@ import org.apache.log4j.Logger
  * sources for a selected region. 
  */
 class MetadataDatabaseManager(    
-    private val databaseUrl:String, 
-	private val databaseUser:String, 
-	private val databasePassword:String,
-	private val boundingBox:BoundingBox, 
-        private val sources: String) {
+    private val databaseUrl:String) {
+  val queryBuilder = new StationQueryBuilder(databaseUrl)
 
-  def update() {
-    val queryBuilder = new StationQueryBuilder(
-      databaseUrl, databaseUser, databasePassword)
+  def init() {
+    queryBuilder.withStationQuery(stationQuery => {
+      stationQuery.init
+    })
+  }
+  
+  def update(boundingBox:BoundingBox, sources: String) {
     queryBuilder.withStationQuery(stationQuery => {
       val stationUpdater = new AggregateStationUpdater(stationQuery, 
           boundingBox, sources)

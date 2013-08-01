@@ -98,4 +98,15 @@ class GeoToolsTest {
 		assertFalse(geotools.isStationWithinRegion(
 				stationLocation, boundingBox));
 	}
+	
+    @Test
+    def testStatesInBoundingBox() {
+        val southWestCorner = GeomHelper.createLatLngPoint(40, -170);
+        val northEastCorner = GeomHelper.createLatLngPoint(60, -130);
+        val boundingBox = BoundingBox(southWestCorner, northEastCorner)
+        
+        val states = GeoTools.statesInBoundingBox(boundingBox)
+        assertTrue(states.size == 1)
+        assertEquals(states.head, "Alaska")
+    }
 }

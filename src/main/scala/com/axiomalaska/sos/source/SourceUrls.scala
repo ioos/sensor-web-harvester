@@ -4,6 +4,7 @@ object SourceUrls {
 
   val HADS_OBSERVATION_RETRIEVAL = "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData"
   val HADS_COLLECTION_STATE_URLS = "http://amazon.nws.noaa.gov/hads/goog_earth/"
+  val HADS_STATE_URL_TEMPLATE = "http://amazon.nws.noaa.gov/hads/charts/%s.html"
   val HADS_STATION_INFORMATION = "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id="
 
   val NDBC_SOS = "http://sdf.ndbc.noaa.gov/sos/server.php"
@@ -15,6 +16,7 @@ object SourceUrls {
 
   val RAWS_OBSERVATION_RETRIEVAL = "http://www.raws.dri.edu/cgi-bin/wea_list2.pl"
   val RAWS_STATION_INFORMATION = "http://www.raws.dri.edu/cgi-bin/wea_info.pl?"
+  val RAWS_STATE_URL_TEMPLATE = "http://www.raws.dri.edu/%slst.html"
 
   val SNOTEL_OBSERVATION_RETRIEVAL = "http://www.wcc.nrcs.usda.gov/nwcc/view"
   val SNOTEL_COLLECTION_SENSOR_INFO_FOR_STATION = "http://www.wcc.nrcs.usda.gov/nwcc/sensors"

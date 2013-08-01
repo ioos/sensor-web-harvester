@@ -5,17 +5,23 @@
 
 package com.axiomalaska.sos.source.stationupdater
 
-import com.axiomalaska.sos.source.StationQuery
-import com.axiomalaska.sos.source.BoundingBox
-import com.axiomalaska.sos.source.data.SourceId
-import com.axiomalaska.sos.source.data.DatabaseStation
-import com.axiomalaska.sos.source.data.DatabaseSensor
-import com.axiomalaska.sos.source.data.DatabasePhenomenon
-import com.axiomalaska.sos.source.data.LocalPhenomenon
-import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.{HttpSender, HttpPart}
-import com.axiomalaska.phenomena.Phenomenon
+import java.net.URLEncoder
+
+import scala.Array.canBuildFrom
+import scala.Option.option2Iterable
+
+import org.apache.log4j.Logger
+
 import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
+import com.axiomalaska.sos.source.BoundingBox
+import com.axiomalaska.sos.source.StationQuery
+import com.axiomalaska.sos.source.data.DatabasePhenomenon
+import com.axiomalaska.sos.source.data.DatabaseSensor
+import com.axiomalaska.sos.source.data.DatabaseStation
+import com.axiomalaska.sos.source.data.ObservedProperty
+import com.axiomalaska.sos.source.data.SourceId
+import com.axiomalaska.sos.tools.{HttpSender, HttpPart}
 import scala.collection.JavaConversions._
 import scala.collection.mutable.ListBuffer
 import scala.collection.parallel._
@@ -30,7 +36,7 @@ case class StoretStation (stationId: String, stationName: String, lat: Double, l
 // Otherwise all existing stations in the database are ignored.
 
 class StoretStationUpdater (private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+                            private val boundingBox: BoundingBox) extends StationUpdater {
 
   private val source = stationQuery.getSource(SourceId.STORET)
   private val stationUpdater = new StationUpdateTool(stationQuery)
@@ -64,7 +70,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     val convParts: java.util.List[HttpPart] = ListBuffer(parts: _*)
     HttpSender.sendGetMessage(baseUrl, convParts)
   }
-  
+
   private def getSourceStations(bbox: BoundingBox, stationTags: Set[String]) :
   List[DatabaseStation] = {
     // create the station request url by adding the bounding box
@@ -96,7 +102,7 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
   }
 
   private def getObservedPropsForStations(stations: List[DatabaseStation], offset:Int, totallength:Int) :
-    List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
+  List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
 
     //   In parallel, iterate these DatabaseStations:
     //     Get all phenomenas from web service
@@ -136,17 +142,17 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     } catch {
       case ex: Exception => LOGGER error ex.toString; ex.printStackTrace()
     }
-    
+
     Nil
   }
 
   private def updateStationTimeExtents(station: DatabaseStation, timeExtents: (Option[Timestamp], Option[Timestamp])) : DatabaseStation = {
     val newStation = new DatabaseStation(station.name, station.tag, station.foreign_tag, station.description, station.platformType,
-    station.source_id, station.latitude, station.longitude, station.active, timeExtents._1.getOrElse(null), timeExtents._2.getOrElse(null))
+      station.source_id, station.latitude, station.longitude, station.active, timeExtents._1.getOrElse(null), timeExtents._2.getOrElse(null))
 
     return newStation
   }
-  
+
   private def createSourceStation(line: String) : DatabaseStation = {
     // make sure that each string input is less than 255!!
     val name = reduceLargeStrings(getStationName(line))
@@ -222,40 +228,40 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
 
     proplistlist
   }
-  
+
   private def filterCSV(csv: List[String]) : List[String] = {
-      var inQuote: Boolean = false
-      csv.map( l => {
-//        LOGGER.info("Line before filter:\n" + l)
-        val newString = for (ch <- l) yield ch match {
-          case '"' if (!inQuote) => { inQuote = true; '\1' }
-          case ',' if (inQuote) => '\0'
-          case '"' if (inQuote) => { inQuote = false; '\1' }
-          case default => default
-        }
-        val ns = newString.filter(_ != '\1')
-//        LOGGER.info("line after filter:\n" + ns)
-        ns
-      } )
+    var inQuote: Boolean = false
+    csv.map( l => {
+      //        LOGGER.info("Line before filter:\n" + l)
+      val newString = for (ch <- l) yield ch match {
+        case '"' if (!inQuote) => { inQuote = true; '\1' }
+        case ',' if (inQuote) => '\0'
+        case '"' if (inQuote) => { inQuote = false; '\1' }
+        case default => default
+      }
+      val ns = newString.filter(_ != '\1')
+      //        LOGGER.info("line after filter:\n" + ns)
+      ns
+    } )
   }
-  
+
   private def reduceLargeStrings(str: String) : String = {
     if (str.length > 254)
       str.substring(0, 255)
     else
       str
   }
-  
+
   private def fixUnitsString(units: String) : String = {
     // fix any unit string issues here (ex: cannot contain '#' and '/' should be replaced with a '.' and then add a '-1')
     var retval = units.replaceAll("#", "parts")
     retval
   }
-  
+
   private def nameToTag(name: String) : String = {
     name.trim.toLowerCase.replaceAll("""[\s-]+""", "_").replaceAll("""[\W]+""", "")
   }
-  
+
   private def matchPhenomenaToName(name: String, units: String) : Phenomenon = {
     val lname = name.toLowerCase
     if (lname.equals("ammonium") || lname.equals("ammonium as n")) {
@@ -295,86 +301,87 @@ class StoretStationUpdater (private val stationQuery: StationQuery,
     } else if (lname.equals("specific conductance")) {
       Phenomena.instance.SEA_WATER_ELECTRICAL_CONDUCTIVITY
     } else if (units contains "#/100ml") {
-      Phenomena.instance.createPhenomenonWithPPmL(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"#.100mL-1")
     } else if (units.toLowerCase contains "ug/l") {
-      Phenomena.instance.createPhenomenonWithugL(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"10e-1mg.L-1")
     } else if (units.toLowerCase contains "cfu") {
-      Phenomena.instance.createPhenonmenonWithCFU(nameToTag(lname))
+      Phenomena.instance.createHomelessParameter(nameToTag(lname),"cfu.100mL-1")
     } else {
       // create a homeless parameter
+      LOGGER.debug("Unknown phenomenon: " + lname + " " + units)
       Phenomena.instance.createHomelessParameter(nameToTag(lname), units)
     }
   }
-  
+
   private def getPhenomenaNameUnitDepths(station: List[String]) : List[(String,String,List[String])] = {
     // go through the results and get the names of all lines w/o 'Non-detect'
     val splitLines = station filter { !_.contains("Non-detect") } map { _.split(",") }
     val fixed = splitLines.map(_.map(_.replaceAll("\0", "")))
     // 'charactername' is at index 31, 'units' string is index 34
     val phenomMap = (fixed map { _.zipWithIndex }) map { s => s.foldRight("","","")((nindex,retval) => nindex._2 match {
-          case 31 => (nindex._1,retval._2,retval._3)
-          case 34 => (retval._1,nindex._1,retval._3)
-          case 12 => (retval._1,retval._2,nindex._1)
-          case _ => retval
-        } ) }
+      case 31 => (nindex._1,retval._2,retval._3)
+      case 34 => (retval._1,nindex._1,retval._3)
+      case 12 => (retval._1,retval._2,nindex._1)
+      case _ => retval
+    } ) }
     phenomMap.groupBy( _._1 ).map( sl => {
-        val depths = sl._2.map(m => m._3)
-        val unitcode = sl._2.head._2
-        (sl._1,unitcode,depths)
-      } ).toList
+      val depths = sl._2.map(m => m._3)
+      val unitcode = sl._2.head._2
+      (sl._1,unitcode,depths)
+    } ).toList
   }
-  
+
   private def getStationName(station: String) : String = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 3
-      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 3 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      retval.replaceAll("\0", ",")
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 3
+    val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 3 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    retval.replaceAll("\0", ",")
   }
-  
+
   private def getStationTag(station: String) : String = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 2
-      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 2 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      retval.replaceAll("\0", ",")
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 2
+    val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 2 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    retval.replaceAll("\0", ",")
   }
-  
+
   private def getStationDescription(station: String) : String = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 5
-      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 5 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      retval.replaceAll("\0",",")
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 5
+    val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 5 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    retval.replaceAll("\0",",")
   }
-  
+
   private def getStationType(station: String) : String = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 4
-      val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 4 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      retval.replaceAll("\0", ",")
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 4
+    val retval = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 4 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    retval.replaceAll("\0", ",")
   }
-  
+
   private def getStationLatitude(station: String) : Double = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 11
-      val lat = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 11 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      try {
-        return java.lang.Double.parseDouble(lat)
-      } catch {
-        case ex: Exception => {
-            LOGGER error ex.toString
-        }
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 11
+    val lat = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 11 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    try {
+      return java.lang.Double.parseDouble(lat)
+    } catch {
+      case ex: Exception => {
+        LOGGER error ex.toString
       }
-      Double.NaN
+    }
+    Double.NaN
   }
-  
+
   private def getStationLongitude(station: String) : Double = {
-      val splitLines = (station split ",")
-      // okay so below allows us to search by index looking for the earliest instance of index 12
-      val lon = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 12 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
-      try {
-        return java.lang.Double.parseDouble(lon)
-      } catch {
-        case ex: Exception => LOGGER error ex.toString
-      }
-      Double.NaN
+    val splitLines = (station split ",")
+    // okay so below allows us to search by index looking for the earliest instance of index 12
+    val lon = (splitLines zipWithIndex).foldRight("",0)((a,b) => { b._2 match { case 12 => (b._1,b._2); case _ => (a._1,a._2) } } )._1
+    try {
+      return java.lang.Double.parseDouble(lon)
+    } catch {
+      case ex: Exception => LOGGER error ex.toString
+    }
+    Double.NaN
   }
 }

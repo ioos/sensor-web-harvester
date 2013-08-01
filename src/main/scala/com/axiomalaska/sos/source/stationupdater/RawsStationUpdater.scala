@@ -25,6 +25,7 @@ import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.SourceUrls
 import com.axiomalaska.sos.tools.GeomHelper
+import scala.collection.mutable.{Set => MSet}
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
@@ -44,7 +45,62 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
   private val httpSender = new HttpSender()
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.RAWS)
-    
+  private val nonStates = Set("pr")
+  private val stateCodeMap = Map(
+    "Alabama" -> Set("al_ms"),
+    "Alaska" -> Set("ak"),
+    "Arizona" -> Set("az"),
+    "Arkansas" -> Set("ar"),
+    "California" -> Set("nca","cca","sca"),
+    "Colorado" -> Set("co"),
+    "Connecticut" -> Set("ct_ma_ri"),
+    "Delaware" -> Set("de_md"),
+    "District of Columbia" -> Set("de_md"),
+    "Florida" -> Set("fl"),
+    "Georgia" -> Set("ga_sc"),
+    "Hawaii" -> Set("hi"),
+    "Idaho" -> Set("nidwmt","sid"),
+    "Illinois" -> Set("il"),
+    "Indiana" -> Set("in"),
+    "Iowa" -> Set("ia"),
+    "Kansas" -> Set("ks"),
+    "Kentucky" -> Set("ky_tn"),
+    "Louisiana" -> Set("la"),
+    "Maine" -> Set("me_nh_vt"),
+    "Maryland" -> Set("de_md"),
+    "Massachusetts" -> Set("ct_ma_ri"),
+    "Michigan" -> Set("mi_wi"),
+    "Minnesota" -> Set("mn"),
+    "Mississippi" -> Set("al_ms"),
+    "Missouri" -> Set("mo"),
+    "Montana" -> Set("emt","nidwmt"),
+    "Nebraska" -> Set("ne"),
+    "Nevada" -> Set("nv"),
+    "New Hampshire" -> Set("me_nh_vt"),
+    "New Jersey" -> Set("nj_pa"),
+    "New Mexico" -> Set("nm"),
+    "New York" -> Set("ny"),
+    "North Carolina" -> Set("nc"),
+    "North Dakota" -> Set("nd"),
+    "Ohio" -> Set("oh"),
+    "Oklahoma" -> Set("ok"),
+    "Oregon" -> Set("or"),
+    "Pennsylvania" -> Set("nj_pa"),
+    "Rhode Island" -> Set("ct_ma_ri"),
+    "South Carolina" -> Set("ga_sc"),
+    "South Dakota" -> Set("sd"),
+    "Tennessee" -> Set("ky_tn"),
+    "Texas" -> Set("tx"),
+    "Utah" -> Set("ut"),
+    "Vermont" -> Set("me_nh_vt"), 
+    "Virginia" -> Set("va_wv"),
+    "Washigton" -> Set("wa"),
+    "West Virginia" -> Set("va_wv"),
+    "Wisconsin" -> Set("mi_wi"),
+    "Wyoming" -> Set("wy")
+  )
+  
+  
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -123,54 +179,13 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
 
     return sourceObservedProperties
   }
-  
-  private def getRawsRegionUrls():List[String] =
-    List(
-        "http://www.raws.dri.edu/aklst.html",
-        "http://www.raws.dri.edu/azlst.html",
-        "http://www.raws.dri.edu/ncalst.html",
-        "http://www.raws.dri.edu/ccalst.html", 
-        "http://www.raws.dri.edu/scalst.html", 
-        "http://www.raws.dri.edu/colst.html", 
-        "http://www.raws.dri.edu/hilst.html", 
-        "http://www.raws.dri.edu/nidwmtlst.html", 
-        "http://www.raws.dri.edu/sidlst.html", 
-        "http://www.raws.dri.edu/emtlst.html",
-        "http://www.raws.dri.edu/nidwmtlst.html", 
-        "http://www.raws.dri.edu/nvlst.html", 
-        "http://www.raws.dri.edu/nmlst.html", 
-        "http://www.raws.dri.edu/orlst.html", 
-        "http://www.raws.dri.edu/utlst.html", 
-        "http://www.raws.dri.edu/walst.html", 
-        "http://www.raws.dri.edu/wylst.html", 
-        "http://www.raws.dri.edu/illst.html", 
-        "http://www.raws.dri.edu/inlst.html",
-        "http://www.raws.dri.edu/ialst.html", 
-        "http://www.raws.dri.edu/kslst.html", 
-        "http://www.raws.dri.edu/ky_tnlst.html", 
-        "http://www.raws.dri.edu/mi_wilst.html", 
-        "http://www.raws.dri.edu/mnlst.html", 
-        "http://www.raws.dri.edu/molst.html", 
-        "http://www.raws.dri.edu/nelst.html", 
-        "http://www.raws.dri.edu/ndlst.html", 
-        "http://www.raws.dri.edu/ohlst.html", 
-        "http://www.raws.dri.edu/sdlst.html", 
-        "http://www.raws.dri.edu/mi_wilst.html", 
-        "http://www.raws.dri.edu/al_mslst.html", 
-        "http://www.raws.dri.edu/arlst.html", 
-        "http://www.raws.dri.edu/fllst.html", 
-        "http://www.raws.dri.edu/ga_sclst.html", 
-        "http://www.raws.dri.edu/lalst.html", 
-        "http://www.raws.dri.edu/nclst.html", 
-        "http://www.raws.dri.edu/oklst.html", 
-        "http://www.raws.dri.edu/txlst.html", 
-        "http://www.raws.dri.edu/prlst.html", 
-        "http://www.raws.dri.edu/ct_ma_rilst.html", 
-        "http://www.raws.dri.edu/de_mdlst.html", 
-        "http://www.raws.dri.edu/me_nh_vtlst.html", 
-        "http://www.raws.dri.edu/nj_palst.html", 
-        "http://www.raws.dri.edu/nylst.html", 
-        "http://www.raws.dri.edu/va_wvlst.html")
+    
+  private def getRawsRegionUrls():List[String] = {
+    val stateCodes = MSet(GeoTools.statesInBoundingBox(boundingBox).map(state => stateCodeMap(state)).flatten).flatten
+    //TODO disabling non-state harvest for now, add more robust spatial layer in the future    
+//    stateCodes ++= nonStates
+    stateCodes.map(stateCode => SourceUrls.RAWS_STATE_URL_TEMPLATE.format(stateCode)).toList
+  }
 
   private def createStation(foreignId: String): Option[DatabaseStation] = {
     val response = HttpSender.sendGetMessage(
@@ -322,19 +337,19 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       }
       case "AIRTEMP.1FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -0.3048, source))
+            id, Units.CELSIUS, 0.3048, source))
       }
       case "AIRTEMP.3FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -0.9144, source))
+            id, Units.CELSIUS, 0.9144, source))
       }
       case "AIRTEMP.8FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -2.4384, source))
+            id, Units.CELSIUS, 2.4384, source))
       }
       case "AIRTEMP.15FOOT" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE, 
-            id, Units.CELSIUS, -4.572, source))
+            id, Units.CELSIUS, 4.572, source))
       }
       case "MaximumAirTemperature" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.AIR_TEMPERATURE_MAXIMUM, 
@@ -358,16 +373,16 @@ class RawsStationUpdater(private val stationQuery: StationQuery,
       }
       case "AverageSoilTemperature4Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -0.1016, source))
+            id, Units.CELSIUS, 0.1016, source))
       }
       case "AverageSoilTemperature20Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -0.508, source))
+            id, Units.CELSIUS, 0.508, source))
       }
       // The name is correct with the Y
       case "AverageSoilYemperature40Inches" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 
-            id, Units.CELSIUS, -1.016, source))
+            id, Units.CELSIUS, 1.016, source))
       }
       case "SoilTemperatureSensor1" => {
         Some(stationUpdater.getObservedProperty(Phenomena.instance.SOIL_TEMPERATURE, 

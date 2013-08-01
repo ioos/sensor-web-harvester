@@ -1,10 +1,11 @@
 package com.axiomalaska.sos.source
 
+import io.Source._
 import org.apache.log4j.Logger
 import org.squeryl.PrimitiveTypeMode._
 import org.squeryl.SessionFactory
 import org.squeryl.Session
-import org.squeryl.adapters.PostgreSqlAdapter
+import org.squeryl.adapters.H2Adapter
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.Source
@@ -12,6 +13,7 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.StationDatabase
 import com.axiomalaska.sos.source.data.Network
+import org.h2.tools.RunScript
 
 /**
  * The StationQueryBuilder builds the StationQuery object that is used to 
@@ -25,11 +27,9 @@ import com.axiomalaska.sos.source.data.Network
       // perform code with the stationQuery object. 
     })
  */
-class StationQueryBuilder(url:String, 
-	user:String, password:String) {
-
+class StationQueryBuilder(url:String) {  
   def withStationQuery[A](op: StationQuery => A): A = {
-    val stationQuery = new StationQueryImp(url, user, password)
+    val stationQuery = new StationQueryImp(url)
     try {
       op(stationQuery)
     } finally {
@@ -42,6 +42,7 @@ class StationQueryBuilder(url:String,
  * The StationQuery is the object used to interact with the database
  */
 trait StationQuery{
+  def init
   def getAllStations(source: Source): List[DatabaseStation]
   def getActiveStations(source: Source): List[DatabaseStation]
   def getAllSource():List[Source]
@@ -77,9 +78,8 @@ trait StationQuery{
   def getNetworks(station:DatabaseStation):List[Network]
 }
 
-private class StationQueryImp(url:String, 
-	user:String, password:String) extends StationQuery {
-  Class.forName("org.postgresql.Driver")
+private class StationQueryImp(url:String) extends StationQuery {
+  Class.forName("org.h2.Driver")
   
   private val session = createSession()
   
@@ -91,6 +91,13 @@ private class StationQueryImp(url:String,
   // StationQuery Members
   // ---------------------------------------------------------------------------
 
+  def init ={
+    using(session){
+      val inputStreamReader = fromInputStream(getClass.getClassLoader.getResourceAsStream("initdb.sql")).reader
+      RunScript.execute(session.connection, inputStreamReader)
+    }
+  }
+  
   def getObservedProperty(source: Source): List[ObservedProperty] ={
     using(session){
       source.observedProperties.toList
@@ -318,7 +325,6 @@ private class StationQueryImp(url:String,
   
   private def createSession(): org.squeryl.Session = {
     Session.create(
-      java.sql.DriverManager.getConnection(url, user, password),
-      new PostgreSqlAdapter)
+      java.sql.DriverManager.getConnection(url),new H2Adapter)
   }
 }

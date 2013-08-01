@@ -8,6 +8,7 @@ import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.data.DatabaseSensor
 import com.axiomalaska.sos.source.data.DatabaseStation
 import com.axiomalaska.sos.source.GeoTools
+import com.axiomalaska.sos.source.StateAbbrevations.stateAbbreviations
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
 import com.axiomalaska.sos.source.data.Source
@@ -16,6 +17,7 @@ import com.axiomalaska.sos.source.Units
 import com.axiomalaska.sos.source.data.SourceId
 import scala.collection.JavaConversions._
 import scala.collection.mutable
+import scala.collection.mutable.{Set => MSet}
 import org.apache.log4j.Logger
 import org.cuahsi.waterML.x11.TimeSeriesType
 import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
@@ -37,7 +39,11 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   private val geoTools = new GeoTools()
   private val source = stationQuery.getSource(SourceId.USGSWATER)
   private val phenomenaFactory = new PhenomenaFactory()
-
+  
+  //always request these since we don't currently have spatial data for them.
+  //could be improved if we had a shapefile that included them (but still should be small)
+  private val nonStates = Set("aq", "gu", "mp", "pr", "vi")
+  
   // ---------------------------------------------------------------------------
   // Public Members
   // ---------------------------------------------------------------------------
@@ -57,7 +63,7 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   // ---------------------------------------------------------------------------
 
   private def getSourceStations(): List[(DatabaseStation, List[(DatabaseSensor, List[DatabasePhenomenon])])] = {
-    val timeSerieses = getAllStatesTimeSeriesTypes
+    val timeSerieses = getStatesTimeSeriesTypes
     val stations = createSourceStations(timeSerieses)
     val size = stations.length - 1
     LOGGER.info("Number of unfiltered stations= " + size)
@@ -83,15 +89,12 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
     return geoTools.isStationWithinRegion(stationLocation, boundingBox)
   }
 
-  private def getAllStatesTimeSeriesTypes(): List[TimeSeriesType] =
-    getStateTags().flatMap(getTimeSeriesTypes)
-
-  private def getStateTags() = List("al", "ak", "aq", "az", "ar", "ca", "co",
-    "ct", "de", "dc", "fl", "ga", "gu", "hi", "id", "il", "in", "ia", "ks",
-    "ky", "la", "me", "md", "ma", "mi", "mn", "ms", "mo", "mt", "ne", "nv",
-    "nh", "nj", "nm", "ny", "nc", "nd", "mp", "oh", "ok", "or", "pa", "pr",
-    "ri", "sc", "sd", "tn", "tx", "ut", "vt", "vi", "va", "wa", "wv", "wi",
-    "wy")
+  private def getStatesTimeSeriesTypes(): List[TimeSeriesType] = {
+    val abbrs = for{ state <- MSet(GeoTools.statesInBoundingBox(boundingBox).toList:_*)} yield stateAbbreviations(state)
+    //TODO disabling non-state harvest for now, add more robust spatial layer in the future
+//    abbrs ++= nonStates
+    abbrs.toList.flatMap(getTimeSeriesTypes)
+  }    
 
   private def getTimeSeriesTypes(stateTag: String): List[TimeSeriesType] = {
 

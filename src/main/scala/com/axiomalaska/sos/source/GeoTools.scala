@@ -2,8 +2,53 @@ package com.axiomalaska.sos.source
 
 import com.axiomalaska.sos.data.SosStation
 import com.vividsolutions.jts.geom.Point
+import java.io.InputStreamReader
+import org.geotools.data.DataStore
+import org.geotools.data.DataStoreFinder
+import java.util.HashMap
+import java.net.URL
+import org.geotools.data.simple.SimpleFeatureSource
+import org.opengis.filter.FilterFactory2
+import org.geotools.factory.CommonFactoryFinder
+import org.geotools.geometry.jts.ReferencedEnvelope
+import org.geotools.referencing.crs.DefaultGeographicCRS
+import scala.collection.mutable.{Set => MSet}
+import java.io.File
+import org.geotools.data.DataStoreFactorySpi
 
 case class BoundingBox(southWestCorner: Point, northEastCorner: Point)
+
+object GeoTools {
+  val stateFeatureSource = initStateFeatureSource
+  
+  def initStateFeatureSource:SimpleFeatureSource = {
+    val map = new HashMap[String,URL]
+    val url = getClass.getClassLoader.getResource("states/ne_110m_admin_1_states_provinces_lakes_shp.shp")
+    map.put("url", url)
+    val dataStore = DataStoreFinder.getDataStore(map)
+    val typeNames = dataStore.getTypeNames
+    dataStore.getFeatureSource(typeNames(0))    
+  }
+  
+  def statesInBoundingBox(boundingBox:BoundingBox):Set[String] = {
+    val ff = CommonFactoryFinder.getFilterFactory2()
+    val bbox = new ReferencedEnvelope(
+        boundingBox.southWestCorner.getX, boundingBox.northEastCorner.getX,
+        boundingBox.southWestCorner.getY, boundingBox.northEastCorner.getY,
+        DefaultGeographicCRS.WGS84)    
+    val filter = ff.bbox(ff.property("the_geom"), bbox);
+    val simpleFeatureCollection = stateFeatureSource.getFeatures(filter)
+    val stateIterator = simpleFeatureCollection.features
+    val states = MSet.empty[String]
+    while (stateIterator.hasNext) { 
+      val feature = stateIterator.next
+      feature.getAttribute("name").toString() match {
+        case s: String => states += s
+      }
+    }
+    states.toSet
+  }
+}
 
 class GeoTools {
 	/**
