@@ -180,7 +180,7 @@ private case class SnotelSensor(observedpropertylabel: String,
     val labelParser(label) = descriptionText
 
     return new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, 
-        "", "FIXED MET STATION", source.id, lat, lon)
+        "", "FIXED MET STATION", source.id, lat, lon, null, null)
   }
   
   private def createStations(): List[DatabaseStation] = {

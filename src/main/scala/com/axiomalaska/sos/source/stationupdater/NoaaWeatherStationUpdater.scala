@@ -100,7 +100,7 @@ class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
 
     LOGGER.info("Processing station: " + label)
     new DatabaseStation(label, source.tag + ":" + foreignId, foreignId, "",
-      "FIXED MET STATION", source.id, latitude, longitude)
+      "FIXED MET STATION", source.id, latitude, longitude, null, null)
   }
 
   private def withInBoundingBox(station: DatabaseStation): Boolean = {

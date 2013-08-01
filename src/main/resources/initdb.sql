@@ -52,7 +52,9 @@ CREATE TABLE IF NOT EXISTS station (
     tag VARCHAR(255),
     description VARCHAR(255),
     platform_type VARCHAR(255),
-    active BOOLEAN DEFAULT true NOT NULL
+    active BOOLEAN DEFAULT true NOT NULL,
+    time_begin TIMESTAMP,
+    time_end TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS sensor (

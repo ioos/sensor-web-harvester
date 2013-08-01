@@ -13,7 +13,6 @@ import org.apache.log4j.Logger
 
 trait ISOWriter {
   def writeISOFile(station: LocalStation)
-  def writeFileList(sourceName: String)
 }
 
 case class ServiceIdentification(val srvAbstract: String,
@@ -78,15 +77,13 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   private var dataIdentification: DataIdentification = null
   private var dimensions: List[Dimension] = Nil
   
-  private var fileList: List[String] = Nil
-  
   def writeISOFile(station: LocalStation) {
     lstation = station
     val file = new java.io.File(templateFile)
     
     val source = station.getSource
     // check to see if a directory with the source name exists
-    val sourceDir = new File(isoWriteDirectory + "/" + source.getName)
+    val sourceDir = new File(isoWriteDirectory + "/" + source.getName.toLowerCase)
     if (!sourceDir.exists) {
       if (!sourceDir.mkdir)
         if (!sourceDir.mkdirs)
@@ -110,7 +107,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     }
     
     val fileName = sourceDir.getAbsolutePath + "/" + getForeignTag(station) + ".xml"
-    fileList = getForeignTag(station) + ".xml" :: fileList
     serviceIdentification = getServiceInformation(station)
     contacts = getContacts(station)
     fileIdentifier = getFileIdentifier(station)
@@ -134,27 +130,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     }
   }
   
-  def writeFileList(sourceName : String) {
-    val sourceDir = new File(isoWriteDirectory + "/" + sourceName)
-    val fileName = sourceDir.getAbsoluteFile + "/list.html"
-    LOGGER info "writing to " + fileName
-    try {
-      val file = new java.io.File(fileName)
-      file.createNewFile
-      val writer = new java.io.FileWriter(file)
-      val list = fileListHtml(fileList)
-      writer.write(list.toString)
-      writer.flush
-      writer.close
-    } catch {
-      case ex: Exception => {
-          LOGGER error ex.toString()
-          ex.printStackTrace()
-      }
-    }
-    
-  }
-  
   // The below should be overwritten in the subclasses /////////////////////////
   protected def initialSetup(station: LocalStation) : Boolean = { true }
   
@@ -173,12 +148,25 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
   protected def getServiceInformation(station: LocalStation) : List[ServiceIdentification] = {Nil}
   
   protected def getContacts(station: LocalStation) : List[Contact] = Nil
+
+  protected def getExtent(station: LocalStation) : ServiceIdentificationExtent = {null}
   
-  protected def getFileIdentifier(station: LocalStation) : String = {null}
+  protected def getFileIdentifier(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
   
-  protected def getDataIdentification(station: LocalStation) : DataIdentification = {new DataIdentification(null,null,Nil,null,null)}
+  protected def getDataIdentification(station: LocalStation) : DataIdentification = {
+    val idabstract = station.databaseStation.description match {
+      case "" => station.databaseStation.name
+      case _ => station.databaseStation.description
+    }
+    val citation = new DataIdentificationCitation(station.getLongName)
+    val keywords = getSensorTagsAndNames(station).map(_._2)
+    val agg = null
+    val extent = getExtent(station)
+
+    new DataIdentification(idabstract,citation,keywords,agg,extent)
+  }
   
-  protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase }
+  protected def getForeignTag(station: LocalStation) : String = { station.databaseStation.foreign_tag.toLowerCase.replace("wmo:", "") }
   
   //////////////////////////////////////////////////////////////////////////////
   
@@ -278,7 +266,8 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
     (if(date.get(Calendar.DAY_OF_MONTH) < 10) "0" else "") + date.get(Calendar.DAY_OF_MONTH)
 
   private def writeISOOutput() : scala.xml.Elem = {
-    val retval = 
+    //         <gmd:contact>{addGLOSResponsibleParty}</gmd:contact>
+    val retval =
       <gmi:MI_Metadata xmlns:gmi="http://www.isotc211.org/2005/gmi" xmlns:srv="http://www.isotc211.org/2005/srv"
         xmlns:gmx="http://www.isotc211.org/2005/gmx" xmlns:gsr="http://www.isotc211.org/2005/gsr"
         xmlns:gss="http://www.isotc211.org/2005/gss" xmlns:xs="http://www.w3.org/2001/XMLSchema"
@@ -287,7 +276,6 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         xmlns:gco="http://www.isotc211.org/2005/gco" xmlns:gmd="http://www.isotc211.org/2005/gmd"
         xsi:schemaLocation="http://www.isotc211.org/2005/gmi http://www.ngdc.noaa.gov/metadata/published/xsd/schema.xsd">
         <gmd:fileIdentifier>{addFileIdentifier(fileIdentifier)}</gmd:fileIdentifier>
-        <gmd:contact>{addGLOSResponsibleParty}</gmd:contact>
         {
           for (ct <- contacts) yield {
             <gmd:contact>{addResponsibleParty(ct)}</gmd:contact>
@@ -300,7 +288,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
           if (dataIdentification != null)
             addDataIdentification(dataIdentification)
         }
-        { for(srv <- serviceIdentification) yield {
+        { for(srv <- serviceIdentification if srv.ops.length > 0) yield {
             addServiceIdentificationInfo(srv)
           } }
         <gmd:contentInfo>{addContentInfo}</gmd:contentInfo>
@@ -557,7 +545,7 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
         <gmd:temporalElement>
           <gmd:EX_TemporalExtent>
             <gmd:extent>
-              <gml:TimePeriod id={tpid}>
+              <gml:TimePeriod id="TP-EX1">
                 { if (extent.timeBegin != null && extent.timeBegin != "") {
                     if (extent.timeBegin.equals("unknown"))
                       <gml:beginPosition indeterminatePosition="unknown"/>
@@ -569,12 +557,12 @@ class ISOWriterImpl(private val stationQuery: StationQuery,
                   }
                 }
                 { if (extent.timeEnd != null && extent.timeEnd != "") {
-                    <gml:endPosition>{extent.timeEnd}</gml:endPosition>
+                    if (extent.timeEnd.equals("unknown"))
+                        <gml:endPosition indeterminatePosition="unknown"/>
+                    else
+                      <gml:endPosition>{extent.timeEnd}</gml:endPosition>
                   }
-                  else if (extent.timeEnd.equals("unknown")) {
-                    <gml:endPosition indeterminatePosition="unknown"/>
-                  }
-                  else { 
+                  else {
                     <gml:endPosition indeterminatePosition="now"/> 
                   }
                 }

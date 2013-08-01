@@ -131,7 +131,7 @@ class HadsStationUpdater(
     return getLatLon(foreignId) match {
       case Some((lat, lon)) => Some(new DatabaseStation(label,
         source.tag + ":" + foreignId, foreignId, "",
-        "FIXED MET STATION", source.id, lat, lon))
+        "FIXED MET STATION", source.id, lat, lon, null, null))
       case _ => None
     }
   }

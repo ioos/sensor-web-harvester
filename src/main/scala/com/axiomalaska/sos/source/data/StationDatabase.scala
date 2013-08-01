@@ -8,6 +8,7 @@ import org.squeryl.dsl.ManyToOne
 import org.squeryl.dsl.CompositeKey2
 import org.squeryl.Query
 import org.squeryl.annotations.Column
+import java.sql.Timestamp
 
 object StationDatabase extends Schema {
 
@@ -38,7 +39,7 @@ object StationDatabase extends Schema {
     manyToManyRelation(sensors, phenomena).via[sensor_phenomenon](
         (sensor, phenomenon, x) => (sensor.id === x.sensor_id, x.phenomenon_id === phenomenon.id))
         
-  val xNetworkSource = 
+  val xNetworkSource =
     manyToManyRelation(networks, sources).via[network_source](
         (network, source, x) => (network.id === x.network_id, x.source_id === source.id))
         
@@ -92,16 +93,18 @@ class Source(val name: String, val tag:String, val country:String,
 
 class DatabaseStation(val name: String, val tag:String, val foreign_tag: String,
   val description:String, @Column("platform_type") val platformType:String, 
-  val source_id: Long, val latitude: Double, val longitude: Double, val active:Boolean) 
+  val source_id: Long, val latitude: Double, val longitude: Double, val active:Boolean,
+  @Column("time_begin") val timeBegin: Timestamp, @Column("time_end") val timeEnd: Timestamp)
   extends KeyedEntity[Long] {
   val id: Long = -1
   
   def this(name: String, tag:String, foreign_tag: String, description:String, 
-      platformType:String, source_id: Long, latitude: Double, longitude: Double){
-    this(name, tag, foreign_tag, description, platformType, source_id, 
-        latitude, longitude, true)
+      platformType:String, source_id: Long, latitude: Double, longitude: Double,
+      timeBegin: Timestamp, timeEnd: Timestamp){
+    this(name, tag, foreign_tag, description, platformType, source_id,
+        latitude, longitude, true, timeBegin, timeEnd)
   }
-  
+
   lazy val source: ManyToOne[Source] = 
     StationDatabase.sourceStationAssociation.right(this)
     

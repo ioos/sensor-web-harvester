@@ -34,7 +34,9 @@ class StationUpdateTool(private val stationQuery: StationQuery) {
         databaseStation.foreign_tag == sourceStation.foreign_tag).headOption match {
         case Some(databaseStation: DatabaseStation) => {
           if (!areDoublesEquals(databaseStation.latitude, sourceStation.latitude) ||
-            !areDoublesEquals(databaseStation.longitude, sourceStation.longitude)) {
+            !areDoublesEquals(databaseStation.longitude, sourceStation.longitude) ||
+            databaseStation.timeBegin != sourceStation.timeBegin ||
+            databaseStation.timeEnd != sourceStation.timeEnd ) {
             stationQuery.updateStation(databaseStation, sourceStation)
             LOGGER.info("Updating Station " + databaseStation.name)
           }
