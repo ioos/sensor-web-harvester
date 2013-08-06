@@ -408,7 +408,7 @@ class HadsStationUpdater(
           Units.FAHRENHEIT, source))
       }
       case "HG" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_gage_height"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_gage_height"
         Some(stationUpdater.getObservedProperty(
           phenomenaFactory.findCustomPhenomenon(url), id, Units.FEET, source))
       }
@@ -429,7 +429,7 @@ class HadsStationUpdater(
           Units.PARTS_PER_TRILLION, source))
       }
       case "HM" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "water_level"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "water_level"
         Some(stationUpdater.getObservedProperty(
           phenomenaFactory.findCustomPhenomenon(url), id,
           Units.FEET, source))

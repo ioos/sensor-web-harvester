@@ -357,7 +357,7 @@ private case class SnotelSensor(observedpropertylabel: String,
           snotelSensor.sensorDepth, source))
       }
       case "SRMO" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_gage_height"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_gage_height"
         Some(stationUpdater.getObservedProperty(phenomenaFactory.findCustomPhenomenon(url),
           snotelSensor.observedpropertyshortcode, snotelSensor.unit, 
           snotelSensor.sensorDepth, source))
