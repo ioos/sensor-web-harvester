@@ -264,7 +264,7 @@ class NdbcStationUpdater(private val stationQuery: StationQuery,
       }
       //Sea level pressure (hPa). 
       case "PRES" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "sea_level_pressure"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "sea_level_pressure"
         Some(stationUpdater.getObservedProperty(
             phenomenaFactory.findCustomPhenomenon(url), id, Units.HECTOPASCAL, source))
       }

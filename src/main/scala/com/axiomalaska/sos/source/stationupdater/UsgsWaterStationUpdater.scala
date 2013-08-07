@@ -216,17 +216,17 @@ class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
         //            SensorPhenomenonIds.SpecificConductanceofWater"))
       }
       case "00060" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_flow"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_flow"
         Some(stationUpdater.getObservedProperty(
             phenomenaFactory.findCustomPhenomenon(url), id, Units.CUBIC_FOOT_PER_SECOUND, source))
       }
       case "00065" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_gage_height"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_gage_height"
         Some(stationUpdater.getObservedProperty(
           phenomenaFactory.findCustomPhenomenon(url), id, Units.FEET, source))
       }
       case "99065" => {
-        val url = Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_gage_height"
+        val url = Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_gage_height"
         Some(stationUpdater.getObservedProperty(
           phenomenaFactory.findCustomPhenomenon(url), id, Units.METERS, source))
       }

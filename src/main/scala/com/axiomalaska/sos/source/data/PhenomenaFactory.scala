@@ -24,25 +24,25 @@ class PhenomenaFactory {
     url match {
       case CustomGlosPhenomenon(_, "stream_gage_height") => {
         Phenomena.instance.createHomelessParameter("stream_gage_height",
-          Phenomena.GLOS_FAKE_MMI_URL_PREFIX, Units.METERS)
+          Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, Units.METERS)
       }
       case CustomGlosPhenomenon(_, "ground_temperature_observed") => {
         Phenomena.instance.createHomelessParameter(
           "ground_temperature_observed",
-          Phenomena.GLOS_FAKE_MMI_URL_PREFIX,
+          Phenomena.GENERIC_FAKE_MMI_URL_PREFIX,
           Units.FAHRENHEIT)
       }
       case CustomGlosPhenomenon(_, "water_level") => {
         Phenomena.instance.createHomelessParameter("water_level",
-          Phenomena.GLOS_FAKE_MMI_URL_PREFIX, Units.FEET)
+          Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, Units.FEET)
       }
       case CustomGlosPhenomenon(_, "sun_radiation") => {
         Phenomena.instance.createHomelessParameter("sun_radiation",
-          Phenomena.GLOS_FAKE_MMI_URL_PREFIX, "rads")
+          Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, "rads")
       }
       case CustomGlosPhenomenon(_, "sea_level_pressure") =>{
         Phenomena.instance.createHomelessParameter("sea_level_pressure", 
-            Phenomena.GLOS_FAKE_MMI_URL_PREFIX, Units.HECTOPASCAL)
+            Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, Units.HECTOPASCAL)
       }
       case CustomGlosPhenomenon(_, "stream_flow") =>{
         Phenomena.instance.createHomelessParameter(
@@ -76,8 +76,8 @@ object CustomPhenomenon{
 object CustomGlosPhenomenon{
   def unapply(url:String): Option[(String, String)] ={
     url match{
-      case CustomPhenomenon(Phenomena.GLOS_FAKE_MMI_URL_PREFIX, name) =>{
-        Some((Phenomena.GLOS_FAKE_MMI_URL_PREFIX, name))
+      case CustomPhenomenon(Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, name) =>{
+        Some((Phenomena.GENERIC_FAKE_MMI_URL_PREFIX, name))
       }
       case _ => None
     }

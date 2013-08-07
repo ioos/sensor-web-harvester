@@ -180,7 +180,7 @@ class SensorWebHarvesterTest {
     val phenomenaFactory = new PhenomenaFactory()
     
     val streamFlow = 
-      phenomenaFactory.findCustomPhenomenon(Phenomena.GLOS_FAKE_MMI_URL_PREFIX + "stream_flow")
+      phenomenaFactory.findCustomPhenomenon(Phenomena.GENERIC_FAKE_MMI_URL_PREFIX + "stream_flow")
       
     println(streamFlow.getUnit().getSymbol())
   }
@@ -284,7 +284,7 @@ class SensorWebHarvesterTest {
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
       new UsgsWaterStationUpdater(stationQuery, southcentralAlaskaBoundingBox).update
       val obsValues = new UsgsWaterObservationRetriever(stationQuery).getObservationValues _ tupled
-          getTestConstellation(stationQuery, SourceId.USGSWATER, new DateTime().minusDays(1))
+          getTestConstellation(stationQuery, SourceId.USGSWATER, new DateTime().minusDays(2))
       assertFalse(obsValues.isEmpty)
     })
   }  
