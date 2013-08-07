@@ -12,7 +12,7 @@ used are filtered by a chosen bounding box area.
 
 The current sources that observations are pulled from are:
 
-* [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
+* [HADS](http://www.nws.noaa.gov/ohd/hads/)
 * [NDBC](http://www.ndbc.noaa.gov/)
 * [NOAA NOS CO-OPS](http://tidesonline.nos.noaa.gov/)
 * [NOAA Weather](http://www.nws.noaa.gov/)
@@ -182,7 +182,7 @@ These custom networks can be associated to specific stations from the network_st
 List of Sources URLs 
 -----------
 
-### [HADS](http://dipper.nws.noaa.gov/hdsc/pfds/)
+### [HADS](http://www.nws.noaa.gov/ohd/hads/)
 #### Pull stations Information
 * http://amazon.nws.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
 * http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
