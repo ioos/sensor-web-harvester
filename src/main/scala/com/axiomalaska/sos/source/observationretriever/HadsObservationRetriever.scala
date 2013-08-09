@@ -18,6 +18,7 @@ import org.joda.time.DateTime
 import org.joda.time.format.DateTimeFormat
 import org.joda.time.DateTimeZone
 import com.axiomalaska.sos.source.data.RawValues
+import org.joda.time.Duration
 
 class HadsObservationRetriever(private val stationQuery:StationQuery) 
 	extends ObservationValuesCollectionRetriever {
@@ -137,27 +138,18 @@ object HadsObservationRetriever{
   // ---------------------------------------------------------------------------
 
   private def calculatedSinceDay(startDate: DateTime):String ={
-    val currentDate:DateTime = DateTime.now()
-    val copyStartDate:DateTime = startDate.toDateTime()
-    var days = 0
-    while(copyStartDate.isBefore(currentDate) && days < 6){
-      days += 1
-      copyStartDate.plusDays(1)
-    }
-
-    val sinceday = days match {
-      case 1 => {
-        val copyStartDate = startDate.toDateTime()
-        var hours = 0
-        while (copyStartDate.isBefore(currentDate)) {
-          hours += 1
-          copyStartDate.plusDays(1)
-        }
-        hours * -1
-      }
-      case x: Int => x
+    val duration = new Duration(DateTime.now(), startDate)
+    
+    val hoursDiff = math.abs(duration.getStandardHours())
+    
+    val daysSince = if(hoursDiff > 24*5){
+      6
+    } else if(hoursDiff >= 24){
+      math.ceil(hoursDiff /24.0).toInt
+    } else if(hoursDiff < 24){
+      hoursDiff * -1
     }
     
-    sinceday.toString()
+    daysSince.toString
   }
 }
