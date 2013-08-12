@@ -13,7 +13,6 @@
 target
 
 # ignored example files
-*example*
 ex_*
 example.properties
 epa_*
