@@ -46,7 +46,6 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.tools.GeomHelper
 import org.n52.sos.ioos.asset.NetworkAsset
 import com.axiomalaska.sos.source.stationupdater.GlosStationUpdater
 import com.axiomalaska.phenomena.UnitResolver
@@ -60,6 +59,7 @@ import com.axiomalaska.sos.source.observationretriever.HadsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.NoaaNosCoOpsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.RawsObservationRetriever
 import com.axiomalaska.sos.source.observationretriever.StoretObservationRetriever
+import com.axiomalaska.ioos.sos.GeomHelper
 //import com.axiomalaska.sos.example.CnfaicSosInjectorFactory
 
 object SensorWebHarvesterTest {

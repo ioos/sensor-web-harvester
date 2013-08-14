@@ -14,9 +14,9 @@ import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.sos.source.Units
 import org.joda.time.DateTime
+import com.axiomalaska.ioos.sos.GeomHelper
 
 case class NerrsStation(siteId: String, stationCode: String, stationName: String,
   latitude: Double, longitude: Double, isActive: Boolean, state: String,

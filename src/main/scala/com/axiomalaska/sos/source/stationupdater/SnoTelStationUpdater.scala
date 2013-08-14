@@ -26,9 +26,9 @@ import scala.xml.XML
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
-import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.source.data.PhenomenaFactory
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class SnoTelStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {

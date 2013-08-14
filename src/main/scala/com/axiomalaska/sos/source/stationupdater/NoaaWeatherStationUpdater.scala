@@ -15,8 +15,8 @@ import com.axiomalaska.sos.source.data.SourceId
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.SourceUrls
-import com.axiomalaska.sos.tools.GeomHelper
 import com.axiomalaska.sos.source.Units
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class NoaaWeatherStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {

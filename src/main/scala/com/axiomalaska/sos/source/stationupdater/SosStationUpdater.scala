@@ -17,10 +17,10 @@ import net.opengis.sos.x10.ObservationOfferingType
 import net.opengis.sos.x10.CapabilitiesDocument
 import net.opengis.sos.x10.GetCapabilitiesDocument
 import com.axiomalaska.sos.tools.HttpSender
-import com.axiomalaska.sos.tools.GeomHelper
 import scala.xml.Node
 import org.joda.time.format.ISODateTimeFormat
 import java.sql.Timestamp
+import com.axiomalaska.ioos.sos.GeomHelper
 
 abstract class SosStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
