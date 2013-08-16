@@ -46,7 +46,7 @@ import com.axiomalaska.sos.source.data.LocalSensor
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.data.SosNetwork
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import org.n52.sos.ioos.asset.NetworkAsset
 import com.axiomalaska.sos.source.stationupdater.GlosStationUpdater
 import com.axiomalaska.phenomena.UnitResolver

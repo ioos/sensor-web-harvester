@@ -24,7 +24,7 @@ import com.axiomalaska.sos.source.data.Source
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.SourceId
 import com.axiomalaska.sos.source.SourceUrls
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import scala.collection.mutable.{Set => MSet}
 
 class RawsStationUpdater(private val stationQuery: StationQuery,

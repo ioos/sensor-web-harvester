@@ -8,7 +8,7 @@ import org.apache.commons.configuration.PropertiesConfiguration
 import com.axiomalaska.sos.data.SosNetwork
 import org.n52.sos.ioos.asset.NetworkAsset
 import org.n52.sos.ioos.asset.AssetResolver
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.data.PublisherInfo
 
 case class Properties(val sosUrl: String,

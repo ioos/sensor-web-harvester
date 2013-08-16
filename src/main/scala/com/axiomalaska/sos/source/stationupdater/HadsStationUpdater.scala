@@ -24,7 +24,7 @@ import org.jsoup.Jsoup
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.SourceUrls
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.source.data.PhenomenaFactory
 import scala.collection.mutable.{Set => MSet}
 
