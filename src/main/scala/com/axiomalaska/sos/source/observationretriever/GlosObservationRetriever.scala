@@ -83,7 +83,7 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
             null
           }
         }
-        if(reportDate.eq(null) || reportDate.isAfter(startDate))
+        if(!reportDate.eq(null) && reportDate.isAfter(startDate))
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag
