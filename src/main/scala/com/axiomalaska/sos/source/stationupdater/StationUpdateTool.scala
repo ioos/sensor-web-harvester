@@ -12,7 +12,7 @@ import com.axiomalaska.sos.source.StationQuery
 import scala.collection.mutable
 import scala.collection.JavaConversions._
 import com.axiomalaska.sos.source.BoundingBox
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.source.GeoTools
 
 class StationUpdateTool(private val stationQuery: StationQuery) {

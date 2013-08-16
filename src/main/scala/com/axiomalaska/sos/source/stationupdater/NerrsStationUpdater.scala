@@ -14,7 +14,7 @@ import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.data.LocalPhenomenon
 import com.axiomalaska.sos.source.data.ObservedProperty
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.source.Units
 import org.joda.time.DateTime
 

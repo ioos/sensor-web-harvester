@@ -3,7 +3,7 @@ package com.axiomalaska.sos.source
 import org.junit._
 import Assert._
 import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 
 @Test
 class GeoToolsTest {
