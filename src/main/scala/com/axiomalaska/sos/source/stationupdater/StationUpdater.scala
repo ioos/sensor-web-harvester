@@ -6,7 +6,7 @@ import org.apache.log4j.Logger
 import com.axiomalaska.sos.source.data.DatabasePhenomenon
 import com.axiomalaska.sos.source.StationQuery
 import com.axiomalaska.sos.source.data.Source
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.source.GeoTools
 import com.axiomalaska.sos.source.BoundingBox
 

@@ -14,7 +14,7 @@ import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import com.axiomalaska.phenomena.Phenomenon
 import org.joda.time.DateTime
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class ObservationRetrieverAdapter(retriever:ObservationValuesCollectionRetriever) 
 	extends ObservationRetriever{

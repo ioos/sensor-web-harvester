@@ -17,7 +17,7 @@ import scala.collection.mutable
 import scala.collection.JavaConversions._
 import org.apache.log4j.Logger
 import org.jsoup.Jsoup
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.source.data.PhenomenaFactory
 
 /**

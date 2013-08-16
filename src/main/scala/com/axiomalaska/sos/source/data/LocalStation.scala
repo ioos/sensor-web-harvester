@@ -12,7 +12,7 @@ import org.n52.sos.ioos.asset.AbstractAsset
 import org.n52.sos.ioos.asset.StationAsset
 import org.n52.sos.ioos.asset.AssetConstants
 import com.axiomalaska.sos.data.PublisherInfo
-import com.axiomalaska.sos.tools.GeomHelper
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class LocalStation(val localSource:LocalSource, 
     val databaseStation: DatabaseStation,

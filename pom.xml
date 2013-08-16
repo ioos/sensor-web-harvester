@@ -110,6 +110,11 @@
     </dependency>
     <dependency>
       <groupId>com.axiomalaska</groupId>
+      <artifactId>ioos-sos-common</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+    <dependency>
+      <groupId>com.axiomalaska</groupId>
       <artifactId>nerrs_webservice</artifactId>
       <version>1.0.0</version>
     </dependency>
