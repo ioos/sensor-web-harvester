@@ -16,7 +16,7 @@ import java.io.{ByteArrayInputStream, ByteArrayOutputStream}
 import org.apache.commons.net.ftp.{FTPFile, FTPClient, FTPReply}
 import org.apache.log4j.Logger
 import org.joda.time.DateTime
-import org.joda.time.format.DateTimeFormat
+import org.joda.time.format.{DateTimeParser, DateTimeFormatterBuilder, DateTimeFormat}
 
 object GlosObservationRetriever {
   private var filesInMemory: List[scala.xml.Elem] = Nil
@@ -29,7 +29,11 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
   import GlosObservationRetriever._  
   
   private val httpSender = new HttpSender()
+
   private val dateParser = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss")
+  private val dateParserZone = DateTimeFormat.forPattern("MM/dd/yyyy HH:mm:ss z")
+  private val parserArray: Array[DateTimeParser] = Array(dateParser.getParser(), dateParserZone.getParser())
+  private val dateFormatter = new DateTimeFormatterBuilder().append(null, parserArray).toFormatter()
             
   private val source = stationQuery.getSource(SourceId.GLOS)
   private val stationList = stationQuery.getAllStations(source)
@@ -70,11 +74,16 @@ class GlosObservationRetriever(private val stationQuery:StationQuery,
     for (stationXML <- stationXMLList) {
       for {
         message <- (stationXML \\ "message")
-        val reportDate = {
-          val dateStr = (message \ "date").text
-          dateParser.parseDateTime(dateStr)
+        reportDate = {
+          val dateStr = (message \ "date").text.replace("UTC","GMT") // joda time only recognizes "GMT" as the timezone, not "UTC"
+          try {
+            dateFormatter.parseDateTime(dateStr)
+          } catch {
+            case ex: Exception => logger.error("Exception reading in file: " + ex.toString + ".  Can't parse date format: " + dateStr + "!")
+            null
+          }
         }
-        if(reportDate.isAfter(startDate))
+        if(!reportDate.eq(null) && reportDate.isAfter(startDate))
       } {
         for (observation <- observationValuesCollection) {
           val tag = observation.observedProperty.foreign_tag

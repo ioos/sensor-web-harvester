@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.axiomalaska</groupId>
   <artifactId>sensor-web-harvester</artifactId>
-  <version>0.11-SNAPSHOT</version>
+  <version>0.12-SNAPSHOT</version>
   <name>${project.artifactId}</name>
   <inceptionYear>2012</inceptionYear>
 
@@ -107,6 +107,11 @@
       <groupId>commons-configuration</groupId>
       <artifactId>commons-configuration</artifactId>
       <version>1.6</version>
+    </dependency>
+    <dependency>
+      <groupId>com.axiomalaska</groupId>
+      <artifactId>ioos-sos-common</artifactId>
+      <version>0.1-SNAPSHOT</version>
     </dependency>
     <dependency>
       <groupId>com.axiomalaska</groupId>

@@ -24,8 +24,8 @@ import org.cuahsi.waterML.x11.TimeSeriesResponseDocument
 import org.cuahsi.waterML.x11.SiteInfoType
 import org.cuahsi.waterML.x11.LatLonPointType
 import com.axiomalaska.sos.source.SourceUrls
-import com.axiomalaska.sos.source.data.PhenomenaFactory
 import com.axiomalaska.ioos.sos.GeomHelper
+import com.axiomalaska.sos.source.data.PhenomenaFactory
 
 class UsgsWaterStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {
