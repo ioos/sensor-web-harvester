@@ -1,0 +1,22 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+  <parent>
+    <groupId>com.axiomalaska</groupId>
+    <artifactId>sensor-web-harvester</artifactId>
+    <version>0.13-SNAPSHOT</version>
+  </parent>
+  <artifactId>sensor-web-harvester-iso</artifactId>
+  <name>sensor-web-harvester-iso</name>
+  <description>ISO writer for sensor-web-harvester</description>
+  
+  <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sensor-web-harvester-main</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>sensor-web-harvester-source</artifactId>
+    </dependency>            
+  </dependencies>  
+</project>

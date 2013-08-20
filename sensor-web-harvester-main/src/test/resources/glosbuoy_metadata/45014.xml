@@ -1,0 +1,637 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gmi:MI_Metadata xmlns:gco="http://www.isotc211.org/2005/gco"
+    xmlns:gmd="http://www.isotc211.org/2005/gmd"
+    xmlns:gmi="http://www.isotc211.org/2005/gmi"
+    xmlns:gml="http://www.opengis.net/gml/3.2"
+    xmlns:gmx="http://www.isotc211.org/2005/gmx"
+    xmlns:gsr="http://www.isotc211.org/2005/gsr"
+    xmlns:gss="http://www.isotc211.org/2005/gss"
+    xmlns:gts="http://www.isotc211.org/2005/gts"
+    xmlns:srv="http://www.isotc211.org/2005/srv"
+    xmlns:xlink="http://www.w3.org/1999/xlink"
+    xmlns:xs="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.isotc211.org/2005/gmi http://www.ngdc.noaa.gov/metadata/published/xsd/schema.xsd">
+    <gmd:fileIdentifier>
+        <gco:CharacterString>45014</gco:CharacterString>
+    </gmd:fileIdentifier>
+    <gmd:contact>
+        <gmd:CI_ResponsibleParty>
+            <gmd:individualName>
+                <gco:CharacterString>GLOS DMAC</gco:CharacterString>
+            </gmd:individualName>
+            <gmd:organisationName>
+                <gco:CharacterString>Great Lakes Observing System</gco:CharacterString>
+            </gmd:organisationName>
+            <gmd:contactInfo>
+                <gmd:CI_Contact>
+                    <gmd:phone>
+                        <gmd:CI_Telephone>
+                            <gmd:voice>
+                                <gco:CharacterString>(734) 332-6113</gco:CharacterString>
+                            </gmd:voice>
+                        </gmd:CI_Telephone>
+                    </gmd:phone>
+                    <gmd:address>
+                        <gmd:CI_Address>
+                            <gmd:deliveryPoint>
+                                <gco:CharacterString>229 Nickels Arcade</gco:CharacterString>
+                            </gmd:deliveryPoint>
+                            <gmd:city>
+                                <gco:CharacterString>Ann Arbor</gco:CharacterString>
+                            </gmd:city>
+                            <gmd:administrativeArea>
+                                <gco:CharacterString>Michigan</gco:CharacterString>
+                            </gmd:administrativeArea>
+                            <gmd:postalCode>
+                                <gco:CharacterString>48104</gco:CharacterString>
+                            </gmd:postalCode>
+                            <gmd:electronicMailAddress>
+                                <gco:CharacterString>dmac@glos.us</gco:CharacterString>
+                            </gmd:electronicMailAddress>
+                        </gmd:CI_Address>
+                    </gmd:address>
+                    <gmd:onlineResource>
+                        <gmd:CI_OnlineResource id="glos_url">
+                            <gmd:linkage>
+                                <gmd:URL>http://glos.us</gmd:URL>
+                            </gmd:linkage>
+                        </gmd:CI_OnlineResource>
+                    </gmd:onlineResource>
+                </gmd:CI_Contact>
+            </gmd:contactInfo>
+            <gmd:role>
+                <gmd:CI_RoleCode
+                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/CodeList/gmxCodelists.xml#CI_RoleCode" codeListValue="distributor">distributor</gmd:CI_RoleCode>
+            </gmd:role>
+        </gmd:CI_ResponsibleParty>
+    </gmd:contact>
+    <gmd:contact>
+        <gmd:CI_ResponsibleParty>
+            <gmd:individualName gco:nilReason="missing"/>
+            <gmd:organisationName>
+                <gco:CharacterString>School of Freshwater Sciences, Great Lakes WATER Institute, University of Wisconsin-Milwaukee</gco:CharacterString>
+            </gmd:organisationName>
+            <gmd:contactInfo>
+                <gmd:CI_Contact>
+                    <gmd:phone>
+                        <gmd:CI_Telephone>
+                            <gmd:voice>
+                                <gco:CharacterString>(414) 382-1700</gco:CharacterString>
+                            </gmd:voice>
+                        </gmd:CI_Telephone>
+                    </gmd:phone>
+                    <gmd:address>
+                        <gmd:CI_Address>
+                            <gmd:deliveryPoint>
+                                <gco:CharacterString>600 E. Greenfield Ave.</gco:CharacterString>
+                            </gmd:deliveryPoint>
+                            <gmd:city>
+                                <gco:CharacterString>Milwaukee</gco:CharacterString>
+                            </gmd:city>
+                            <gmd:administrativeArea>
+                                <gco:CharacterString>WI</gco:CharacterString>
+                            </gmd:administrativeArea>
+                            <gmd:postalCode>
+                                <gco:CharacterString>53204</gco:CharacterString>
+                            </gmd:postalCode>
+                            <gmd:electronicMailAddress>
+                                <gco:CharacterString></gco:CharacterString>
+                            </gmd:electronicMailAddress>
+                        </gmd:CI_Address>
+                    </gmd:address>
+                    <gmd:onlineResource>
+                        <gmd:CI_OnlineResource id="ndbc_url">
+                            <gmd:linkage>
+                                <gmd:URL>http://www.ndbc.noaa.gov/</gmd:URL>
+                            </gmd:linkage>
+                        </gmd:CI_OnlineResource>
+                    </gmd:onlineResource>
+                </gmd:CI_Contact>
+            </gmd:contactInfo>
+            <gmd:role>
+                <gmd:CI_RoleCode
+                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_RoleCode" codeListValue="pointOfContact">pointOfContact</gmd:CI_RoleCode>
+            </gmd:role>
+        </gmd:CI_ResponsibleParty>
+    </gmd:contact>
+    <gmd:dateStamp>
+        <gco:Date>2012-12-13</gco:Date>
+    </gmd:dateStamp>
+    <gmd:metadataStandardName>
+        <gco:CharacterString>ISO 19115-2 Geographic Information - Metadata Part 2 Extensions for imagery and gridded data</gco:CharacterString>
+    </gmd:metadataStandardName>
+    <gmd:metadataStandardVersion>
+        <gco:CharacterString>ISO 19115-2:2009(E)</gco:CharacterString>
+    </gmd:metadataStandardVersion>
+    <gmd:identificationInfo>
+        <gmd:MD_DataIdentification>
+            <gmd:citation>
+                <gmd:CI_Citation>
+                    <gmd:title>
+                        <gco:CharacterString>UWM GB17 45014, Central Green Bay</gco:CharacterString>
+                    </gmd:title>
+                    <gmd:date>
+                        <gmd:CI_Date>
+                            <gmd:date>
+                                <gco:DateTime>2012-12-13T15:42:58.406Z</gco:DateTime>
+                            </gmd:date>
+                            <gmd:dateType gco:nilReason="unknown"/>
+                        </gmd:CI_Date>
+                    </gmd:date>
+                </gmd:CI_Citation>
+            </gmd:citation>
+            <gmd:abstract>
+                <gco:CharacterString>The GB17 buoy (45014) is located approximately 40 km northeast of the mouth of the Fox River at the southern end of Green Bay. The CB-1500 coastal data buoy is secured by a two-point mooring system over a mud substrate in 13 meters of water. All equipment is solar powered and monitors physical, ecological, and meteorological parameters. Data is collected every 30 minutes using a cellular modem, allowing near real-time data collection and water quality monitoring.</gco:CharacterString>
+            </gmd:abstract>
+            <gmd:descriptiveKeywords>
+                <gmd:MD_Keywords>
+                    <gmd:keyword>
+                        <gco:CharacterString>air_temperature</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                        <gco:CharacterString>air_pressure_at_sea_level</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>relative_humidity</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>sea_surface_wave_significant_height</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>sea_surface_wind_wave_period</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>wind_speed</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>wind_from_direction</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>wind_speed_of_gust</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>sea_water_temperature</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>eastward_sea_water_velocity</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>northward_sea_water_velocity</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>sea_water_electrical_conductivity</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>sea_water_ph_reported_on_total_scale</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>mass_concentration_of_oxygen_in_sea_water</gco:CharacterString>
+                    </gmd:keyword>
+                    <gmd:keyword>
+                      <gco:CharacterString>mass_concentration_of_chlorophyll_in_sea_water</gco:CharacterString>
+                    </gmd:keyword>
+                </gmd:MD_Keywords>
+            </gmd:descriptiveKeywords>
+            <gmd:language>
+                <gco:CharacterString>eng</gco:CharacterString>
+            </gmd:language>
+            <gmd:topicCategory>
+                <gmd:MD_TopicCategoryCode>inlandWaters</gmd:MD_TopicCategoryCode>
+            </gmd:topicCategory>
+            <gmd:extent>
+                <gmd:EX_Extent>
+                    <gmd:geographicElement>
+                        <gmd:EX_GeographicBoundingBox>
+                            <gmd:extentTypeCode>
+                                <gco:Boolean>1</gco:Boolean>
+                            </gmd:extentTypeCode>
+                            <gmd:westBoundLongitude>
+                                <gco:Decimal>-87.759</gco:Decimal>
+                            </gmd:westBoundLongitude>
+                            <gmd:eastBoundLongitude>
+                                <gco:Decimal>-87.759</gco:Decimal>
+                            </gmd:eastBoundLongitude>
+                            <gmd:southBoundLatitude>
+                                <gco:Decimal>44.795</gco:Decimal>
+                            </gmd:southBoundLatitude>
+                            <gmd:northBoundLatitude>
+                                <gco:Decimal>44.795</gco:Decimal>
+                            </gmd:northBoundLatitude>
+                        </gmd:EX_GeographicBoundingBox>
+                    </gmd:geographicElement>
+                    <gmd:temporalElement>
+                        <gmd:EX_TemporalExtent>
+                            <gmd:extent>
+                                <gml:TimePeriod id="45014">
+                                    <gml:beginPosition>2012-08-08T18:30:00.000Z</gml:beginPosition>
+                                    <gml:endPosition indeterminatePosition="now"/>
+                                </gml:TimePeriod>
+                            </gmd:extent>
+                        </gmd:EX_TemporalExtent>
+                    </gmd:temporalElement>
+                    <gmd:verticalElement>
+                        <gmd:EX_VerticalExtent>
+                            <gmd:minimumValue>
+                                <gco:Real>0.0</gco:Real>
+                            </gmd:minimumValue>
+                            <gmd:maximumValue>
+                                <gco:Real>11.0</gco:Real>
+                            </gmd:maximumValue>
+                            <gmd:verticalCRS gco:nilReason="missing"/>
+                        </gmd:EX_VerticalExtent>
+                    </gmd:verticalElement>
+                </gmd:EX_Extent>
+            </gmd:extent>
+        </gmd:MD_DataIdentification>
+    </gmd:identificationInfo>
+    <gmd:identificationInfo>
+        <srv:SV_ServiceIdentification id="45014">
+            <gmd:citation>
+                <gmd:CI_Citation>
+                    <gmd:title>
+                        <gco:CharacterString>Great Lakes Observing System SOS</gco:CharacterString>
+                    </gmd:title>
+                    <gmd:date>
+                        <gmd:CI_Date>
+                            <gmd:date gco:nilReason="unknown"/>
+                            <gmd:dateType gco:nilReason="unknown"/>
+                        </gmd:CI_Date>
+                    </gmd:date>
+                    <gmd:citedResponsibleParty>
+                        <gmd:CI_ResponsibleParty>
+                            <gmd:individualName gco:nilReason="missing"/>
+                            <gmd:organisationName>
+                                <gco:CharacterString>Great Lakes Observing System</gco:CharacterString>
+                            </gmd:organisationName>
+                            <gmd:contactInfo gco:nilReason="missing"/>
+                            <gmd:role>
+                                <gmd:CI_RoleCode
+                                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/CodeList/gmxCodelists.xml#CI_RoleCode" codeListValue="distributor">distributor</gmd:CI_RoleCode>
+                            </gmd:role>
+                        </gmd:CI_ResponsibleParty>
+                    </gmd:citedResponsibleParty>
+                </gmd:CI_Citation>
+            </gmd:citation>
+            <gmd:abstract>
+                <gco:CharacterString>The GB17 buoy (45014) is located approximately 40 km northeast of the mouth of the Fox River at the southern end of Green Bay. The CB-1500 coastal data buoy is secured by a two-point mooring system over a mud substrate in 13 meters of water. All equipment is solar powered and monitors physical, ecological, and meteorological parameters. Data is collected every 30 minutes using a cellular modem, allowing near real-time data collection and water quality monitoring.</gco:CharacterString>
+            </gmd:abstract>
+            <srv:serviceType>
+                <gco:LocalName>Great Lakes Observing System</gco:LocalName>
+            </srv:serviceType>
+            <srv:extent>
+                <gmd:EX_Extent>
+                    <gmd:geographicElement>
+                        <gmd:EX_GeographicBoundingBox>
+                            <gmd:extentTypeCode>
+                                <gco:Boolean>1</gco:Boolean>
+                            </gmd:extentTypeCode>
+                            <gmd:westBoundLongitude>
+                                <gco:Decimal>-87.759</gco:Decimal>
+                            </gmd:westBoundLongitude>
+                            <gmd:eastBoundLongitude>
+                                <gco:Decimal>-87.759</gco:Decimal>
+                            </gmd:eastBoundLongitude>
+                            <gmd:southBoundLatitude>
+                                <gco:Decimal>44.795</gco:Decimal>
+                            </gmd:southBoundLatitude>
+                            <gmd:northBoundLatitude>
+                                <gco:Decimal>44.795</gco:Decimal>
+                            </gmd:northBoundLatitude>
+                        </gmd:EX_GeographicBoundingBox>
+                    </gmd:geographicElement>
+                    <gmd:temporalElement>
+                        <gmd:EX_TemporalExtent>
+                            <gmd:extent>
+                                <gml:TimePeriod id="45014">
+                                    <gml:beginPosition>2012-08-08T18:30:00.000Z</gml:beginPosition>
+                                    <gml:endPosition indeterminatePosition="now"/>
+                                </gml:TimePeriod>
+                            </gmd:extent>
+                        </gmd:EX_TemporalExtent>
+                    </gmd:temporalElement>
+                    <gmd:verticalElement>
+                        <gmd:EX_VerticalExtent>
+                            <gmd:minimumValue>
+                                <gco:Real>0.0</gco:Real>
+                            </gmd:minimumValue>
+                            <gmd:maximumValue>
+                                <gco:Real>11.0</gco:Real>
+                            </gmd:maximumValue>
+                            <gmd:verticalCRS gco:nilReason="missing"/>
+                        </gmd:EX_VerticalExtent>
+                    </gmd:verticalElement>
+                </gmd:EX_Extent>
+            </srv:extent>
+            <srv:couplingType>
+                <srv:SV_CouplingType
+                    codeList="http://www.tc211.org/ISO19139/resources/codeList.xml#SV_CouplingType" codeListValue="tight">tight</srv:SV_CouplingType>
+            </srv:couplingType>
+            <srv:containsOperations>
+                <srv:SV_OperationMetadata>
+                    <srv:operationName>
+                        <gco:CharacterString>SOS Get Capabilities</gco:CharacterString>
+                    </srv:operationName>
+                    <srv:DCP gco:nilReason="unknown"/>
+                    <srv:connectPoint>
+                        <gmd:CI_OnlineResource>
+                            <gmd:linkage>
+                                <gmd:URL>http://sdf.ndbc.noaa.gov/sos/server.php?request=GetCapabilities&amp;service=SOS</gmd:URL>
+                            </gmd:linkage>
+                            <gmd:name>
+                                <gco:CharacterString>SOS</gco:CharacterString>
+                            </gmd:name>
+                            <gmd:description>
+                                <gco:CharacterString>National Data Buoy Center SOS</gco:CharacterString>
+                            </gmd:description>
+                            <gmd:function>
+                                <gmd:CI_OnLineFunctionCode
+                                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download">download</gmd:CI_OnLineFunctionCode>
+                            </gmd:function>
+                        </gmd:CI_OnlineResource>
+                    </srv:connectPoint>
+                </srv:SV_OperationMetadata>
+            </srv:containsOperations>
+            <srv:containsOperations>
+                <srv:SV_OperationMetadata>
+                    <srv:operationName>
+                        <gco:CharacterString>SOS Describe Sensor</gco:CharacterString>
+                    </srv:operationName>
+                    <srv:DCP gco:nilReason="unknown"/>
+                    <srv:connectPoint>
+                        <gmd:CI_OnlineResource>
+                            <gmd:linkage>
+                                <gmd:URL>http://sdf.ndbc.noaa.gov/sos/server.php?request=DescribeSensor&amp;service=SOS&amp;version=1.0.0&amp;outputformat=text/xml;subtype=%22sensorML/1.0.1%22&amp;procedure=urn:ioos:station:wmo:pilm4</gmd:URL>
+                            </gmd:linkage>
+                            <gmd:name>
+                                <gco:CharacterString>SOS</gco:CharacterString>
+                            </gmd:name>
+                            <gmd:description>
+                                <gco:CharacterString>National Data Buoy Center SOS</gco:CharacterString>
+                            </gmd:description>
+                            <gmd:function>
+                                <gmd:CI_OnLineFunctionCode
+                                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download">download</gmd:CI_OnLineFunctionCode>
+                            </gmd:function>
+                        </gmd:CI_OnlineResource>
+                    </srv:connectPoint>
+                </srv:SV_OperationMetadata>
+            </srv:containsOperations>
+            <srv:containsOperations>
+                <srv:SV_OperationMetadata>
+                    <srv:operationName>
+                        <gco:CharacterString>SOS Get Observation</gco:CharacterString>
+                    </srv:operationName>
+                    <srv:DCP gco:nilReason="unknown"/>
+                    <srv:connectPoint>
+                        <gmd:CI_OnlineResource>
+                            <gmd:linkage>
+                                <gmd:URL>http://sdftest.ndbc.noaa.gov/sos/server.php?request=GetObservation&amp;version=1.0.0&amp;service=SOS&amp;observedProperty=air_temperature&amp;responseFormat=text%2Fxml%3Bsubtype%3D%22om%2F1.0.0%22&amp;eventtime=latest&amp;offering=urn:ioos:station:wmo:pilm4</gmd:URL>
+                            </gmd:linkage>
+                            <gmd:name>
+                                <gco:CharacterString>SOS</gco:CharacterString>
+                            </gmd:name>
+                            <gmd:description>
+                                <gco:CharacterString>National Data Buoy Center SOS</gco:CharacterString>
+                            </gmd:description>
+                            <gmd:function>
+                                <gmd:CI_OnLineFunctionCode
+                                    codeList="http://www.ngdc.noaa.gov/metadata/published/xsd/schema/resources/Codelist/gmxCodelists.xml#CI_OnLineFunctionCode" codeListValue="download">download</gmd:CI_OnLineFunctionCode>
+                            </gmd:function>
+                        </gmd:CI_OnlineResource>
+                    </srv:connectPoint>
+                </srv:SV_OperationMetadata>
+            </srv:containsOperations>
+        </srv:SV_ServiceIdentification>
+    </gmd:identificationInfo>
+    <gmd:contentInfo>
+        <gmi:MI_CoverageDescription>
+            <gmd:attributeDescription gco:nilReason="unknown"/>
+            <gmd:contentType gco:nilReason="unknown"/>
+            <gmd:dimension>
+                <gmd:MD_Band>
+                    <gmd:sequenceIdentifier>
+                        <gco:MemberName>
+                            <gco:aName>
+                                <gco:CharacterString>air_temperature</gco:CharacterString>
+                            </gco:aName>
+                            <gco:attributeType gco:nilReason="unknown"/>
+                        </gco:MemberName>
+                    </gmd:sequenceIdentifier>
+                    <gmd:descriptor>
+                        <gco:CharacterString>http://mmisw.org/ont/cf/parameter/air_temperature</gco:CharacterString>
+                    </gmd:descriptor>
+                </gmd:MD_Band>
+            </gmd:dimension>
+            <gmd:dimension>
+                <gmd:MD_Band>
+                    <gmd:sequenceIdentifier>
+                        <gco:MemberName>
+                            <gco:aName>
+                                <gco:CharacterString>air_pressure_at_sea_level</gco:CharacterString>
+                            </gco:aName>
+                            <gco:attributeType gco:nilReason="unknown"/>
+                        </gco:MemberName>
+                    </gmd:sequenceIdentifier>
+                    <gmd:descriptor>
+                        <gco:CharacterString>http://mmisw.org/ont/cf/parameter/air_pressure_at_sea_level</gco:CharacterString>
+                    </gmd:descriptor>
+                </gmd:MD_Band>
+            </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>relative_humidity</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/relative_humidity</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>wind_speed</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/wind_speed</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>wind_from_direction</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/wind_from_direction</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>wind_speed_of_gust</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/wind_speed_of_gust</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_surface_wave_significant_height</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_surface_wind_wave_period</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/winds</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_water_temperature</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/sea_water_temperature</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>eastward_sea_water_velocity</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/eastward_sea_water_velocity</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>northward_sea_water_velocity</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/northward_sea_water_velocity</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_water_electrical_conductivity</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/sea_water_electrical_conductivity</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>sea_water_ph_reported_on_total_scale</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/sea_water_ph_reported_on_total_scale</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>mass_concentration_of_oxygen_in_sea_water</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/mass_concentration_of_oxygen_in_sea_water</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+          <gmd:dimension>
+            <gmd:MD_Band>
+              <gmd:sequenceIdentifier>
+                <gco:MemberName>
+                  <gco:aName>
+                    <gco:CharacterString>mass_concentration_of_chlorophyll_in_sea_water</gco:CharacterString>
+                  </gco:aName>
+                  <gco:attributeType gco:nilReason="unknown"/>
+                </gco:MemberName>
+              </gmd:sequenceIdentifier>
+              <gmd:descriptor>
+                <gco:CharacterString>http://mmisw.org/ont/cf/parameter/mass_concentration_of_chlorophyll_in_sea_water</gco:CharacterString>
+              </gmd:descriptor>
+            </gmd:MD_Band>
+          </gmd:dimension>
+        </gmi:MI_CoverageDescription>
+    </gmd:contentInfo>
+</gmi:MI_Metadata>
