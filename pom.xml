@@ -2,14 +2,23 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.axiomalaska</groupId>
   <artifactId>sensor-web-harvester</artifactId>
-  <version>0.12-SNAPSHOT</version>
+  <version>0.13-SNAPSHOT</version>
   <name>${project.artifactId}</name>
   <inceptionYear>2012</inceptionYear>
+  <packaging>pom</packaging>
+
+  <modules>
+    <module>sensor-web-harvester-main</module>
+    <module>sensor-web-harvester-iso</module>
+    <module>sensor-web-harvester-source</module>
+    <module>sensor-web-harvester-app</module>
+  </modules>
 
   <properties>
     <maven.compiler.source>1.6</maven.compiler.source>
     <maven.compiler.target>1.6</maven.compiler.target>
     <encoding>UTF-8</encoding>
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <scala.version>2.10.0</scala.version>
   </properties>
 
@@ -50,6 +59,26 @@
     </repository>
   </repositories>
 
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>sensor-web-harvester-main</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>sensor-web-harvester-iso</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>${project.groupId}</groupId>
+        <artifactId>sensor-web-harvester-source</artifactId>
+        <version>${project.version}</version>
+      </dependency>      
+    </dependencies>
+  </dependencyManagement>
+
   <dependencies>
     <dependency>
       <groupId>org.scala-lang</groupId>
@@ -73,67 +102,14 @@
       <artifactId>log4j</artifactId>
       <version>1.2.16</version>
     </dependency>
-    <dependency>
-      <groupId>org.jsoup</groupId>
-      <artifactId>jsoup</artifactId>
-      <version>1.5.2</version>
-    </dependency>
-    <dependency>
-        <groupId>org.squeryl</groupId>
-        <artifactId>squeryl_2.10</artifactId>
-        <version>0.9.5-6</version>
-    </dependency>
-    <dependency>
-      <groupId>com.h2database</groupId>
-      <artifactId>h2</artifactId>
-      <version>1.3.172</version>
-    </dependency>
+
+    <!--     
     <dependency>
       <groupId>javax.measure</groupId>
       <artifactId>jsr-275</artifactId>
       <version>0.9.1</version>
     </dependency>
-    <dependency>
-      <groupId>com.axiomalaska</groupId>
-      <artifactId>ioos.xml.schema</artifactId>
-      <version>1.4.0</version>
-    </dependency>
-    <dependency>
-      <groupId>com.axiomalaska</groupId>
-      <artifactId>sos-injector</artifactId>
-      <version>1.5.0-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-configuration</groupId>
-      <artifactId>commons-configuration</artifactId>
-      <version>1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>com.axiomalaska</groupId>
-      <artifactId>ioos-sos-common</artifactId>
-      <version>0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>com.axiomalaska</groupId>
-      <artifactId>nerrs_webservice</artifactId>
-      <version>1.0.0</version>
-    </dependency>
-	<dependency>
-		<groupId>commons-net</groupId>
-		<artifactId>commons-net</artifactId>
-		<version>3.1</version>
-	</dependency>
-	<!-- Needed to allow org.joda DateTime object to work in scala -->
-    <dependency>
-        <groupId>org.joda</groupId>
-        <artifactId>joda-convert</artifactId>
-        <version>1.3.1</version>
-    </dependency>
-    <dependency>
-      <groupId>org.geotools</groupId>
-      <artifactId>gt-shapefile</artifactId>
-      <version>9.3</version>
-    </dependency>    
+ -->
   </dependencies>
 
   <build>
@@ -175,30 +151,6 @@
         </includes>
       </configuration>
     </plugin> 
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>      
-        <artifactId>maven-assembly-plugin</artifactId>
-        <version>2.4</version>
-        <executions>
-            <execution>
-                <phase>package</phase>
-                <goals>
-                    <goal>single</goal>
-                </goals>
-            </execution>
-        </executions>        
-        <configuration>
-          <appendAssemblyId>false</appendAssemblyId>
-          <descriptorRefs>
-            <descriptorRef>jar-with-dependencies</descriptorRef>
-          </descriptorRefs>
-			<archive>
-			  <manifest>
-			     <mainClass>com.axiomalaska.sos.source.Main</mainClass>            
-			  </manifest>
-			</archive>          
-        </configuration>   
-      </plugin>   
   </plugins>
 </build>
 </project>
