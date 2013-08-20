@@ -26,6 +26,7 @@ import com.axiomalaska.sos.harvester.data.SourceId;
 import com.axiomalaska.sos.harvester.data.LocalPhenomenon
 import com.axiomalaska.ioos.sos.GeomHelper
 import scala.collection.mutable.{Set => MSet}
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class RawsStationUpdater(private val stationQuery: StationQuery,
   private val boundingBox: BoundingBox) extends StationUpdater {

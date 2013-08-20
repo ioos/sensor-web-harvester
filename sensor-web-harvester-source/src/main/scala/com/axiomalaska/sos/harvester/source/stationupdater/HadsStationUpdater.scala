@@ -27,6 +27,7 @@ import scala.collection.JavaConversions._
 import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.sos.harvester.data.PhenomenaFactory
 import scala.collection.mutable.{Set => MSet}
+import com.axiomalaska.ioos.sos.GeomHelper
 
 class HadsStationUpdater(
   private val stationQuery: StationQuery,

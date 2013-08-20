@@ -13,6 +13,7 @@ import com.axiomalaska.sos.harvester.data.ObservedProperty;
 import com.axiomalaska.sos.harvester.data.SensorPhenomenonIds;
 import com.axiomalaska.sos.harvester.data.SourceId;
 import com.axiomalaska.sos.harvester.data.LocalPhenomenon
+import com.axiomalaska.ioos.sos.GeomHelper
 import org.jsoup.Jsoup
 import org.jsoup.select.Elements
 import org.apache.log4j.Logger
@@ -26,7 +27,6 @@ import scala.xml.XML
 import javax.measure.Measure
 import javax.measure.unit.NonSI
 import javax.measure.unit.SI
-import com.axiomalaska.ioos.sos.GeomHelper
 import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.sos.harvester.data.PhenomenaFactory
 

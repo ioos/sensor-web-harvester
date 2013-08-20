@@ -1,16 +1,18 @@
 package com.axiomalaska.sos.harvester.source.stationupdater
 
-import org.apache.log4j.Logger
+import scala.collection.JavaConversions.asScalaBuffer
 import scala.collection.mutable
-import scala.collection.JavaConversions._
-import com.axiomalaska.phenomena.Phenomenon
+
+import org.apache.log4j.Logger
+
 import com.axiomalaska.phenomena.Phenomena
+import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.harvester.StationQuery
-import com.axiomalaska.sos.harvester.data.DatabaseStation
-import com.axiomalaska.sos.harvester.data.DatabaseSensor
 import com.axiomalaska.sos.harvester.data.DatabasePhenomenon
-import com.axiomalaska.sos.harvester.data.Source
+import com.axiomalaska.sos.harvester.data.DatabaseSensor
+import com.axiomalaska.sos.harvester.data.DatabaseStation
 import com.axiomalaska.sos.harvester.data.ObservedProperty
+import com.axiomalaska.sos.harvester.data.Source
 
 class StationUpdateTool(private val stationQuery: StationQuery) {
 

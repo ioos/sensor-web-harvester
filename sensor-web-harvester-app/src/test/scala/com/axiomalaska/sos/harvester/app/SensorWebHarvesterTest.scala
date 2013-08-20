@@ -18,22 +18,8 @@ import com.axiomalaska.sos.harvester.data.LocalSource
 import com.axiomalaska.sos.harvester.data.LocalStation
 import com.axiomalaska.sos.harvester.data.PhenomenaFactory
 import com.axiomalaska.sos.harvester.data.SourceId
-import com.axiomalaska.sos.harvester.source.stationupdater.GlosStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.HadsStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.NdbcSosStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.NerrsStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.NoaaNosCoOpsStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.NoaaWeatherStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.RawsStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.SnoTelStationUpdater
-import com.axiomalaska.sos.harvester.source.stationupdater.UsgsWaterStationUpdater
-import com.axiomalaska.sos.harvester.source.observationretriever.RawsObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.HadsObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.NerrsObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.NoaaNosCoOpsObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.UsgsWaterObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.SnoTelObservationRetriever
-import com.axiomalaska.sos.harvester.source.observationretriever.NdbcSosObservationRetriever
+import com.axiomalaska.sos.harvester.source.stationupdater._
+import com.axiomalaska.sos.harvester.source.observationretriever._
 
 object SensorWebHarvesterTest {
   final val databaseUrl:String = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"

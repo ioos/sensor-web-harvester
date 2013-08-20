@@ -3,10 +3,7 @@ package com.axiomalaska.sos.harvester
 import org.junit._
 import Assert._
 import com.axiomalaska.sos.data.SosStation
-import com.axiomalaska.sos.harvester.GeoTools;
 import com.axiomalaska.ioos.sos.GeomHelper
-import com.axiomalaska.sos.harvester.GeoTools
-import com.axiomalaska.sos.harvester.BoundingBox
 
 @Test
 class GeoToolsTest {
