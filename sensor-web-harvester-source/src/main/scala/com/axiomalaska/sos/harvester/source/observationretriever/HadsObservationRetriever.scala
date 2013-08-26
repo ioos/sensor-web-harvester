@@ -57,19 +57,19 @@ class HadsObservationRetriever(private val stationQuery:StationQuery)
     station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon): List[ObservationValues] = {
     val observationValuesCollections =
-        createSensorObservationValuesCollection(station, sensor, phenomenon)
+      createSensorObservationValuesCollection(station, sensor, phenomenon)
 
     val phenomenonForeignTags = observationValuesCollections.map(_.observedProperty.foreign_tag)
-      for {
-        rawValues <- HadsObservationRetriever.createRawValues(result,
-         phenomenonForeignTags)
-         observationValues <- observationValuesCollections.find(
-             _.observedProperty.foreign_tag == rawValues.phenomenonForeignTag)
-         (dateTime, value) <- rawValues.values
-        if (dateTime.isAfter(startDate))
-      } {
-        observationValues.addValue(value.toDouble, dateTime)
-      }
+    for {
+      rawValues <- HadsObservationRetriever.createRawValues(result,
+        phenomenonForeignTags)
+      observationValues <- observationValuesCollections.find(
+        _.observedProperty.foreign_tag == rawValues.phenomenonForeignTag)
+      (dateTime, value) <- rawValues.values
+      if (dateTime.isAfter(startDate))
+    } {
+      observationValues.addValue(value.toDouble, dateTime)
+    }
 
     observationValuesCollections
   }
@@ -83,17 +83,26 @@ class HadsObservationRetriever(private val stationQuery:StationQuery)
       new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
-
-  private def collectValues(data: String, observationValues: ObservationValues,
-    startDate: DateTime) {
-
-  }
 }
 object HadsObservationRetriever{
   private val httpSender = new HttpSender()
   private val gmtTimeZone = DateTimeZone.forID("GMT")
   private val gmtTimeFormatter = DateTimeFormat.forPattern("yyyy-MM-dd HH:mm")
             .withZone(gmtTimeZone)
+  
+  /**
+   * Get the raw unparsed string data for the state ID from the source
+   */
+  def getStateRawData(stateId: String, startDate: DateTime):String = {
+    val parts = List[HttpPart](
+      new HttpPart("state", stateId),
+      new HttpPart("hsa", "nil"),
+      new HttpPart("of", "1"),
+      new HttpPart("nesdis_ids", "nil"),
+      new HttpPart("sinceday", calculatedSinceDay(startDate)))
+
+    httpSender.sendPostMessage(SourceUrls.HADS_OBSERVATION_RETRIEVAL, parts)
+  }
   
   /**
    * Get the raw unparsed string data for the station from the source
