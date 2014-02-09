@@ -181,6 +181,50 @@ object UsgsWaterObservationRetriever {
 
     HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts)
   }
+  
+  /**
+   * @stationForeignIds - the stations foreign ids to pull the values from. 
+   * Maximum of 100 stations. 
+   */
+  def getRawData(stationForeignIds: List[String],
+    startDate: DateTime, endDate: DateTime): String = {
+
+    val thrityDayBeforeEndDate = endDate.minusDays(30)
+
+    val (formatedStartDate, formatedEndDate) =
+      if (startDate.isBefore(thrityDayBeforeEndDate)) {
+        (formatDate.format(getDateObjectInGMT(thrityDayBeforeEndDate)),
+          formatDate.format(getDateObjectInGMT(endDate)))
+      } else {
+        (formatDate.format(getDateObjectInGMT(startDate)),
+          formatDate.format(getDateObjectInGMT(endDate)))
+      }
+
+    val parts = List(
+      new HttpPart("sites", stationForeignIds.mkString(",")),
+      new HttpPart("startDT", formatedStartDate),
+      new HttpPart("endDT", formatedEndDate),
+      new HttpPart("siteStatus", "active"))
+
+    HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts)
+  }
+  
+  /**
+   * @stationForeignIds - the stations foreign ids to pull the values from. 
+   * Maximum of 100 stations.
+   * @numberOfHoursBefore - number of hours back to look for values.  
+   */
+  def getRawDataLastHours(stationForeignIds: List[String], 
+      numberOfHoursBefore: Int): String = {
+    val hoursBeforeString = "PT" + numberOfHoursBefore + "H"
+    val parts = List[HttpPart](
+      new HttpPart("sites", stationForeignIds.mkString(",")),
+      new HttpPart("modifiedSince", hoursBeforeString),
+      new HttpPart("period", hoursBeforeString),
+      new HttpPart("siteStatus", "active"))
+
+    HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts, false)
+  }
 
   /**
    *
