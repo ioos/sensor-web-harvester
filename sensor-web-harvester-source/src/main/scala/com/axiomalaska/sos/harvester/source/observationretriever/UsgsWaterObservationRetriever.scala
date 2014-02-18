@@ -26,6 +26,10 @@ import org.cuahsi.waterML.x11.TimeSeriesType
 import com.axiomalaska.sos.harvester.data.RawValues
 import scala.collection.mutable
 
+/**
+ * Information on how to use the USGS water service
+ * http://waterservices.usgs.gov/rest/IV-Service.html
+ */
 class UsgsWaterObservationRetriever(private val stationQuery: StationQuery,
   private val logger: Logger = Logger.getRootLogger())
   extends ObservationValuesCollectionRetriever {
