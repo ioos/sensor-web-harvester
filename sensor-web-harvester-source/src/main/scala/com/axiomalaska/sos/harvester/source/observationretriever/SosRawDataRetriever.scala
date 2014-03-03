@@ -207,13 +207,78 @@ class SosRawDataRetriever() {
     }
   }
   
+  def createCurrentsRawValues(rawData: String, 
+      phenomenonForeignTags: List[String]): List[RawValues] = {
+    val xmlResult = scala.xml.XML.loadString(rawData)
+    xmlResult.find(node => node.label == "CompositeObservation") match {
+      case Some(compositeObservationDocument) ⇒ {
+
+        val binsXml = xmlResult \ "procedure" \ "Process" \ "CompositeContext" \ "valueComponents" \ "ContextArray" \
+          "valueComponents" \ "CompositeContext" \ "valueComponents" \ "ContextArray" \
+          "valueComponents" \ "CompositeContext" \ "valueComponents" \ "ContextArray" \
+          "valueComponents"
+
+        val bins = (for {
+          binXml ← binsXml \ "Context"
+          val name = (binXml \ "@name").toString
+          val units = binXml \ "@uom"
+          val value = binXml.text.toDouble
+        } yield {
+          (name, value)
+        }).toArray
+
+        val composites = compositeObservationDocument \ "result" \ "Composite" \ "valueComponents" \
+          "Array" \ "valueComponents" \ "Composite" \ "valueComponents" \ "Array" \ "valueComponents" \ "Composite"
+
+        val rawValuesMap = new mutable.HashMap[String, mutable.ListBuffer[(DateTime, Double)]]()
+
+        phenomenonForeignTags.foreach(tag =>
+          rawValuesMap.put(tag, new mutable.ListBuffer[(DateTime, Double)]()))
+
+        for {
+          composite <- composites
+          valueComponents <- composite \ "valueComponents"
+          compositeContextNode <- valueComponents \ "CompositeContext"
+          val dateTime = createDate(compositeContextNode)
+          binnedQuantity <- getBinnedQuantities(valueComponents, bins)
+        } {
+          rawValuesMap.get(binnedQuantity.name) match {
+            case Some(values) =>
+              values.add((dateTime, binnedQuantity.value))
+            case None => // do nothing
+          }
+        }
+
+        (for { (phenomenonForeignTag, values) <- rawValuesMap } yield {
+          RawValues(phenomenonForeignTag, values.toList)
+        }).toList
+      }
+      case None => {
+        Nil
+      }
+    }
+  }
+  
+  private case class BinnedQuantity(name:String, value:Double)
+  
+  private def getBinnedQuantities(valueComponentsNode:Node, bins:Array[(String, Double)]):List[BinnedQuantity] ={
+    (for{(compositeValue, bin) <- (valueComponentsNode \ "ValueArray" \ "valueComponents" \ "CompositeValue").zip(bins)} yield {
+      for{quantity <- compositeValue \ "valueComponents" \ "Quantity"} yield {
+        val units = quantity \ "@uom"
+        val name = ((quantity \ "@name") + "-" + bin._2)
+        val value = quantity.text.toDouble
+        
+        BinnedQuantity(name, value)
+      }
+    }).flatten.toList
+  }
+  
   /**
    * Parse the raw unparsed data into DateTime, Value list.
    *
-   * phenomenonForeignTag - The HADS Phenomenon Foreign Tag
+   * phenomenonForeignTag - The Phenomenon Foreign Tag
    */
   def createRawValues(rawData: String, phenomenonForeignTags: List[String]): List[RawValues] = {
-
     val xmlResult = scala.xml.XML.loadString(rawData)
     xmlResult.find(node => node.label == "CompositeObservation") match {
       case Some(compositeObservationDocument) => {

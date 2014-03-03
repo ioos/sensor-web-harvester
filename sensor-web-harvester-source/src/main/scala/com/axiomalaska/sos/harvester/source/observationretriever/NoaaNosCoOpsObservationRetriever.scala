@@ -75,23 +75,45 @@ object NoaaNosCoOpsObservationRetriever{
     
     val thirdyDaysOld = DateTime.now().minusDays(30)
 
-    val adjustedStartDate = if (startDate.isBefore(thirdyDaysOld)) {
-      thirdyDaysOld
-    } else {
-      startDate
+    val (adjustedStartDate, adjustedEndDate) = sensorForeignId match{
+      // for currents request only 4 days can be requested at a time. 
+      case "http://mmisw.org/ont/cf/parameter/currents" =>{
+        if (startDate.isBefore(endDate.minusDays(4))) {
+          (endDate.minusDays(4), endDate)
+        } else {
+          (startDate, endDate)
+        }
+      }
+      case _ ⇒ {
+        if (startDate.isBefore(thirdyDaysOld)) {
+          (thirdyDaysOld, endDate)
+        } else {
+          (startDate, endDate)
+        }
+      }
     }
     
     sosRawDataRetriever.getRawData(SourceUrls.NOAA_NOS_CO_OPS_SOS, stationTag, 
-        sensorForeignId, adjustedStartDate, endDate)
+        sensorForeignId, adjustedStartDate, adjustedEndDate)
   }
   
   /**
    * Parse the raw unparsed data into DateTime, Value list. 
    * 
-   * phenomenonForeignTag - The HADS Phenomenon Foreign Tag
+   * phenomenonForeignTag - The Phenomenon Foreign Tag
    */
   def createRawValues(rawData: String, 
       phenomenonForeignTags: List[String]): List[RawValues] ={
     sosRawDataRetriever.createRawValues(rawData, phenomenonForeignTags)
+  }
+  
+  /**
+   * Parse the raw unparsed data into DateTime, Value list. 
+   * 
+   * phenomenonForeignTag - The Phenomenon Foreign Tag
+   */
+  def createCurrentsRawValues(rawData: String, 
+      phenomenonForeignTags: List[String]): List[RawValues] ={
+    sosRawDataRetriever.createCurrentsRawValues(rawData, phenomenonForeignTags)
   }
 }

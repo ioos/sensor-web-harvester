@@ -298,7 +298,9 @@ object UsgsWaterObservationRetriever {
   }
 
   private def createDate(valueSingleVariable: ValueSingleVariable): DateTime = {
-    new DateTime(valueSingleVariable.getDateTime())
+    val date = valueSingleVariable.getDateTime()
+    date.setTimeZone(TimeZone.getTimeZone("UTC"))
+    new DateTime(date)
   }
 
   private def getDateObjectInGMT(dateTime: DateTime): Date = {
