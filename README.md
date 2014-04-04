@@ -38,13 +38,13 @@ it has not been tested.
 
 The following are the requirements to run this project:
 * Java 1.6 or newer 
-* An already running instance of an [IOOS Customized 52 North SOS](http://ioossostest.axiomalaska.com)
+* An already running instance of an [IOOS Customized 52 North SOS](http://ioossos.axiomalaska.com)
 
 
 Configuring the SOS Injector
 -----------
 The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
-[Downloads folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/download) on Github. 
+GitHub [releases page](https://github.com/ioos/sensor-web-harvester/releases). 
 
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update.  The properties file requires the following variables:
 ```
@@ -89,7 +89,7 @@ network_root_source_id = aoos
 sources = all
 ```
 
-An example of a properties file named `example_sos.properties` is also provided on Github at the [Downloads Folder](https://github.com/axiomalaska/sensor-web-harvester/tree/master/download).
+An example of a properties file named `example_sos.properties` is also provided on the Github [releases page](https://github.com/ioos/sensor-web-harvester/releases).
 
 
 Running the SOS Injector
