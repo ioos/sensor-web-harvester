@@ -1,33 +1,6 @@
-*.class
-*log*
-
-# Package Files #
-*.gz
-*.war
-*.ear
-*.tar
+*.log
 .cache
 .classpath
 .project
 .settings
 target
-
-# ignored example files
-ex_*
-example.properties
-epa_*
-*txt
-*log*
-glos_station/*
-glosbuoy_metadata/*
-*gz
-*doc*
-*out*
-waterqualityportal/*
-*idea
-iso/*
-*iml
-*sh
-*bat
-*zip
-*.props
