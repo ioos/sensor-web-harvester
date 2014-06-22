@@ -24,6 +24,9 @@ import com.axiomalaska.sos.harvester.data.ObservationValues
 import com.axiomalaska.sos.tools.HttpPart
 import com.axiomalaska.sos.tools.HttpSender
 
+/**
+ * The time zone is currently only correct for Alaska stations. 
+ */
 class RawsObservationRetriever(private val stationQuery:StationQuery)
 	extends ObservationValuesCollectionRetriever {
   
