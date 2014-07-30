@@ -145,21 +145,6 @@ object UsgsWaterObservationRetriever {
   }
 
   /**
-   * Get the raw unparsed string data for the state ID from the source
-   */
-  def getStateRawDataLastHours(stateId: String, numberOfHoursBefore: Int): String = {
-    val hoursBeforeString = "PT" + numberOfHoursBefore + "H"
-    val parts = List[HttpPart](
-      new HttpPart("stateCd", stateId),
-      new HttpPart("parameterCd", "all"),
-      new HttpPart("modifiedSince", hoursBeforeString),
-      new HttpPart("period", hoursBeforeString),
-      new HttpPart("siteStatus", "active"))
-
-    HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts, false)
-  }
-
-  /**
    *
    * @stateId - the two character representing a state required eg. AK,CA
    */
@@ -187,7 +172,7 @@ object UsgsWaterObservationRetriever {
   }
   
   /**
-   * @stationForeignIds - the stations foreign ids to pull the values from. 
+   * @stationForeignIds - the stations foreign IDs to pull the values from. 
    * Maximum of 100 stations. 
    */
   def getRawData(stationForeignIds: List[String],
@@ -214,17 +199,22 @@ object UsgsWaterObservationRetriever {
   }
   
   /**
-   * @stationForeignIds - the stations foreign ids to pull the values from. 
+   * The modifiedSince tag only retrieves values that have change in the time requested.
+   * This is for corrected values. 
+   * 
+   * @stationForeignIds - the stations foreign IDs to pull the values from. 
    * Maximum of 100 stations.
-   * @numberOfHoursBefore - number of hours back to look for values.  
+   * @numberOfHoursSinceModified - .  
+   * @peroidToLookBack - how far to look back for changes
    */
-  def getRawDataLastHours(stationForeignIds: List[String], 
-      numberOfHoursBefore: Int): String = {
-    val hoursBeforeString = "PT" + numberOfHoursBefore + "H"
+  def getRawDataCorrectedValues(stationForeignIds: List[String], 
+      numberOfHoursSinceModified: Int, peroidToLookBack:Int): String = {
+    val modifiedSince = "PT" + numberOfHoursSinceModified + "H"
+    val period = "PT" + peroidToLookBack + "H"
     val parts = List[HttpPart](
       new HttpPart("sites", stationForeignIds.mkString(",")),
-      new HttpPart("modifiedSince", hoursBeforeString),
-      new HttpPart("period", hoursBeforeString),
+      new HttpPart("modifiedSince", modifiedSince),
+      new HttpPart("period", period),
       new HttpPart("siteStatus", "active"))
 
     HttpSender.sendGetMessage(SourceUrls.USGS_WATER_OBSERVATION_RETRIEVAL, parts, false)

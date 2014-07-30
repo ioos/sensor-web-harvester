@@ -77,9 +77,9 @@ class SosRawDataRetriever() {
     val xb_binTempOp = BinaryTemporalOpType.Factory.newInstance();
 
     xb_binTempOp.addNewPropertyName();
-    var cursor = xb_binTempOp.newCursor();
-    cursor.toChild(new QName("http://www.opengis.net/ogc", "PropertyName"));
-    cursor.setTextValue("om:samplingTime");
+    val cursor1 = xb_binTempOp.newCursor();
+    cursor1.toChild(new QName("http://www.opengis.net/ogc", "PropertyName"));
+    cursor1.setTextValue("om:samplingTime");
 
     val xb_timePeriod = TimePeriodType.Factory.newInstance();
 
@@ -95,18 +95,17 @@ class SosRawDataRetriever() {
     eventTime.setTemporalOps(xb_binTempOp);
 
     // rename elements:
-    cursor = eventTime.newCursor();
-    cursor.toChild(new QName("http://www.opengis.net/ogc", "temporalOps"));
-    cursor.setName(new QName("http://www.opengis.net/ogc", "TM_During"));
+    val cursor2 = eventTime.newCursor();
+    cursor2.toChild(new QName("http://www.opengis.net/ogc", "temporalOps"));
+    cursor2.setName(new QName("http://www.opengis.net/ogc", "TM_During"));
 
-    cursor.toChild(new QName("http://www.opengis.net/gml", "_TimeObject"));
-    cursor.setName(new QName("http://www.opengis.net/gml", "TimePeriod"));
+    cursor2.toChild(new QName("http://www.opengis.net/gml", "_TimeObject"));
+    cursor2.setName(new QName("http://www.opengis.net/gml", "TimePeriod"));
 
     xb_getObs.setResultModel((new QName("http://www.opengis.net/gml",
       "Observation")));
 
-    var request = xb_getObsDoc.xmlText();
-    request = request.replace("gml=\"http://www.opengis.net/gml\"",
+    val request = xb_getObsDoc.xmlText().replace("gml=\"http://www.opengis.net/gml\"",
       "gml=\"http://www.opengis.net/gml/3.2\"");
 
     val results = HttpSender.sendPostMessage(serviceUrl, request);
@@ -152,8 +151,7 @@ class SosRawDataRetriever() {
     xb_getObs.setResultModel((new QName("http://www.opengis.net/gml",
       "Observation")));
 
-    var request = xb_getObsDoc.xmlText();
-    request = request.replace("gml=\"http://www.opengis.net/gml\"",
+    val request = xb_getObsDoc.xmlText().replace("gml=\"http://www.opengis.net/gml\"",
       "gml=\"http://www.opengis.net/gml/3.2\"");
 
     val results = HttpSender.sendPostMessage(serviceUrl, request)
