@@ -28,13 +28,8 @@
     </dependency>
     <dependency>
       <groupId>com.axiomalaska</groupId>
-      <artifactId>ioos-sos-common</artifactId>
-      <version>0.1-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>com.axiomalaska</groupId>
       <artifactId>sos-injector</artifactId>
-      <version>1.7.0-SNAPSHOT</version>
+      <version>1.7.0</version>
     </dependency>
     <dependency>
       <groupId>org.squeryl</groupId>
