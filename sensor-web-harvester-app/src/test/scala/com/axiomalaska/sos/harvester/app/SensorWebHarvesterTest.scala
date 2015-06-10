@@ -180,9 +180,10 @@ class SensorWebHarvesterTest {
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
       new NerrsStationUpdater(stationQuery, alaskaBoundingBox).update
       val obsValues = new NerrsObservationRetriever(stationQuery).getObservationValues _ tupled
-          getTestConstellation(stationQuery, SourceId.NERRS, new DateTime().minusDays(5))
+//          getTestConstellation(stationQuery, SourceId.NERRS, new DateTime().minusDays(5))
       //TODO why is obsValues empty?
 //      assertFalse(obsValues.isEmpty)
+      // The user of this code needs to register their IP address with NERRS to be able to access the data. 
     })
   }
 

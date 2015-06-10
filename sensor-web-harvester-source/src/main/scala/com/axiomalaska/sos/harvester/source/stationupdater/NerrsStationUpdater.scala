@@ -21,13 +21,17 @@ import org.joda.time.DateTime
 import com.axiomalaska.ioos.sos.GeomHelper
 
 case class NerrsStation(siteId: String, stationCode: String, stationName: String,
-  latitude: Double, longitude: Double, isActive: Boolean, state: String,
-  reserveName: String, paramsReported: List[String], time_begin: DateTime,
-  time_end: DateTime)
+                        latitude: Double, longitude: Double, isActive: Boolean, state: String,
+                        reserveName: String, paramsReported: List[String], time_begin: DateTime,
+                        time_end: DateTime)
 
+/**
+ * The user of this code needs to register their IP address with NERRS to be able
+ * to access the data. 
+ */
 class NerrsStationUpdater(
-  private val stationQuery: StationQuery,
-  private val boundingBox: BoundingBox) extends StationUpdater {
+    private val stationQuery: StationQuery,
+    private val boundingBox: BoundingBox) extends StationUpdater {
 
   private val source = stationQuery.getSource(SourceId.NERRS)
   private val geoTools = new GeoTools()
@@ -184,23 +188,23 @@ class NerrsStationUpdater(
         Some(stationUpdater.getObservedProperty(Phenomena.instance.CHLOROPHYLL, param,
           Units.MICROGRAMS_PER_LITER, source))
       }
-      case "Depth" => None
-      case "Level" => None
+      case "Depth"    => None
+      case "Level"    => None
 
       case "MaxWSpdT" => None //Maximum Wind Speed Time hh:mm
-      case "SDWDir" => None //Wind Direction Standard Deviation sd
-      case "TotPAR" => None //Total PAR (LiCor) mmoles/m^2
-      case "SpCond" => None //Specific Conductivity mS/cm 
-      case "Ke_N" => None //not supported
-      case "TIDE" => None //not supported
-      case "WAVHGT" => None //not supported
-      case "PHOSH" => None //not supported
-      case "CLOUD" => None //not supported
-      case "UREA" => None //not supported
-      case "PRECIP" => None //not supported
-      case "WINDIR" => None //not supported
-      case "WINSPD" => None //not supported
-      case "" => None
+      case "SDWDir"   => None //Wind Direction Standard Deviation sd
+      case "TotPAR"   => None //Total PAR (LiCor) mmoles/m^2
+      case "SpCond"   => None //Specific Conductivity mS/cm 
+      case "Ke_N"     => None //not supported
+      case "TIDE"     => None //not supported
+      case "WAVHGT"   => None //not supported
+      case "PHOSH"    => None //not supported
+      case "CLOUD"    => None //not supported
+      case "UREA"     => None //not supported
+      case "PRECIP"   => None //not supported
+      case "WINDIR"   => None //not supported
+      case "WINSPD"   => None //not supported
+      case ""         => None
       case _ => {
         LOGGER.debug("[" + source.name + "] observed property: " + param +
           " is not processed correctly.")
@@ -221,24 +225,33 @@ class NerrsStationUpdater(
     nerrsStationXml match {
       case Some(xml) => {
         val nerrsStations = for (row <- (xml \\ "data")) yield {
-          val siteId = (row \\ "NERR_Site_ID").text
-          val stationCode = (row \\ "Station_Code").text
-          val stationName = (row \\ "Station_Name").text
-          val latitude = (row \\ "Latitude").text.toDouble
-          val longitude = (row \\ "Longitude").text.toDouble * (-1)
-          val isActive = (row \\ "Status").text match {
-            case "Active" => true
-            case _ => false
-          }
-          val state = (row \\ "State").text
-          val reserveName = (row \\ "Reserve_Name").text
-          val paramsReported = (row \\ "Params_Reported").text.split(",").toList
+          val latitudeRaw = (row \\ "Latitude").text
+          val longitudeRaw = (row \\ "Longitude").text
+          
+          println(latitudeRaw + " " + longitudeRaw)
 
-          NerrsStation(siteId, stationCode, stationName, latitude, longitude,
-            isActive, state, reserveName, paramsReported, null, null)
+          if (latitudeRaw.nonEmpty && longitudeRaw.nonEmpty) {
+            val siteId = (row \\ "NERR_Site_ID").text
+            val stationCode = (row \\ "Station_Code").text
+            val stationName = (row \\ "Station_Name").text
+            val latitude = latitudeRaw.toDouble
+            val longitude = longitudeRaw.toDouble * (-1)
+            val isActive = (row \\ "Status").text match {
+              case "Active" => true
+              case _        => false
+            }
+            val state = (row \\ "State").text
+            val reserveName = (row \\ "Reserve_Name").text
+            val paramsReported = (row \\ "Params_Reported").text.split(",").toList
+
+            Some(NerrsStation(siteId, stationCode, stationName, latitude, longitude,
+              isActive, state, reserveName, paramsReported, null, null))
+          } else {
+            None
+          }
         }
 
-        nerrsStations.toList
+        nerrsStations.toList.flatten
       }
       case None => Nil
     }

@@ -1,156 +1,151 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
-  <groupId>com.axiomalaska</groupId>
-  <artifactId>sensor-web-harvester</artifactId>
-  <version>0.13-SNAPSHOT</version>
-  <name>${project.artifactId}</name>
-  <inceptionYear>2012</inceptionYear>
-  <packaging>pom</packaging>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.axiomalaska</groupId>
+	<artifactId>sensor-web-harvester</artifactId>
+	<version>0.14-SNAPSHOT</version>
+	<name>${project.artifactId}</name>
+	<inceptionYear>2012</inceptionYear>
+	<packaging>pom</packaging>
 
-  <modules>
-    <module>sensor-web-harvester-main</module>
-    <module>sensor-web-harvester-iso</module>
-    <module>sensor-web-harvester-source</module>
-    <module>sensor-web-harvester-app</module>
-  </modules>
+	<modules>
+		<module>sensor-web-harvester-main</module>
+		<module>sensor-web-harvester-iso</module>
+		<module>sensor-web-harvester-source</module>
+		<module>sensor-web-harvester-app</module>
+	</modules>
 
-  <properties>
-    <maven.compiler.source>1.7</maven.compiler.source>
-    <maven.compiler.target>1.7</maven.compiler.target>
-    <encoding>UTF-8</encoding>
-    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <scala.version>2.10.4</scala.version>
-  </properties>
+	<properties>
+		<maven.compiler.source>1.7</maven.compiler.source>
+		<maven.compiler.target>1.7</maven.compiler.target>
+		<encoding>UTF-8</encoding>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<scala.version>2.11.6</scala.version>
+	</properties>
 
-  <distributionManagement>
-    <repository>
-      <id>axiom_public_releases</id>
-      <name>Axiom Releases</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>
+	<distributionManagement>
+		<repository>
+			<id>axiom_public_releases</id>
+			<name>Axiom Releases</name>
+			<uniqueVersion>false</uniqueVersion>
+			<url>
         http://nexus.axiomalaska.com/nexus/content/repositories/public-releases
       </url>
-    </repository>
-    <snapshotRepository>
-      <id>axiom_public_snapshots</id>
-      <name>Axiom Snapshots</name>
-      <uniqueVersion>false</uniqueVersion>
-      <url>
+		</repository>
+		<snapshotRepository>
+			<id>axiom_public_snapshots</id>
+			<name>Axiom Snapshots</name>
+			<uniqueVersion>false</uniqueVersion>
+			<url>
         http://nexus.axiomalaska.com/nexus/content/repositories/public-snapshots
       </url>
-    </snapshotRepository>
-  </distributionManagement>
-  
-  <repositories>
-    <repository>
-      <id>axiom_public_releases</id>
-      <name>Axiom Releases</name>
-      <url>http://nexus.axiomalaska.com/nexus/content/repositories/public/</url>
-    </repository>
-    <repository>
-      <id>maven2-repository.dev.java.net</id>
-      <name>Java.net repository</name>
-      <url>http://download.java.net/maven/2</url>
-    </repository>
-    <repository>
-      <id>osgeo</id>
-      <name>Open Source Geospatial Foundation Repository</name>
-      <url>http://download.osgeo.org/webdav/geotools/</url>
-    </repository>
-  </repositories>
+		</snapshotRepository>
+	</distributionManagement>
 
-  <dependencyManagement>
-    <dependencies>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>sensor-web-harvester-main</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>sensor-web-harvester-iso</artifactId>
-        <version>${project.version}</version>
-      </dependency>
-      <dependency>
-        <groupId>${project.groupId}</groupId>
-        <artifactId>sensor-web-harvester-source</artifactId>
-        <version>${project.version}</version>
-      </dependency>      
-    </dependencies>
-  </dependencyManagement>
+	<repositories>
+		<repository>
+			<id>axiom_public_releases</id>
+			<name>Axiom Releases</name>
+			<url>http://nexus.axiomalaska.com/nexus/content/repositories/public/</url>
+		</repository>
+		<repository>
+			<id>maven2-repository.dev.java.net</id>
+			<name>Java.net repository</name>
+			<url>http://download.java.net/maven/2</url>
+		</repository>
+		<repository>
+			<id>osgeo</id>
+			<name>Open Source Geospatial Foundation Repository</name>
+			<url>http://download.osgeo.org/webdav/geotools/</url>
+		</repository>
+	</repositories>
 
-  <dependencies>
-    <dependency>
-      <groupId>org.scala-lang</groupId>
-      <artifactId>scala-library</artifactId>
-      <version>${scala.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.11</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.scalatest</groupId>
-      <artifactId>scalatest_2.10</artifactId>
-      <version>2.2.0</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>log4j</groupId>
-      <artifactId>log4j</artifactId>
-      <version>1.2.17</version>
-    </dependency>
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sensor-web-harvester-main</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sensor-web-harvester-iso</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>sensor-web-harvester-source</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
 
-    <!--     
-    <dependency>
-      <groupId>javax.measure</groupId>
-      <artifactId>jsr-275</artifactId>
-      <version>0.9.1</version>
-    </dependency>
- -->
-  </dependencies>
+	<dependencies>
+		<dependency>
+			<groupId>org.scala-lang</groupId>
+			<artifactId>scala-library</artifactId>
+			<version>${scala.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>junit</groupId>
+			<artifactId>junit</artifactId>
+			<version>4.11</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.scalatest</groupId>
+			<artifactId>scalatest_2.11</artifactId>
+			<version>3.0.0-M1</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
 
-  <build>
-    <sourceDirectory>src/main/scala</sourceDirectory>
-    <testSourceDirectory>src/test/scala</testSourceDirectory>
-    <plugins>
-      <plugin>
-        <groupId>org.scala-tools</groupId>
-        <artifactId>maven-scala-plugin</artifactId>
-        <version>2.15.0</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>compile</goal>
-              <goal>testCompile</goal>
-            </goals>
-            <configuration>
-              <args>
-                <arg>-make:transitive</arg>
-                <arg>-dependencyfile</arg>
-                <arg>${project.build.directory}/.scala_dependencies</arg>
-              </args>
-            </configuration>
-          </execution>
-        </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-surefire-plugin</artifactId>
-        <version>2.6</version>
-        <configuration>
-          <useFile>false</useFile>
-          <disableXmlReport>true</disableXmlReport>
-          <!-- If you have classpath issue like NoDefClassError,... -->
-          <!-- useManifestOnlyJar>false</useManifestOnlyJar -->
-        <includes>
-          <include>**/*Test.*</include>
-          <include>**/*Suite.*</include>
-        </includes>
-      </configuration>
-    </plugin> 
-  </plugins>
-</build>
+		<!-- <dependency> <groupId>javax.measure</groupId> <artifactId>jsr-275</artifactId> 
+			<version>0.9.1</version> </dependency> -->
+	</dependencies>
+
+	<build>
+		<sourceDirectory>src/main/scala</sourceDirectory>
+		<testSourceDirectory>src/test/scala</testSourceDirectory>
+		<plugins>
+			<plugin>
+				<groupId>net.alchim31.maven</groupId>
+				<artifactId>scala-maven-plugin</artifactId>
+				<version>3.2.0</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>compile</goal>
+							<goal>testCompile</goal>
+						</goals>
+						<configuration>
+							<args>
+								<arg>-dependencyfile</arg>
+								<arg>${project.build.directory}/.scala_dependencies</arg>
+							</args>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.6</version>
+				<configuration>
+					<useFile>false</useFile>
+					<disableXmlReport>true</disableXmlReport>
+					<!-- If you have classpath issue like NoDefClassError,... -->
+					<!-- useManifestOnlyJar>false</useManifestOnlyJar -->
+					<includes>
+						<include>**/*Test.*</include>
+						<include>**/*Suite.*</include>
+					</includes>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
 </project>
