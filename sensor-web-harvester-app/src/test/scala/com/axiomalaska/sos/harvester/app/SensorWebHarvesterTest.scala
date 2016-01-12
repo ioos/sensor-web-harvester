@@ -20,9 +20,11 @@ import com.axiomalaska.sos.harvester.data.PhenomenaFactory
 import com.axiomalaska.sos.harvester.data.SourceId
 import com.axiomalaska.sos.harvester.source.stationupdater._
 import com.axiomalaska.sos.harvester.source.observationretriever._
+import org.junit.Ignore
 
 object SensorWebHarvesterTest {
-  final val databaseUrl:String = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
+  //final val databaseUrl:String = "jdbc:h2:mem:test;DB_CLOSE_DELAY=-1"
+  final val databaseUrl:String = "jdbc:h2:/tmp/swh;DB_CLOSE_DELAY=-1"
   final val metadataDatabaseManager = new MetadataDatabaseManager(SensorWebHarvesterTest.databaseUrl)
   final val queryBuilder = new StationQueryBuilder(SensorWebHarvesterTest.databaseUrl)
   final val sosUrl:String = "http://ioossos.axiomalaska.com/52n-sos-ioos/sos/pox"
@@ -209,6 +211,7 @@ class SensorWebHarvesterTest {
   }
 
   @Test
+  @Ignore
   def testRaws(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
       new RawsStationUpdater(stationQuery, iowaBoundingBox).update
@@ -219,6 +222,7 @@ class SensorWebHarvesterTest {
   }
   
   @Test
+  @Ignore
   def testSnoTel(){
     SensorWebHarvesterTest.queryBuilder.withStationQuery(stationQuery => {
       new SnoTelStationUpdater(stationQuery, mediumBoundingBox).update
