@@ -1,0 +1,10 @@
+.git
+.gitignore
+Dockerfile
+.dockerignore
+README.md
+.project
+.classpath
+.settings
+*/target
+
