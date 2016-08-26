@@ -2,7 +2,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.axiomalaska</groupId>
   <artifactId>sensor-web-harvester</artifactId>
-  <version>1.1-SNAPSHOT</version>
+  <version>1.1</version>
   <name>${project.artifactId}</name>
   <inceptionYear>2012</inceptionYear>
   <packaging>pom</packaging>
@@ -161,6 +161,6 @@
     <connection>scm:git:git@github.com:ioos/sensor-web-harvester.git</connection>
     <url>scm:git:git@github.com:ioos/sensor-web-harvester.git</url>
     <developerConnection>scm:git:git@github.com:ioos/sensor-web-harvester.git</developerConnection>
-    <tag>HEAD</tag>
+    <tag>1.1</tag>
   </scm>
 </project>
