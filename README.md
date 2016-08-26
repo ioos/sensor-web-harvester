@@ -41,7 +41,7 @@ The following are the requirements to run this project:
 * An already running instance of an [IOOS Customized 52 North SOS](http://ioossos.axiomalaska.com)
 
 
-Configuring the SOS Injector
+Configuring sensor-web-harvester
 -----------
 The pre-built sensor-web-harvester.jar and example_sos.properties can be downloaded from the 
 GitHub [releases page](https://github.com/ioos/sensor-web-harvester/releases). 
@@ -49,10 +49,11 @@ GitHub [releases page](https://github.com/ioos/sensor-web-harvester/releases).
 The command line takes in a properties file which contains all of the needed variables to perform an SOS update.  The properties file requires the following variables:
 ```
 # The URL where the H2 metadata database should be stored
+# Note: if running in Docker, use jdbc:h2:/srv/swhdb/db
 database_url = jdbc:h2:/usr/local/sensor_web_harvester
 
 # The URL to the SOS being used.
-sos_url = http://localhost:8080/52n-sos-ioos/sos
+sos_url = http://localhost:8080/i52n-sos
 
 # The publisher's country
 publisher_country = USA
@@ -91,9 +92,23 @@ sources = all
 
 An example of a properties file named `example_sos.properties` is also provided on the Github [releases page](https://github.com/ioos/sensor-web-harvester/releases).
 
-
-Running the SOS Injector
+## Running with Docker
 -----------
+
+See below for explanations of the `metadata`, `updatesos`, and `writeiso` modes.
+
+The following is an example of a Docker execution (Docker 1.9.0+ required).
+You must create your `sos.properties` config file first. You do not have to
+install any dependencies other than Docker.
+
+```shell
+docker run --rm -v swhdb:/srv/swhdb -v $(pwd)/sos.properties:/tmp/sos.properties \
+  ioos/sensor-web-harvester -updatesos /tmp/sos.properties
+```
+
+## Running sensor-web-harvester
+-----------
+
 #### Note: Running these processes can take a long time (hours) as information is downloaded and extracted from many sources.
 
 The sensor-web-harvester has three modes:
