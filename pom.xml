@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.axiomalaska</groupId>
   <artifactId>sensor-web-harvester</artifactId>
-  <version>0.14-SNAPSHOT</version>
+  <version>1.0-SNAPSHOT</version>
   <name>${project.artifactId}</name>
   <inceptionYear>2012</inceptionYear>
   <packaging>pom</packaging>
@@ -103,58 +103,62 @@
       <artifactId>log4j</artifactId>
       <version>1.2.17</version>
     </dependency>
+  </dependencies>
 
-    <!-- <dependency> <groupId>javax.measure</groupId> <artifactId>jsr-275</artifactId> 
-      <version>0.9.1</version> </dependency> -->
-    </dependencies>
-
-    <build>
-      <sourceDirectory>src/main/scala</sourceDirectory>
-      <testSourceDirectory>src/test/scala</testSourceDirectory>
-      <pluginManagement>
-        <plugins>
-          <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-release-plugin</artifactId>
-            <version>2.5.3</version>
-          </plugin>
-        </plugins>
-      </pluginManagement>
+  <build>
+    <sourceDirectory>src/main/scala</sourceDirectory>
+    <testSourceDirectory>src/test/scala</testSourceDirectory>
+    <pluginManagement>
       <plugins>
         <plugin>
-          <groupId>net.alchim31.maven</groupId>
-          <artifactId>scala-maven-plugin</artifactId>
-          <version>3.2.0</version>
-          <executions>
-            <execution>
-              <goals>
-                <goal>compile</goal>
-                <goal>testCompile</goal>
-              </goals>
-              <configuration>
-                <args>
-                  <arg>-dependencyfile</arg>
-                  <arg>${project.build.directory}/.scala_dependencies</arg>
-                </args>
-              </configuration>
-            </execution>
-          </executions>
-        </plugin>
-        <plugin>
           <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.6</version>
-          <configuration>
-            <useFile>false</useFile>
-            <disableXmlReport>true</disableXmlReport>
-            <!-- If you have classpath issue like NoDefClassError,... -->
-            <!-- useManifestOnlyJar>false</useManifestOnlyJar -->
-            <includes>
-              <include>**/*Test.*</include>
-              <include>**/*Suite.*</include>
-            </includes>
-          </configuration>
+          <artifactId>maven-release-plugin</artifactId>
+          <version>2.5.3</version>
         </plugin>
       </plugins>
-    </build>
-  </project>
+    </pluginManagement>
+    <plugins>
+      <plugin>
+        <groupId>net.alchim31.maven</groupId>
+        <artifactId>scala-maven-plugin</artifactId>
+        <version>3.2.0</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>compile</goal>
+              <goal>testCompile</goal>
+            </goals>
+            <configuration>
+              <args>
+                <arg>-dependencyfile</arg>
+                <arg>${project.build.directory}/.scala_dependencies</arg>
+              </args>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-surefire-plugin</artifactId>
+        <version>2.6</version>
+        <configuration>
+          <useFile>false</useFile>
+          <disableXmlReport>true</disableXmlReport>
+          <!-- If you have classpath issue like NoDefClassError,... -->
+          <!-- useManifestOnlyJar>false</useManifestOnlyJar -->
+          <includes>
+            <include>**/*Test.*</include>
+            <include>**/*Suite.*</include>
+          </includes>
+        </configuration>
+      </plugin>
+    </plugins>
+  </build>
+
+  <scm>
+    <connection>scm:git:git@github.com:ioos/sensor-web-harvester.git</connection>
+    <url>scm:git:git@github.com:ioos/sensor-web-harvester.git</url>
+    <developerConnection>scm:git:git@github.com:ioos/sensor-web-harvester.git</developerConnection>
+    <tag>HEAD</tag>
+  </scm>
+</project>
