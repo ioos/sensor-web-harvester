@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/ioos/sensor-web-harvester.svg?branch=master)](https://travis-ci.org/ioos/sensor-web-harvester)
+
 sensor-web-harvester
 ====================
 
