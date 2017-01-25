@@ -22,6 +22,6 @@ object SourceUrls {
   val SNOTEL_COLLECTION_SENSOR_INFO_FOR_STATION = "http://www.wcc.nrcs.usda.gov/nwcc/sensors"
   val SNOTEL_COLLECTION_OF_STATIONS = "http://www.wcc.nrcs.usda.gov/ftpref/data/water/wcs/earth/snotelwithoutlabels.kmz"
 
-  val USGS_WATER_OBSERVATION_RETRIEVAL = "http://waterservices.usgs.gov/nwis/iv"
-  val USGS_WATER_COLLECTION_OF_STATE_STATIONS = "http://waterservices.usgs.gov/nwis/iv?stateCd="
+  val USGS_WATER_OBSERVATION_RETRIEVAL = "https://waterservices.usgs.gov/nwis/iv"
+  val USGS_WATER_COLLECTION_OF_STATE_STATIONS = "https://waterservices.usgs.gov/nwis/iv?stateCd="
 }
