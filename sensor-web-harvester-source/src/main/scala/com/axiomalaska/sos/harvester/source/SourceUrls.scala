@@ -2,10 +2,10 @@ package com.axiomalaska.sos.harvester.source
 
 object SourceUrls {
 
-  val HADS_OBSERVATION_RETRIEVAL = "http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData"
-  val HADS_COLLECTION_STATE_URLS = "http://amazon.nws.noaa.gov/hads/goog_earth/"
-  val HADS_STATE_URL_TEMPLATE = "http://amazon.nws.noaa.gov/hads/charts/%s.html"
-  val HADS_STATION_INFORMATION = "http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id="
+  val HADS_OBSERVATION_RETRIEVAL = "http://hads.ncep.noaa.gov/nexhads2/servlet/DecodedData"
+  val HADS_COLLECTION_STATE_URLS = "http://hads.ncep.noaa.gov/hads/goog_earth/"
+  val HADS_STATE_URL_TEMPLATE = "http://hads.ncep.noaa.gov/hads/charts/%s.html"
+  val HADS_STATION_INFORMATION = "http://hads.ncep.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id="
 
   val NDBC_SOS = "http://sdf.ndbc.noaa.gov/sos/server.php"
 

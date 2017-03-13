@@ -213,7 +213,6 @@ class HadsStationUpdater(
     } else {
       Nil
     }
-//    List("http://amazon.nws.noaa.gov/hads/charts/AK.html")
   }
 
   private def getStateUrls(): List[String] = {
