@@ -201,11 +201,11 @@ List of Sources URLs
 
 ### [HADS](http://www.nws.noaa.gov/ohd/hads/)
 #### Pull stations Information
-* http://amazon.nws.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
-* http://amazon.nws.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
+* http://hads.ncep.noaa.gov/hads/goog_earth/ - used to get the list of state URLs
+* http://hads.ncep.noaa.gov/cgi-bin/hads/interactiveDisplays/displayMetaData.pl?table=dcp&nesdis_id= - used to pull station information. Needs the stations id or foreign id at the end of the URL
 
 #### Observation Retrieval
-* http://amazon.nws.noaa.gov/nexhads2/servlet/DecodedData - pull observations for a station. A POST request with the needed values pairs of:
+* http://hads.ncep.noaa.gov/nexhads2/servlet/DecodedData - pull observations for a station. A POST request with the needed values pairs of:
 
 1. state = nil
 1. hsa = nil
