@@ -27,7 +27,7 @@ object SensorWebHarvesterTest {
   final val databaseUrl:String = "jdbc:h2:/tmp/swh;DB_CLOSE_DELAY=-1"
   final val metadataDatabaseManager = new MetadataDatabaseManager(SensorWebHarvesterTest.databaseUrl)
   final val queryBuilder = new StationQueryBuilder(SensorWebHarvesterTest.databaseUrl)
-  final val sosUrl:String = "http://ioossos.axiomalaska.com/52n-sos-ioos/sos/pox"
+  final val sosUrl:String = "http://dev.demo.i52nsos.axiomdatascience.com/sos/pox"
 
   @BeforeClass
   def setupDatabase ={

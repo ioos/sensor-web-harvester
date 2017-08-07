@@ -40,7 +40,7 @@ it has not been tested.
 
 The following are the requirements to run this project:
 * Java 1.6 or newer 
-* An already running instance of an [IOOS Customized 52 North SOS](http://ioossos.axiomalaska.com)
+* An already running instance of an [IOOS Customized 52 North SOS](http://ioos.github.io/i52n-sos/)
 
 
 Configuring sensor-web-harvester
