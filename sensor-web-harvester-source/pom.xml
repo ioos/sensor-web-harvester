@@ -4,7 +4,7 @@
   <parent>
     <groupId>com.axiomalaska</groupId>
     <artifactId>sensor-web-harvester</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.3</version>
   </parent>
   <artifactId>sensor-web-harvester-source</artifactId>
   <name>sensor-web-harvester-source</name>
