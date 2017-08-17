@@ -168,7 +168,7 @@ object Main {
     LOGGER.info("country: " + country)
     LOGGER.info("email: " + email)
     LOGGER.info("name: " + name)
-    LOGGER.info("webAddress" + webAddress)
+    LOGGER.info("webAddress: " + webAddress)
     LOGGER.info("sources: " + sources)
     LOGGER.info("northLat: " + northLat)
     LOGGER.info("southLat: " + southLat)

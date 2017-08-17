@@ -16,6 +16,7 @@ import com.axiomalaska.phenomena.Phenomena
 import com.axiomalaska.phenomena.Phenomenon
 import com.axiomalaska.sos.harvester.data.LocalPhenomenon
 import com.axiomalaska.sos.tools.HttpSender
+import com.typesafe.config.ConfigFactory
 import org.apache.commons.net.ftp.FTPReply
 import org.apache.log4j.Logger
 import java.io.ByteArrayOutputStream
@@ -36,13 +37,27 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
 
   val name = "GLOS"
   
-  //ftp info
-  private val ftp_host = "glos.us"
-  private val ftp_port = 21
-  private val ftp_user = "asa"
-  private val ftp_pass = "AGSLaos001"
-  private val glos_ftp: FTPClient = new FTPClient()
   private val LOGGER = Logger.getLogger(getClass())
+
+  //ftp info
+  private val config = ConfigFactory.parseFile(new File("glos.conf"))
+  /*
+  glos.conf file needed with ftp connection config in same dir as sensor-web-harvester jar, example:
+
+  ftp {
+    host = "glos.us"
+    port = 21
+    user = "someuser"
+    pass = "somepassword"
+  }
+  */
+
+  private val ftp_host = config.getString("ftp.host")
+  private val ftp_port = config.getInt("ftp.port")
+  private val ftp_user = config.getString("ftp.user")
+  private val ftp_pass = config.getString("ftp.pass")
+
+  private val glos_ftp: FTPClient = new FTPClient()
     
   private val temp_file = "platform.csv"
   private val glos_metadata_folder = "glosbuoy_metadata/"
@@ -57,9 +72,11 @@ class GlosStationUpdater (private val stationQuery: StationQuery,
   private val dateParser = ISODateTimeFormat.dateTime()
 
   def update() {
-    
     LOGGER.info("Updating GLOS...")
-    
+    LOGGER.info("FTP host: " + ftp_host)
+    LOGGER.info("FTP port: " + ftp_port)
+    LOGGER.info("FTP user: " + ftp_user)
+
     val sourceStationSensors = getSourceStations()
 
     val databaseStations = stationQuery.getAllStations(source)

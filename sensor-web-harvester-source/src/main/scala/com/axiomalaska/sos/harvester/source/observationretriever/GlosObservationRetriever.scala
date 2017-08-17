@@ -26,6 +26,8 @@ import com.axiomalaska.sos.harvester.data.LocalStation
 import com.axiomalaska.sos.harvester.data.ObservationValues
 import com.axiomalaska.sos.harvester.data.SourceId
 import com.axiomalaska.sos.tools.HttpSender
+import java.io.File
+import com.typesafe.config.ConfigFactory
 
 object GlosObservationRetriever {
   private var filesInMemory: List[scala.xml.Elem] = Nil
@@ -51,11 +53,23 @@ import GlosObservationRetriever._
   
   private var filesToMove: List[String] = List()
     
-  //ftp info - below is the glos server
-  private val ftp_host = "glos.us"
-  private val ftp_port = 21
-  private val ftp_user = "asa"
-  private val ftp_pass = "AGSLaos001"
+  //ftp info
+  private val config = ConfigFactory.parseFile(new File("glos.conf"))
+  /*
+  glos.conf file needed with ftp connection config in same dir as sensor-web-harvester jar, example:
+
+  ftp {
+    host = "glos.us"
+    port = 21
+    user = "someuser"
+    pass = "somepassword"
+  }
+  */
+  private val ftp_host = config.getString("ftp.host")
+  private val ftp_port = config.getInt("ftp.port")
+  private val ftp_user = config.getString("ftp.user")
+  private val ftp_pass = config.getString("ftp.pass")
+
   private val reloc_dir = "processed"
   private val glos_ftp: FTPClient = new FTPClient()
   private var fileList: Array[FTPFile] = null
@@ -111,6 +125,10 @@ import GlosObservationRetriever._
   }
   
   private def readInFtpFilesIntoMemory(stationId: String) = {
+    logger.info("FTP host: " + ftp_host)
+    logger.info("FTP port: " + ftp_port)
+    logger.info("FTP user: " + ftp_user)
+
     try {
       if (!glos_ftp.isConnected) {
         glos_ftp.connect(ftp_host, ftp_port)
