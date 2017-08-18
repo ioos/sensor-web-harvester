@@ -30,7 +30,7 @@ import java.io.File
 import com.typesafe.config.ConfigFactory
 
 object GlosObservationRetriever {
-  private var filesInMemory: List[scala.xml.Elem] = Nil
+  private var filesInMemory: List[String] = Nil
   private var currentStationName: String = ""
 }
 
@@ -93,8 +93,8 @@ import GlosObservationRetriever._
     // finally iterate over the observation values and match the tags to what the file has, adding data to that observationValue
     val sttag = if (station.databaseStation.foreign_tag.contains(":")) station.databaseStation.foreign_tag.substring(
         station.databaseStation.foreign_tag.lastIndexOf(":")+1) else station.databaseStation.foreign_tag
-    val stationXMLList = getMatchedStations(sttag)
-    for (stationXML <- stationXMLList) {
+    for (matchedFile <- filesInMemory.filter(_.contains("<station>" + sttag + "</station>"))) {
+      val stationXML = scala.xml.XML.loadString(matchedFile)
       for {
         message <- (stationXML \\ "message")
         reportDate = {
@@ -163,7 +163,7 @@ import GlosObservationRetriever._
       } yield {
         fileCount += 1
         logger.info("Reading file [" + file.getName + "]: " + fileCount + " out of " + fileList.size)
-        readFileIntoXML(file.getName)
+        readFileIntoString(file.getName)
       }
       filesInMemory = files.filter(_.isDefined).map(m => m.get).toList
     } catch {
@@ -188,7 +188,7 @@ import GlosObservationRetriever._
       case ex: Exception => logger.error("Exception closing ftp " + ex.toString)
     }
   }
-  
+
   private def createSensorObservationValuesCollection(station: LocalStation, sensor: LocalSensor,
     phenomenon: LocalPhenomenon): List[ObservationValues] = {
     val observedProperties = stationQuery.getObservedProperties(
@@ -198,26 +198,7 @@ import GlosObservationRetriever._
       new ObservationValues(observedProperty, sensor, phenomenon, observedProperty.foreign_units)
     }
   }
-  
-  private def getMatchedStations(stationTag : String) : List[scala.xml.Elem] = {
-    val xmlList = for {
-      file <- filesInMemory
-    } yield {
-      if (file != null) {
-        if ((file \\ "message" \ "station").head.text.trim.equalsIgnoreCase(stationTag)) {
-          new Some[scala.xml.Elem](file)
-        } else {
-          None
-        }
-      } else {
-        logger.error("Removing file from memory")
-        filesInMemory = { filesInMemory diff List(file) }
-        None
-      }
-    }
-    xmlList.filter(_.isDefined).map(g => g.get).toList
-  }
-  
+
   private def moveFileToProcessed(fileName: String) = {
     val dest = "./" + reloc_dir + "/" + fileName
     var success = false
@@ -241,12 +222,12 @@ import GlosObservationRetriever._
       logger.warn("Unable to move file " + fileName + " after three attempts.")
   }    
   
-  private def readFileIntoXML(fileName : String) : Option[scala.xml.Elem] = {
+  private def readFileIntoString(fileName : String) : Option[String] = {
     val byteStream: ByteArrayOutputStream = new ByteArrayOutputStream()
     var inpStream: ByteArrayInputStream = null
     var success = false
     var attempts = 0
-    var retval: Option[scala.xml.Elem] = None
+    var retval: Option[String] = None
     while (attempts < 3 && !success) {
       attempts += 1
       try {
@@ -255,8 +236,8 @@ import GlosObservationRetriever._
               filesToMove = fileName :: filesToMove
               inpStream = new ByteArrayInputStream(byteStream.toByteArray)
 
-              val xml = scala.xml.XML.load(inpStream)
-              retval = new Some[scala.xml.Elem](xml)
+              val string = byteStream.toString
+              retval = new Some[String](string)
           }
           case false => {
               logger.error("could not read in file " + fileName)
